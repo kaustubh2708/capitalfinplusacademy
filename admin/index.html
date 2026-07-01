@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex" />
+  <title>Capital Finplus — Admin Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <script src="../data.js"></script>
+  <script src="../config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../supabase-client.js"></script>
+  <script src="../auth.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0a0804; --surface: #120e02; --surface-2: #1a1404;
+      --border: rgba(244,194,13,0.16); --accent: #F4C20D; --accent-bright: #FFD24D;
+      --accent-dim: rgba(244,194,13,0.12);
+      --text: #ffffff; --text-sec: rgba(255,255,255,0.55);
+      --text-muted: rgba(255,255,255,0.32);
+      --green: #22c55e; --green-dim: rgba(34,197,94,0.12);
+      --red: #ef4444; --red-dim: rgba(239,68,68,0.1);
+      --amber: #fbbf24; --amber-dim: rgba(245,158,11,0.12);
+      --sidebar-w: 250px;
+    }
+    html { height: 100%; }
+    body {
+      font-family: 'Manrope', sans-serif; background: var(--bg); color: var(--text);
+      min-height: 100vh; display: flex;
+      background-image: radial-gradient(ellipse 60% 50% at 15% 10%, rgba(244,194,13,0.1) 0%, transparent 60%),
+                         radial-gradient(ellipse 50% 40% at 90% 80%, rgba(154,115,0,0.08) 0%, transparent 60%);
+    }
+
+    /* ── LOGIN SCREEN ── */
+    #login-screen { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 9999; }
+    .login-card { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 2.5rem; width: min(420px, 90vw); box-shadow: 0 0 60px rgba(244,194,13,0.08); }
+    .login-logo { display: flex; align-items: center; gap: 10px; margin-bottom: 2rem; }
+    .login-logo-mark { width: 36px; height: 36px; border-radius: 8px; background: var(--accent); display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 1rem; color: #fff; box-shadow: 0 0 20px rgba(244,194,13,0.4); }
+    .login-logo span { font-size: 1.15rem; font-weight: 800; }
+    .login-card h2 { font-size: 1.35rem; font-weight: 800; margin-bottom: 0.4rem; }
+    .login-card p { font-size: 0.85rem; color: var(--text-sec); margin-bottom: 2rem; }
+    .field { margin-bottom: 1.1rem; }
+    .field label { display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-sec); margin-bottom: 0.4rem; }
+    .field input { width: 100%; padding: 0.75rem 1rem; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 0.9rem; font-family: inherit; transition: border-color 0.2s; }
+    .field input:focus { outline: none; border-color: var(--accent); }
+    .login-error { font-size: 0.8rem; color: var(--red); margin-bottom: 0.75rem; display: none; }
+    .btn-accent { width: 100%; padding: 0.875rem; background: var(--accent); color: #fff; border: none; border-radius: 8px; font-size: 0.92rem; font-weight: 700; cursor: pointer; font-family: inherit; transition: opacity 0.2s; box-shadow: 0 0 20px rgba(244,194,13,0.3); }
+    .btn-accent:hover { opacity: 0.9; }
+    .login-hint { font-size: 0.74rem; color: var(--text-muted); margin-top: 0.75rem; text-align: center; }
+
+    /* ── MAIN APP ── */
+    #app { display: none; width: 100%; }
+    .sidebar { width: var(--sidebar-w); height: 100vh; background: var(--surface); border-right: 1px solid var(--border); position: fixed; left: 0; top: 0; display: flex; flex-direction: column; z-index: 100; overflow-y: auto; }
+    .sidebar-logo { padding: 1.5rem 1.25rem; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--border); }
+    .sidebar-logo-mark { width: 30px; height: 30px; border-radius: 6px; background: var(--accent); display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 0.85rem; color: #fff; box-shadow: 0 0 14px rgba(244,194,13,0.4); }
+    .sidebar-logo span { font-size: 0.98rem; font-weight: 800; }
+    .sidebar-badge { font-size: 0.6rem; font-weight: 700; background: var(--accent-dim); color: var(--accent-bright); padding: 2px 6px; border-radius: 4px; margin-left: auto; }
+    nav.sidebar-nav { padding: 1rem 0; flex: 1; }
+    .nav-section-label { font-size: 0.63rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-muted); padding: 0.5rem 1.25rem; margin-top: 0.5rem; }
+    .nav-item { display: flex; align-items: center; gap: 0.7rem; padding: 0.62rem 1.25rem; cursor: pointer; font-size: 0.85rem; font-weight: 500; color: var(--text-sec); transition: color 0.2s, background 0.2s; border-left: 3px solid transparent; }
+    .nav-item:hover { color: var(--text); background: rgba(244,194,13,0.04); }
+    .nav-item.active { color: var(--accent-bright); background: var(--accent-dim); border-left-color: var(--accent); }
+    .nav-item .icon { font-size: 1rem; width: 18px; text-align: center; }
+    .nav-item .count-pill { margin-left: auto; font-size: 0.65rem; font-weight: 700; background: rgba(255,255,255,0.06); padding: 1px 7px; border-radius: 10px; color: var(--text-muted); }
+    .sidebar-footer { padding: 1.25rem; border-top: 1px solid var(--border); }
+    .sidebar-footer button { width: 100%; padding: 0.6rem; background: transparent; border: 1px solid var(--border); border-radius: 8px; color: var(--text-sec); font-size: 0.8rem; cursor: pointer; font-family: inherit; transition: background 0.2s; }
+    .sidebar-footer button:hover { background: rgba(244,194,13,0.06); color: var(--text); }
+
+    .main { margin-left: var(--sidebar-w); flex: 1; padding: 0; min-width: 0; }
+    .topbar { position: sticky; top: 0; background: rgba(5,0,9,0.85); backdrop-filter: blur(10px); border-bottom: 1px solid var(--border); padding: 1rem 2rem; display: flex; align-items: center; justify-content: space-between; z-index: 50; }
+    .topbar h1 { font-size: 1.05rem; font-weight: 700; }
+    .topbar-actions { display: flex; gap: 0.75rem; align-items: center; }
+    .btn-save { padding: 0.55rem 1.25rem; background: var(--accent); color: #fff; border: none; border-radius: 8px; font-size: 0.82rem; font-weight: 700; cursor: pointer; font-family: inherit; transition: opacity 0.2s; box-shadow: 0 0 16px rgba(244,194,13,0.3); }
+    .btn-save:hover { opacity: 0.9; }
+    .btn-outline { padding: 0.55rem 1.25rem; background: transparent; color: var(--text-sec); border: 1px solid var(--border); border-radius: 8px; font-size: 0.82rem; font-weight: 600; cursor: pointer; font-family: inherit; transition: background 0.2s, color 0.2s; text-decoration: none; display: inline-flex; align-items: center; gap: 0.4rem; }
+    .btn-outline:hover { background: rgba(244,194,13,0.06); color: var(--text); }
+
+    .panel { display: none; padding: 2rem; max-width: 1200px; }
+    .panel.active { display: block; }
+
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 1.5rem; margin-bottom: 1.5rem; }
+    .card h3 { font-size: 0.92rem; font-weight: 700; margin-bottom: 1.25rem; color: var(--text); display: flex; align-items: center; gap: 0.5rem; }
+    .card h3 .tag { font-size: 0.63rem; font-weight: 700; background: var(--accent-dim); color: var(--accent-bright); padding: 2px 7px; border-radius: 4px; }
+    .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 2rem; }
+    .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem; }
+    .stat-label { font-size: 0.72rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
+    .stat-value { font-size: 1.7rem; font-weight: 800; margin: 0.25rem 0; }
+    .stat-change { font-size: 0.72rem; color: var(--green); font-weight: 600; }
+    .stat-change.neutral { color: var(--text-muted); }
+    .stat-change.warn { color: var(--amber); }
+
+    .form-group { margin-bottom: 1.25rem; }
+    .form-label { display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-sec); margin-bottom: 0.4rem; }
+    .form-hint { font-size: 0.74rem; color: var(--text-sec); line-height: 1.6; margin: 0 0 0.5rem; }
+    .form-hint code { background: var(--surface-2); border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px; font-size: 0.72rem; }
+    .form-input, .form-textarea, .form-select { width: 100%; padding: 0.7rem 0.9rem; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 0.86rem; font-family: inherit; transition: border-color 0.2s; }
+    .form-input:focus, .form-textarea:focus, .form-select:focus { outline: none; border-color: var(--accent); }
+    .form-textarea { resize: vertical; min-height: 80px; }
+    .form-select option { background: var(--surface); }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; }
+    .hint { font-size: 0.73rem; color: var(--text-muted); margin-top: 0.3rem; }
+
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
+    th { padding: 0.65rem 1rem; text-align: left; font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); border-bottom: 1px solid var(--border); white-space: nowrap; }
+    td { padding: 0.85rem 1rem; border-bottom: 1px solid var(--border); color: var(--text-sec); vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(244,194,13,0.03); }
+    .badge { display: inline-flex; padding: 2px 9px; border-radius: 999px; font-size: 0.68rem; font-weight: 700; white-space: nowrap; }
+    .badge-free, .badge-captured, .badge-published { background: var(--green-dim); color: var(--green); }
+    .badge-premium, .badge-pending { background: var(--accent-dim); color: var(--accent-bright); }
+    .badge-draft, .badge-refunded { background: rgba(255,255,255,0.06); color: var(--text-muted); }
+    .badge-failed { background: var(--red-dim); color: var(--red); }
+    .badge-booking { background: var(--amber-dim); color: var(--amber); }
+    .badge-contact { background: rgba(244,194,13,0.1); color: var(--accent-bright); }
+    .action-btn { padding: 0.3rem 0.7rem; border-radius: 6px; border: 1px solid var(--border); background: none; color: var(--text-sec); font-size: 0.76rem; cursor: pointer; font-family: inherit; transition: all 0.2s; }
+    .action-btn:hover { background: rgba(244,194,13,0.08); color: var(--text); }
+    .action-btn.delete:hover { background: var(--red-dim); color: var(--red); border-color: var(--red); }
+    .actions-cell { display: flex; gap: 0.4rem; }
+    .mono { font-family: 'SFMono-Regular', Consolas, monospace; font-size: 0.78rem; color: var(--text-muted); }
+
+    .editor-wrap { background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+    .editor-toolbar { padding: 0.6rem 0.8rem; border-bottom: 1px solid var(--border); display: flex; gap: 0.4rem; flex-wrap: wrap; }
+    .tb-btn { padding: 0.35rem 0.65rem; border-radius: 6px; border: 1px solid var(--border); background: none; color: var(--text-sec); font-size: 0.76rem; font-weight: 600; cursor: pointer; font-family: inherit; transition: all 0.2s; }
+    .tb-btn:hover { background: rgba(244,194,13,0.08); color: var(--text); }
+    .editor-area { min-height: 240px; padding: 1rem; color: var(--text); font-size: 0.88rem; line-height: 1.8; outline: none; }
+    .editor-area:empty::before { content: 'Start writing your article content here...'; color: var(--text-muted); pointer-events: none; }
+
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; }
+    .item-edit-card { background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem; }
+    .item-edit-card .item-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+    .item-edit-card .item-num { font-size: 0.74rem; font-weight: 700; color: var(--text-muted); }
+
+    #toast { position: fixed; bottom: 1.5rem; right: 1.5rem; background: var(--green); color: white; padding: 0.75rem 1.25rem; border-radius: 10px; font-size: 0.875rem; font-weight: 600; transform: translateY(80px); opacity: 0; transition: transform 0.3s, opacity 0.3s; z-index: 9999; box-shadow: 0 8px 30px rgba(0,0,0,0.3); }
+    #toast.show { transform: translateY(0); opacity: 1; }
+
+    .modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 5000; align-items: center; justify-content: center; }
+    .modal-backdrop.open { display: flex; }
+    .modal-box { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 2rem; width: min(640px, 90vw); max-height: 85vh; overflow-y: auto; position: relative; }
+    .modal-close { position: absolute; top: 1rem; right: 1rem; background: none; border: none; color: var(--text-sec); font-size: 1.3rem; cursor: pointer; }
+    .modal-title { font-size: 1.15rem; font-weight: 800; margin-bottom: 1.5rem; }
+
+    .empty-state { text-align: center; padding: 3rem 1rem; color: var(--text-muted); font-size: 0.85rem; }
+
+    @media (max-width: 900px) {
+      .sidebar { transform: translateX(-100%); transition: transform 0.3s; }
+      .sidebar.open { transform: translateX(0); }
+      .main { margin-left: 0; }
+      .stats-grid { grid-template-columns: 1fr 1fr; }
+      .form-row, .form-row-3 { grid-template-columns: 1fr; }
+    }
+  </style>
+  <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
+</head>
+<body>
+
+<!-- ══ LOGIN ══ -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="login-logo-mark">C</div>
+      <span>Capital Finplus <span style="color:var(--accent-bright)">Admin</span></span>
+    </div>
+    <h2>Sign in to Dashboard</h2>
+    <p>Manage your website content, blog posts, pricing, transactions and form leads.</p>
+    <div class="login-error" id="login-error">Incorrect password. Please try again.</div>
+    <div class="field">
+      <label for="login-email">Email</label>
+      <input type="email" id="login-email" placeholder="you@capitalfinplus.com" autocomplete="username" />
+    </div>
+    <div class="field">
+      <label for="login-pass">Password</label>
+      <input type="password" id="login-pass" placeholder="Enter admin password" autocomplete="current-password" />
+    </div>
+    <button class="btn-accent" id="login-btn">Sign In →</button>
+    <p class="login-hint">Contact the administrator for access.</p>
+  </div>
+</div>
+
+<!-- ══ APP ══ -->
+<div id="app">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-mark">C</div>
+      <span>Capital Finplus</span>
+      <span class="sidebar-badge">Admin</span>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Overview</div>
+      <div class="nav-item active" data-panel="dashboard"><span class="icon">📊</span> Dashboard</div>
+      <div class="nav-section-label">Website Content</div>
+      <div class="nav-item" data-panel="hero"><span class="icon">🏠</span> Hero Section</div>
+      <div class="nav-item" data-panel="about"><span class="icon">👤</span> About / Founder</div>
+      <div class="nav-item" data-panel="courses"><span class="icon">📚</span> Courses &amp; Pricing</div>
+      <div class="nav-item" data-panel="testimonials"><span class="icon">💬</span> Testimonials</div>
+      <div class="nav-section-label">Blog</div>
+      <div class="nav-item" data-panel="blog-list"><span class="icon">📝</span> All Articles <span class="count-pill" id="nav-article-count">0</span></div>
+      <div class="nav-item" data-panel="blog-new"><span class="icon">✏️</span> New Article</div>
+      <div class="nav-section-label">Backtesting</div>
+      <div class="nav-item" data-panel="bt-list"><span class="icon">📈</span> All Backtests <span class="count-pill" id="nav-bt-count">0</span></div>
+      <div class="nav-item" data-panel="bt-new"><span class="icon">🧾</span> New Backtest</div>
+      <div class="nav-section-label">Money &amp; Leads</div>
+      <div class="nav-item" data-panel="transactions"><span class="icon">💳</span> Transactions <span class="count-pill" id="nav-tx-count">0</span></div>
+      <div class="nav-item" data-panel="submissions"><span class="icon">📥</span> Form Submissions <span class="count-pill" id="nav-sub-count">0</span></div>
+      <div class="nav-section-label">Settings</div>
+      <div class="nav-item" data-panel="contact-info"><span class="icon">📞</span> Contact &amp; Integrations</div>
+    </nav>
+    <div class="sidebar-footer">
+      <button id="logout-btn">↩ Sign Out</button>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <div class="topbar">
+      <h1 id="topbar-title">Dashboard</h1>
+      <div class="topbar-actions">
+        <a href="../index.html" target="_blank" class="btn-outline"><span>↗</span> Preview Site</a>
+        <button class="btn-save" id="global-save">Save Changes</button>
+      </div>
+    </div>
+
+    <!-- ── DASHBOARD ── -->
+    <div class="panel active" id="panel-dashboard">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">Blog Articles</div>
+          <div class="stat-value" id="stat-articles">0</div>
+          <div class="stat-change" id="stat-articles-sub">— free · — premium</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Courses Listed</div>
+          <div class="stat-value" id="stat-courses">0</div>
+          <div class="stat-change neutral">All active</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Captured Revenue</div>
+          <div class="stat-value" id="stat-revenue">₹0</div>
+          <div class="stat-change" id="stat-revenue-sub">from captured payments</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">New Leads</div>
+          <div class="stat-value" id="stat-leads">0</div>
+          <div class="stat-change neutral">bookings + contact forms</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>⚡ Quick Actions</h3>
+        <div style="display:flex;gap:0.75rem;flex-wrap:wrap">
+          <button class="btn-save" onclick="switchPanel('blog-new')">+ New Blog Post</button>
+          <button class="btn-outline" onclick="switchPanel('courses')">Edit Course Pricing</button>
+          <button class="btn-outline" onclick="switchPanel('hero')">Update Hero Text</button>
+          <button class="btn-outline" onclick="switchPanel('transactions')">View Transactions</button>
+          <button class="btn-outline" onclick="switchPanel('submissions')">View Form Leads</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>📋 How This Works <span class="tag" id="last-updated-tag">—</span></h3>
+        <div style="font-size:0.85rem;color:var(--text-sec);line-height:2">
+          <p>Every change you make here is saved to this browser and <strong style="color:var(--accent-bright)">read live by the public site</strong> (index.html / blog.html) the next time it loads — hero copy, pricing, testimonials, and blog posts are all driven from this single dashboard.</p>
+          <p style="margin-top:0.75rem">The <strong style="color:var(--accent-bright)">Transactions</strong> and <strong style="color:var(--accent-bright)">Form Submissions</strong> panels currently show sample data structured to match a real Razorpay payment / lead-capture feed. Once Razorpay and Calendly are wired to a backend, swap <span class="mono">cfpLoadData()</span> for a real API call and these panels will show live data with no other changes needed.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── HERO SECTION ── -->
+    <div class="panel" id="panel-hero">
+      <div class="card">
+        <h3>🏠 Hero Section <span class="tag">Live</span></h3>
+        <div class="form-group">
+          <label class="form-label">Main Headline (Line 1)</label>
+          <input class="form-input" id="hero-line1" />
+          <div class="hint">Displayed before "the" and the accent text</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Accent Headline (Purple text)</label>
+          <input class="form-input" id="hero-accent" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Headline Line 3</label>
+          <input class="form-input" id="hero-line3" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Sub-headline / Description (HTML allowed, e.g. &lt;br&gt;)</label>
+          <textarea class="form-textarea" id="hero-sub"></textarea>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Primary CTA Button Text</label>
+            <input class="form-input" id="hero-cta1" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Secondary CTA Button Text</label>
+            <input class="form-input" id="hero-cta2" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Top Badge Text</label>
+          <input class="form-input" id="hero-badge" />
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>📊 Stats Bar</h3>
+        <div class="form-row-3">
+          <div class="form-group"><label class="form-label">Students (number only)</label><input class="form-input" id="stat-students-input" /></div>
+          <div class="form-group"><label class="form-label">Years of Experience</label><input class="form-input" id="stat-experience-input" /></div>
+          <div class="form-group"><label class="form-label">Average Rating</label><input class="form-input" id="stat-rating-input" /></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── ABOUT ── -->
+    <div class="panel" id="panel-about">
+      <div class="card">
+        <h3>👤 Founder / About Section</h3>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Founder Name</label>
+            <input class="form-input" id="founder-name-input" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Title / Credential Tag</label>
+            <input class="form-input" id="founder-title-input" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Heading (HTML allowed, e.g. &lt;br&gt;)</label>
+          <input class="form-input" id="about-heading-input" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">About Paragraph 1</label>
+          <textarea class="form-textarea" id="about-p1-input"></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">About Paragraph 2</label>
+          <textarea class="form-textarea" id="about-p2-input"></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Founder Bio Quote</label>
+          <textarea class="form-textarea" id="founder-bio-input"></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Credentials / Badges (comma-separated)</label>
+          <input class="form-input" id="about-credentials-input" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Founder Photo</label>
+          <div style="display:flex;align-items:center;gap:1.25rem;">
+            <div id="founder-photo-preview" style="width:88px;height:88px;border-radius:50%;border:1px solid var(--border);background:var(--surface-2);overflow:hidden;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <span id="founder-photo-placeholder" style="font-size:0.7rem;color:var(--text-muted);">No photo</span>
+              <img id="founder-photo-img" style="display:none;width:100%;height:100%;object-fit:cover;object-position:top center;" />
+            </div>
+            <div>
+              <input type="file" id="founder-photo-input" accept="image/*" style="display:none;" />
+              <button class="btn-outline" type="button" id="founder-photo-pick">Upload Photo</button>
+              <button class="btn-outline" type="button" id="founder-photo-remove" style="margin-left:0.5rem;">Remove</button>
+              <div class="hint">JPG or PNG, square photos work best. Resized automatically — saved when you click Save Changes.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── COURSES ── -->
+    <div class="panel" id="panel-courses">
+      <div class="card">
+        <h3>📚 Courses <span class="tag" id="course-count-badge">0 total</span></h3>
+        <p style="font-size:0.82rem;color:var(--text-sec);margin-bottom:1rem">Edit pricing, descriptions, and feature lists. These render live on the homepage Courses section.</p>
+        <div id="courses-edit"></div>
+        <button class="btn-outline" style="margin-top:0.5rem;font-size:0.82rem" id="add-course">+ Add Course</button>
+      </div>
+    </div>
+
+    <!-- ── TESTIMONIALS ── -->
+    <div class="panel" id="panel-testimonials">
+      <div class="card">
+        <h3>💬 Student Testimonials <span class="tag" id="testimonial-count-badge">0 active</span></h3>
+        <p style="font-size:0.82rem;color:var(--text-sec);margin-bottom:1.5rem">These appear in the auto-scrolling testimonial marquee on the homepage.</p>
+        <div class="card-grid" id="testimonials-edit"></div>
+        <button class="btn-outline" style="margin-top:1rem;font-size:0.85rem" id="add-testimonial">+ Add Testimonial</button>
+      </div>
+    </div>
+
+    <!-- ── BLOG LIST ── -->
+    <div class="panel" id="panel-blog-list">
+      <div class="card">
+        <h3>📝 All Articles <span class="tag" id="article-count-badge">0 total</span></h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Title</th><th>Category</th><th>Access</th><th>Date</th><th>Actions</th></tr></thead>
+            <tbody id="blog-table-body"></tbody>
+          </table>
+        </div>
+        <button class="btn-save" style="margin-top:1.25rem;font-size:0.85rem" onclick="switchPanel('blog-new')">+ Write New Article</button>
+      </div>
+    </div>
+
+    <!-- ── NEW / EDIT ARTICLE ── -->
+    <div class="panel" id="panel-blog-new">
+      <div class="card">
+        <h3>✏️ <span id="blog-editor-title">New Article</span></h3>
+        <div class="form-row">
+          <div class="form-group" style="grid-column:1/-1">
+            <label class="form-label">Article Title</label>
+            <input class="form-input" id="article-title" placeholder="Enter a compelling headline..." style="font-size:1rem;font-weight:600" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Category Label</label>
+            <input class="form-input" id="article-cat-label" placeholder="e.g. Risk Management" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Category Slug (used by blog filters)</label>
+            <input class="form-input" id="article-cat-slug" placeholder="e.g. risk-management" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Access Level</label>
+            <select class="form-select" id="article-access">
+              <option value="free">Free (Public)</option>
+              <option value="premium">Premium (Enrolled Students Only)</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row-3">
+          <div class="form-group"><label class="form-label">Read Time</label><input class="form-input" id="article-readtime" placeholder="e.g. 5 min read" /></div>
+          <div class="form-group"><label class="form-label">Thumbnail Emoji Icon</label><input class="form-input" id="article-icon" placeholder="e.g. trending_up (see hint)" />
+            <div class="hint">Use one of: candlestick_chart, shield, psychology, description, auto_graph, trending_up</div>
+          </div>
+          <div class="form-group"><label class="form-label">Thumbnail Accent Color</label><input class="form-input" id="article-color" placeholder="#F4C20D" /></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Excerpt / Summary</label>
+          <textarea class="form-textarea" id="article-excerpt" placeholder="1–2 sentences shown on the blog list page..." style="min-height:60px"></textarea>
+        </div>
+        <div class="form-group" style="display:flex;align-items:center;gap:0.6rem;">
+          <input type="checkbox" id="article-featured" style="width:16px;height:16px;accent-color:var(--accent);" />
+          <label class="form-label" for="article-featured" style="margin-bottom:0;">🔥 Mark as Most Read (shows a "Most Read" badge and surfaces it first in the blog list + homepage preview)</label>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Article Content</label>
+          <div class="editor-wrap">
+            <div class="editor-toolbar">
+              <button class="tb-btn" type="button" onclick="fmt('bold')"><strong>B</strong></button>
+              <button class="tb-btn" type="button" onclick="fmt('italic')"><em>I</em></button>
+              <button class="tb-btn" type="button" onclick="fmt('underline')"><u>U</u></button>
+              <button class="tb-btn" type="button" onclick="fmtBlock('h3')">H3</button>
+              <button class="tb-btn" type="button" onclick="fmtBlock('p')">¶</button>
+              <button class="tb-btn" type="button" onclick="fmt('insertUnorderedList')">• List</button>
+              <button class="tb-btn" type="button" onclick="document.getElementById('article-body').innerHTML=''">🗑 Clear</button>
+            </div>
+            <div class="editor-area" id="article-body" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Article body"></div>
+          </div>
+        </div>
+        <div style="display:flex;gap:0.75rem;margin-top:0.5rem">
+          <button class="btn-save" id="publish-article">Publish Article</button>
+          <button class="btn-outline" id="cancel-edit">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── ALL BACKTESTS ── -->
+    <div class="panel" id="panel-bt-list">
+      <div class="card">
+        <h3>📈 All Backtests <span class="tag" id="bt-count-badge">0 total</span></h3>
+        <p style="font-size:0.82rem;color:var(--text-sec);margin-bottom:1rem">Daily chart-trend entries shown on the public Backtesting page. Free for their first 30 days, then automatically move to the premium archive — no need to change anything manually.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Title</th><th>Instrument</th><th>Result</th><th>Date</th><th>Actions</th></tr></thead>
+            <tbody id="bt-table-body"></tbody>
+          </table>
+        </div>
+        <button class="btn-save" style="margin-top:1.25rem;font-size:0.85rem" onclick="switchPanel('bt-new')">+ Post Today's Backtest</button>
+      </div>
+    </div>
+
+    <!-- ── NEW BACKTEST ── -->
+    <div class="panel" id="panel-bt-new">
+      <div class="card">
+        <h3>🧾 <span id="bt-editor-title">New Backtest</span></h3>
+        <div class="form-row">
+          <div class="form-group" style="grid-column:1/-1">
+            <label class="form-label">Title</label>
+            <input class="form-input" id="bt-title" placeholder="e.g. NIFTY 50 — Breakout Retest at 24,650 Support" style="font-size:1rem;font-weight:600" />
+          </div>
+        </div>
+        <div class="form-row-3">
+          <div class="form-group"><label class="form-label">Instrument</label><input class="form-input" id="bt-instrument" placeholder="e.g. NIFTY 50" /></div>
+          <div class="form-group"><label class="form-label">Timeframe</label><input class="form-input" id="bt-timeframe" placeholder="e.g. 15 min" /></div>
+          <div class="form-group">
+            <label class="form-label">Result</label>
+            <select class="form-select" id="bt-result">
+              <option value="Win">Win</option>
+              <option value="Loss">Loss</option>
+              <option value="">No result yet</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row-3">
+          <div class="form-group"><label class="form-label">Date</label><input class="form-input" id="bt-date" type="date" /></div>
+          <div class="form-group"><label class="form-label">Read Time</label><input class="form-input" id="bt-readtime" placeholder="e.g. 4 min read" /></div>
+          <div class="form-group"><label class="form-label">Thumbnail Icon</label><input class="form-input" id="bt-icon" placeholder="e.g. candlestick_chart" />
+            <div class="hint">Use one of: candlestick_chart, shield, psychology, description, auto_graph, trending_up</div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Chart Image (screenshot of today's setup)</label>
+          <div style="display:flex;align-items:flex-start;gap:1.25rem;">
+            <div id="bt-chart-preview" style="width:160px;height:100px;border-radius:8px;border:1px solid var(--border);background:var(--surface-2);overflow:hidden;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <span id="bt-chart-placeholder" style="font-size:0.7rem;color:var(--text-muted);">No image</span>
+              <img id="bt-chart-img" style="display:none;width:100%;height:100%;object-fit:cover;" />
+            </div>
+            <div>
+              <input type="file" id="bt-chart-input" accept="image/*" style="display:none;" />
+              <button class="btn-outline" type="button" id="bt-chart-pick">Upload Chart Image</button>
+              <button class="btn-outline" type="button" id="bt-chart-remove" style="margin-left:0.5rem;">Remove</button>
+              <div class="hint">Shown at the top of this entry on the Backtesting page, and as the card thumbnail. Saved when you click Publish Backtest.</div>
+            </div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Excerpt / Summary</label>
+          <textarea class="form-textarea" id="bt-excerpt" placeholder="1–2 sentences shown on the backtesting list page..." style="min-height:60px"></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Setup, Entry, Stop, Target &amp; Result (full write-up)</label>
+          <div class="editor-wrap">
+            <div class="editor-toolbar">
+              <button class="tb-btn" type="button" onclick="fmt('bold')"><strong>B</strong></button>
+              <button class="tb-btn" type="button" onclick="fmt('italic')"><em>I</em></button>
+              <button class="tb-btn" type="button" onclick="fmtBlock('p')">¶</button>
+              <button class="tb-btn" type="button" onclick="document.getElementById('bt-body').innerHTML=''">🗑 Clear</button>
+            </div>
+            <div class="editor-area" id="bt-body" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Backtest write-up"></div>
+          </div>
+        </div>
+        <div style="display:flex;gap:0.75rem;margin-top:0.5rem">
+          <button class="btn-save" id="publish-bt">Publish Backtest</button>
+          <button class="btn-outline" id="cancel-bt-edit">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── TRANSACTIONS ── -->
+    <div class="panel" id="panel-transactions">
+      <div class="card">
+        <h3>💳 Razorpay Transactions <span class="tag">Sample data</span></h3>
+        <p style="font-size:0.82rem;color:var(--text-sec);margin-bottom:1.25rem">
+          Showing sample transactions structured exactly like a real Razorpay payment feed (payment ID, order ID, amount, method, status). Once your live Razorpay key + webhook are connected, this table will show real captured payments automatically — no UI changes needed.
+        </p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Payment ID</th><th>Customer</th><th>Course</th><th>Amount</th><th>Method</th><th>Status</th><th>Date</th></tr></thead>
+            <tbody id="tx-table-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── FORM SUBMISSIONS ── -->
+    <div class="panel" id="panel-submissions">
+      <div class="card">
+        <h3>📥 Booking &amp; Contact Form Leads <span class="tag">Sample data</span></h3>
+        <p style="font-size:0.82rem;color:var(--text-sec);margin-bottom:1.25rem">
+          Every "Book a Discovery Call" and "Send Message" submission on the live site is recorded here automatically (currently to this browser's storage). Once Calendly + a backend are wired up, swap this feed for the real one.
+        </p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Type</th><th>Name</th><th>Contact</th><th>Experience</th><th>Message</th><th>Date</th><th>Status</th></tr></thead>
+            <tbody id="sub-table-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── CONTACT INFO ── -->
+    <div class="panel" id="panel-contact-info">
+      <div class="card">
+        <h3>📞 Contact &amp; Social Media</h3>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">WhatsApp Business Number</label><input class="form-input" id="contact-wa" /></div>
+          <div class="form-group"><label class="form-label">Business Email</label><input class="form-input" id="contact-email-input" /></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Telegram Channel Handle</label><input class="form-input" id="contact-telegram-input" /></div>
+          <div class="form-group"><label class="form-label">Instagram Handle</label><input class="form-input" id="contact-insta" /></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">YouTube Channel URL</label><input class="form-input" id="contact-youtube" /></div>
+          <div class="form-group"><label class="form-label">Twitter / X Handle</label><input class="form-input" id="contact-twitter" /></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Calendly Booking URL</label><input class="form-input" id="contact-calendly" placeholder="https://calendly.com/capitalfinplus/discovery-call" /><div class="hint">Drop this in once Calendly is connected — used for "Book a Call" buttons site-wide</div></div>
+          <div class="form-group"><label class="form-label">Razorpay Key ID</label><input class="form-input" id="contact-razorpay" placeholder="rzp_live_xxxxxxxxxxxx" /><div class="hint">Your live Razorpay key — payment.html will read this once the integration is wired</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>⚖️ Legal Disclaimer</h3>
+        <div class="form-group"><label class="form-label">Custom Footer Disclaimer</label><textarea class="form-textarea" id="legal-disclaimer-input"></textarea></div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ── BLOG EDIT MODAL (quick edit from list) ── -->
+<div class="modal-backdrop" id="edit-modal">
+  <div class="modal-box">
+    <button class="modal-close" id="edit-modal-close">✕</button>
+    <div class="modal-title">Edit Article</div>
+    <div class="form-group"><label class="form-label">Title</label><input class="form-input" id="edit-art-title" /></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Category Label</label><input class="form-input" id="edit-art-cat" /></div>
+      <div class="form-group"><label class="form-label">Access</label><select class="form-select" id="edit-art-access"><option value="free">Free</option><option value="premium">Premium</option></select></div>
+    </div>
+    <div class="form-group"><label class="form-label">Excerpt</label><textarea class="form-textarea" id="edit-art-excerpt"></textarea></div>
+    <div class="form-group" style="display:flex;align-items:center;gap:0.6rem;">
+      <input type="checkbox" id="edit-art-featured" style="width:16px;height:16px;accent-color:var(--accent);" />
+      <label class="form-label" for="edit-art-featured" style="margin-bottom:0;">🔥 Mark as Most Read</label>
+    </div>
+    <div style="display:flex;gap:0.75rem;margin-top:0.5rem">
+      <button class="btn-save" id="edit-modal-save">Save Changes</button>
+      <button class="btn-outline" id="edit-modal-cancel">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast">✅ Changes saved</div>
+
+<script src="script.js"></script>
+</body>
+</html>

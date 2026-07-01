@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Backtesting | Daily Chart Trends — Capital Finplus Academy</title>
+  <meta name="description" content="Daily chart-trend backtests from live markets — entries, stops, targets and results, logged honestly. Free for the last 30 days, premium archive after that." />
+  <meta property="og:title" content="Backtesting | Daily Chart Trends — Capital Finplus Academy" />
+  <meta property="og:description" content="Daily chart-trend backtests, free for the last 30 days." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://capitalfinplusadvizors.com/backtesting.html" />
+  <link rel="canonical" href="https://capitalfinplusadvizors.com/backtesting.html" />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800;900&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="blog.css" />
+  <script src="data.js"></script>
+  <link href="https://assets.calendly.com/assets/external/widget.css" rel="stylesheet">
+  <script src="https://assets.calendly.com/assets/external/widget.js" type="text/javascript" async></script>
+  <script src="config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-client.js"></script>
+  <script src="auth.js"></script>
+  <script src="premium-gate.js"></script>
+  <script src="auth-modal.js"></script>
+</head>
+<body>
+
+<!-- Galaxy canvas — always behind everything -->
+<canvas id="galaxy-canvas" aria-hidden="true"></canvas>
+<div class="noise-overlay" aria-hidden="true"></div>
+
+<!-- Custom cursor -->
+<div class="cursor" id="cursor" aria-hidden="true"></div>
+<div class="cursor-ring" id="cursor-ring" aria-hidden="true"></div>
+
+<!-- ===== BOOKING MODAL ===== -->
+<div class="modal-overlay" id="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+  <div class="modal">
+    <div class="modal-top-line"></div>
+    <div class="modal-header">
+      <button class="modal-close" id="modal-close" aria-label="Close">✕</button>
+      <h3 id="modal-title">Book a Discovery Call</h3>
+      <p>Free 30-min 1-on-1 via Google Meet. No question is too basic. No doubt is too small.</p>
+    </div>
+    <div class="modal-body" id="modal-form-body">
+      <form id="booking-form" novalidate>
+        <div class="modal-form-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+          <div class="form-group">
+            <label for="f-name">Full Name <span class="required-asterisk">*</span></label>
+            <input class="form-input" type="text" id="f-name" placeholder="Rahul Sharma" required />
+          </div>
+          <div class="form-group">
+            <label for="f-phone">Phone <span class="required-asterisk">*</span></label>
+            <input class="form-input" type="tel" id="f-phone" placeholder="+91 98765 43210" required />
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="f-email">Email <span class="required-asterisk">*</span></label>
+          <input class="form-input" type="email" id="f-email" placeholder="rahul@example.com" required />
+        </div>
+        <div class="form-group">
+          <label for="f-exp">Experience Level</label>
+          <select class="form-input" id="f-exp">
+            <option value="">Select your level</option>
+            <option>Complete Beginner</option>
+            <option>Some Experience (1–2 yrs)</option>
+            <option>Intermediate (2–5 yrs)</option>
+            <option>Experienced Trader (5+ yrs)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="f-goal">What do you want to achieve?</label>
+          <select class="form-input" id="f-goal">
+            <option value="">Select what best describes you</option>
+            <option>I am new to trading, how should I start?</option>
+            <option>I am consistently losing, am I trading random?</option>
+            <option>How should I prevent overtrading?</option>
+            <option>I cannot sit till target or SL. Can you help?</option>
+            <option>I do not have a working strategy. Can you help?</option>
+            <option value="other">Something else</option>
+          </select>
+        </div>
+        <div class="form-group" id="f-goal-other-wrap" style="display:none;">
+          <label for="f-goal-other">Tell us a bit more</label>
+          <textarea class="form-input" id="f-goal-other" rows="3" placeholder="What would you like help with?"></textarea>
+        </div>
+        <p class="form-mandatory-note">* Name, Phone and Email are mandatory</p>
+        <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;margin-top:0.5rem;">Send Request →</button>
+      </form>
+    </div>
+    <div class="modal-body" id="modal-calendly-body" style="display:none;padding:0;">
+      <p class="mc-step2-hint">Thanks! Now pick a time that works for you →</p>
+      <div class="calendly-inline-widget" id="calendly-widget" data-url="" style="min-width:280px;height:650px;"></div>
+    </div>
+    <div class="modal-success" id="modal-success">
+      <div class="success-icon">
+        <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
+      </div>
+      <h3>Request Received!</h3>
+      <p>A Capital Finplus advisor will reach out within 24 hours to confirm your discovery call slot.</p>
+    </div>
+  </div>
+</div>
+
+<div class="content-wrapper">
+
+  <!-- ===== NAVBAR ===== -->
+  <nav id="navbar" role="navigation" aria-label="Main navigation">
+    <a href="index.html" class="nav-logo" aria-label="Capital Finplus Home">
+      <div class="nav-logo-dot" aria-hidden="true">CFΛ</div>
+      CΛPITΛL FINPLUS<span> ΛCΛDEMY</span>
+    </a>
+    <div class="nav-right">
+      <ul class="nav-links" role="list">
+        <li><a href="index.html#about">About</a></li>
+        <li><a href="index.html#services">Services</a></li>
+        <li><a href="index.html#courses">Courses</a></li>
+        <li class="nav-dropdown" id="nav-knowledge-dropdown">
+          <button type="button" class="nav-dropdown-toggle">Knowledge <span class="caret">▾</span></button>
+          <ul class="nav-dropdown-menu">
+            <li><a href="blog.html">Blog</a></li>
+            <li><a href="backtesting.html" aria-current="page">Backtesting</a></li>
+          </ul>
+        </li>
+        <li><a href="index.html#contact-section">Contact</a></li>
+      </ul>
+      <a href="javascript:void(0)" class="btn btn-primary open-modal" id="nav-cta">Book a Discovery Call</a>
+    </div>
+    <button class="nav-hamburger" id="hamburger" aria-label="Toggle menu" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </nav>
+
+  <!-- Mobile nav -->
+  <div class="mobile-nav" id="mobile-nav">
+    <a href="index.html#about">About</a>
+    <a href="index.html#services">Services</a>
+    <a href="index.html#courses">Courses</a>
+    <a href="blog.html">Blog</a>
+    <a href="backtesting.html">Backtesting</a>
+    <a href="index.html#contact-section">Contact</a>
+    <a href="javascript:void(0)" class="open-modal" style="color:var(--purple);">Book a Discovery Call →</a>
+  </div>
+
+  <!-- ===== BACKTESTING HERO ===== -->
+  <div class="blog-page-hero">
+    <div class="container" style="position:relative;z-index:2;">
+      <span class="section-tag">Daily Chart Trends</span>
+      <h1 style="font-size:clamp(2.4rem,5vw,3.6rem);font-weight:800;line-height:1.1;letter-spacing:-0.02em;margin-top:0.75rem;max-width:600px;">The Backtesting Log</h1>
+      <p style="margin-top:0.9rem;color:var(--muted);max-width:520px;font-size:1rem;line-height:1.7;">
+        Real setups, entries, stops and results — posted daily, including the losses.
+        The last 30 days are always free.
+        <span style="color:var(--lilac);font-weight:600;">Older entries</span> move to the premium archive — unlocked with any course purchase.
+      </p>
+      <div style="display:flex;align-items:center;gap:1.5rem;margin-top:1.25rem;flex-wrap:wrap;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div style="width:10px;height:10px;border-radius:50%;background:#22c55e;"></div>
+          <span style="font-size:0.8rem;color:var(--muted);font-family:'Manrope',sans-serif;">Free — last 30 days</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div style="width:10px;height:10px;border-radius:50%;background:var(--purple);"></div>
+          <span style="font-size:0.8rem;color:var(--muted);font-family:'Manrope',sans-serif;">Premium — archive, course students only</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== BACKTESTING GRID (populated by backtesting.js from data.js) ===== -->
+  <section id="backtest-all" style="padding: 2.5rem 5vw 100px;" aria-labelledby="backtest-all-heading">
+    <div class="container">
+
+      <!-- Filter bar -->
+      <div class="filter-bar" id="filter-bar" role="group" aria-label="Filter by instrument">
+        <button class="filter-btn active" data-filter="all">All Posts</button>
+      </div>
+
+      <!-- Backtest cards grid -->
+      <div class="blog-listing-grid" id="backtest-grid"></div>
+
+    </div>
+  </section>
+
+  <!-- ===== BACKTEST READER OVERLAY ===== -->
+  <div id="article-overlay" role="dialog" aria-modal="true" aria-label="Backtest reader">
+    <div class="article-reader" id="article-reader">
+      <button class="article-close" onclick="closeArticle()" aria-label="Close">✕</button>
+      <div id="article-thumb-area" class="article-thumb"></div>
+      <div class="article-header" id="article-header"></div>
+      <div class="article-body article-content-wrap" id="article-body-wrap">
+        <div id="article-free-content"></div>
+        <div id="article-premium-section" style="display:none;position:relative;">
+          <div id="article-premium-content" class="premium-content"></div>
+          <div class="paywall-fade"></div>
+          <div class="paywall-gate">
+            <div class="paywall-card">
+              <div class="paywall-lock-icon">🔒</div>
+              <p class="paywall-title">This entry is in the premium archive</p>
+              <p class="paywall-sub">Backtests older than 30 days move to the premium archive. Purchase any course to unlock the full history.</p>
+              <div class="paywall-actions">
+                <a href="payment.html?course=2" class="btn btn-primary btn-sm">View Courses</a>
+                <a href="index.html#contact-section" class="btn btn-secondary btn-sm">Book Free Call First</a>
+              </div>
+              <button type="button" onclick="cfpOpenAuthModal('login')" style="background:none;border:none;color:#888;font-size:0.78rem;text-decoration:underline;cursor:pointer;margin-top:0.75rem;font-family:inherit;">Already purchased a course? Log in</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== FOOTER ===== -->
+  <footer>
+    <div class="footer-inner">
+      <div class="footer-grid">
+        <div>
+          <a href="index.html" class="footer-logo" aria-label="Capital Finplus Home">
+            <div class="footer-logo-dot" aria-hidden="true">CFΛ</div>
+            CΛPITΛL FINPLUS<span> ΛCΛDEMY</span>
+          </a>
+          <p class="footer-tagline">Professional-grade trading education and mentorship. Built for those who demand real results from the markets.</p>
+          <div class="social-icons" role="list" aria-label="Social media links">
+            <a href="#" class="social-icon" id="social-twitter" aria-label="Twitter/X" role="listitem">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.746l7.73-8.835L1.254 2.25H8.08l4.265 5.638L18.244 2.25zm-1.161 17.52h1.833L7.084 4.126H5.117L17.083 19.77z"/></svg>
+            </a>
+            <a href="#" class="social-icon" id="social-instagram" aria-label="Instagram" role="listitem">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5"/><path d="M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+            </a>
+            <a href="#" class="social-icon" id="social-youtube" aria-label="YouTube" role="listitem">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M23.5 6.19a3.02 3.02 0 00-2.12-2.14C19.5 3.55 12 3.55 12 3.55s-7.5 0-9.38.5A3.02 3.02 0 00.5 6.2C0 8.07 0 12 0 12s0 3.93.5 5.81a3.02 3.02 0 002.12 2.14C4.5 20.45 12 20.45 12 20.45s7.5 0 9.38-.5a3.02 3.02 0 002.12-2.14C24 15.93 24 12 24 12s0-3.93-.5-5.81zM9.55 15.57V8.43L15.82 12l-6.27 3.57z"/></svg>
+            </a>
+            <a href="#" class="social-icon" id="social-telegram" aria-label="Telegram" role="listitem">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L8.31 13.617l-2.96-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.838.942z"/></svg>
+            </a>
+          </div>
+        </div>
+        <div class="footer-col">
+          <h4>Company</h4>
+          <ul class="footer-links">
+            <li><a href="index.html#about">About Us</a></li>
+            <li><a href="index.html#services">Services</a></li>
+            <li><a href="blog.html">Blog</a></li>
+            <li><a href="backtesting.html">Backtesting</a></li>
+            <li><a href="index.html#contact-section">Contact</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>Courses</h4>
+          <ul class="footer-links">
+            <li><a href="index.html#courses">Intraday Essentials (Free)</a></li>
+            <li><a href="payment.html?course=2">Edge + Precision Bundle</a></li>
+            <li><a href="index.html#courses">CFA Framework (Coming Soon)</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>Contact</h4>
+          <ul class="footer-links">
+            <li><a href="mailto:hello@capitalfinplus.com">hello@capitalfinplus.com</a></li>
+            <li><a href="#">WhatsApp Us</a></li>
+            <li><a href="#">Telegram Channel</a></li>
+            <li><a href="javascript:void(0)" class="open-modal">Book a Discovery Call</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p class="footer-copy">© 2026 Capital Finplus Academy. All rights reserved.</p>
+        <p class="footer-disclaimer">*Capital Finplus Academy is an educational platform. Trading in securities involves risk of loss. All course content is for educational purposes only and does not constitute investment advice. Please consult a SEBI-registered advisor before making investment decisions. Past performance is not indicative of future results.</p>
+      </div>
+    </div>
+  </footer>
+
+</div><!-- /content-wrapper -->
+
+<script src="script.js"></script>
+<script src="render.js"></script>
+<script src="backtesting.js"></script>
+</body>
+</html>

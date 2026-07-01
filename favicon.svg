@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 42">
+  <!-- Dark background fill for visibility on light tab bars -->
+  <rect width="40" height="42" fill="#07050f" rx="4"/>
+  <!-- Pentagon shape: flat top, point at bottom -->
+  <polygon
+    points="20,38 4.5,27 10.5,8 29.5,8 35.5,27"
+    fill="rgba(244,194,13,0.12)"
+    stroke="#F4C20D"
+    stroke-width="3.5"
+    stroke-linejoin="round"
+  />
+</svg>

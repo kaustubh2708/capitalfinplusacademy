@@ -1,0 +1,10 @@
+{
+  "name": "capital-finplus-academy",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Capital Finplus Academy — static site with Vercel serverless functions for Razorpay order creation and payment verification.",
+  "dependencies": {
+    "razorpay": "^2.9.4",
+    "@supabase/supabase-js": "^2.45.0"
+  }
+}

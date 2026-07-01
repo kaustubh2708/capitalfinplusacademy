@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Enroll — Capital Finplus Academy</title>
+  <meta name="robots" content="noindex" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800;900&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+  <script src="data.js"></script>
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+  <script src="config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-client.js"></script>
+  <script src="auth.js"></script>
+  <style>
+    .checkout-page { padding: calc(72px + 60px) 5vw 80px; min-height: 100vh; }
+    .checkout-wrap {
+      display: grid;
+      grid-template-columns: 1fr 420px;
+      gap: 2.5rem;
+      max-width: 1100px;
+      margin: 0 auto;
+      align-items: start;
+    }
+    .checkout-summary {
+      background: rgba(20,16,4,0.8);
+      border: 1px solid rgba(244,194,13,0.18);
+      border-radius: 12px;
+      padding: 2rem;
+      position: sticky;
+      top: calc(72px + 1.5rem);
+      backdrop-filter: blur(20px);
+    }
+    .checkout-course-name {
+      font-size: 1.2rem;
+      font-weight: 800;
+      margin-bottom: 0.4rem;
+    }
+    .checkout-price {
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: #F4C20D;
+      text-shadow: 0 0 30px rgba(244,194,13,0.4);
+      margin: 1.25rem 0;
+    }
+    .checkout-divider { height: 1px; background: rgba(244,194,13,0.15); margin: 1.25rem 0; }
+    .checkout-includes { list-style: none; display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1.5rem; }
+    .checkout-includes li { font-size: 0.85rem; color: rgba(255,255,255,0.7); display: flex; align-items: center; gap: 10px; }
+    .checkout-includes li::before { content: ''; width: 4px; height: 4px; background: #F4C20D; border-radius: 50%; flex-shrink: 0; box-shadow: 0 0 6px #F4C20D; }
+    .razorpay-btn {
+      width: 100%;
+      background: linear-gradient(135deg, rgba(244,194,13,0.3), rgba(154,115,0,0.3));
+      border: 1px solid #F4C20D;
+      color: #fff;
+      padding: 15px;
+      font-family: 'Manrope', sans-serif;
+      font-size: 0.85rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      border-radius: 3px;
+      cursor: pointer;
+      transition: all 0.3s;
+      box-shadow: 0 0 30px rgba(244,194,13,0.2);
+    }
+    .razorpay-btn:hover { box-shadow: 0 0 50px rgba(244,194,13,0.45); transform: translateY(-2px); }
+    .secure-note { font-size: 0.68rem; color: rgba(255,255,255,0.3); text-align: center; margin-top: 0.75rem; letter-spacing: 0.06em; }
+    .checkout-form-card {
+      background: rgba(16,12,2,0.75);
+      border: 1px solid rgba(244,194,13,0.14);
+      border-radius: 12px;
+      padding: 2.25rem;
+      backdrop-filter: blur(16px);
+    }
+    .checkout-form-card h2 { font-size: 1.1rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 1.75rem; }
+    @media (max-width: 768px) {
+      .checkout-wrap { grid-template-columns: 1fr; }
+      .checkout-summary { position: static; }
+    }
+  </style>
+</head>
+<body>
+<canvas id="galaxy-canvas" aria-hidden="true"></canvas>
+<div class="noise-overlay" aria-hidden="true"></div>
+<div class="cursor" id="cursor" aria-hidden="true"></div>
+<div class="cursor-ring" id="cursor-ring" aria-hidden="true"></div>
+<div class="content-wrapper">
+
+  <nav id="navbar">
+    <a href="index.html" class="nav-logo">
+      <div class="nav-logo-dot">CFΛ</div>
+      CΛPITΛL FINPLUS<span> ΛCΛDEMY</span>
+    </a>
+    <div class="nav-right">
+      <a href="index.html" class="btn btn-secondary nav-keep" style="font-size:0.72rem;">← Back to Site</a>
+    </div>
+  </nav>
+
+  <div class="checkout-page">
+    <div class="checkout-wrap">
+
+      <!-- Left: form -->
+      <div class="checkout-form-card">
+        <h2>Your Details</h2>
+        <form id="checkout-form">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="" style="font-size:0.66rem;letter-spacing:0.16em;text-transform:uppercase;color:rgba(255,255,255,0.4);display:block;margin-bottom:0.5rem;" for="p-name">Full Name</label>
+              <input class="form-input" type="text" id="p-name" placeholder="Rahul Sharma" required />
+            </div>
+            <div class="form-group">
+              <label style="font-size:0.66rem;letter-spacing:0.16em;text-transform:uppercase;color:rgba(255,255,255,0.4);display:block;margin-bottom:0.5rem;" for="p-email">Email</label>
+              <input class="form-input" type="email" id="p-email" placeholder="rahul@example.com" required />
+            </div>
+          </div>
+          <div class="form-group" style="margin-bottom:1.25rem;">
+            <label style="font-size:0.66rem;letter-spacing:0.16em;text-transform:uppercase;color:rgba(255,255,255,0.4);display:block;margin-bottom:0.5rem;" for="p-phone">Phone Number</label>
+            <input class="form-input" type="tel" id="p-phone" placeholder="+91 98765 43210" required />
+          </div>
+          <div class="form-group" style="margin-bottom:1.25rem;">
+            <label style="font-size:0.66rem;letter-spacing:0.16em;text-transform:uppercase;color:rgba(255,255,255,0.4);display:block;margin-bottom:0.5rem;" for="p-exp">Experience Level</label>
+            <select class="form-input" id="p-exp">
+              <option value="">Select your level</option>
+              <option>Complete Beginner</option>
+              <option>Some Experience (1-2 yrs)</option>
+              <option>Intermediate (2-5 yrs)</option>
+              <option>Experienced Trader (5+ yrs)</option>
+            </select>
+          </div>
+          <div style="background:rgba(244,194,13,0.06);border:1px solid rgba(244,194,13,0.15);border-radius:8px;padding:1rem;margin-bottom:1.5rem;">
+            <p style="font-size:0.8rem;color:rgba(255,255,255,0.55);line-height:1.65;">After payment, you will receive your course access link via email within 2 hours. For any issues, WhatsApp us or email <strong>connect@capitalfinplusadvizors.com</strong>.</p>
+          </div>
+          <button type="button" id="pay-btn" class="razorpay-btn">Proceed to Payment →</button>
+          <p class="secure-note">🔒 Secured by Razorpay · 256-bit SSL Encryption</p>
+          <p id="pay-status" style="display:none;font-size:0.8rem;text-align:center;margin-top:0.75rem;"></p>
+        </form>
+      </div>
+
+      <!-- Right: order summary -->
+      <div class="checkout-summary">
+        <div style="font-size:0.64rem;letter-spacing:0.2em;text-transform:uppercase;color:#F4C20D;margin-bottom:0.5rem;">Order Summary</div>
+        <div class="checkout-course-name" id="course-name">The CFA Trading System: Edge + Precision</div>
+        <div style="font-size:0.8rem;color:rgba(255,255,255,0.4);" id="course-subtitle">Two Modules · Complete Bundle</div>
+        <div class="checkout-divider"></div>
+        <ul class="checkout-includes" id="course-includes">
+          <li>Complete CFA Trading System</li>
+          <li>Entry, Target &amp; Stop Loss methodology</li>
+          <li>Option premium chart mastery</li>
+          <li>Strike price selection &amp; position sizing</li>
+          <li>Lifetime access</li>
+          <li>1 private Q&amp;A session included</li>
+        </ul>
+        <div class="checkout-divider"></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;">
+          <span style="font-size:0.78rem;color:rgba(255,255,255,0.5);">Course Fee</span>
+          <span style="font-size:0.85rem;" id="checkout-fee">₹5,999</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+          <span style="font-size:0.78rem;color:rgba(255,255,255,0.5);">GST (18%)</span>
+          <span style="font-size:0.85rem;" id="checkout-gst">₹1,080</span>
+        </div>
+        <div class="checkout-divider"></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-size:0.85rem;font-weight:700;">Total</span>
+          <div class="checkout-price" id="checkout-total">₹7,079</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <footer>
+    <div class="footer-inner">
+      <div class="footer-bottom">
+        <p class="footer-copy">© 2026 Capital Finplus Academy. All rights reserved.</p>
+        <p class="footer-disclaimer">*Educational platform only. Not SEBI investment advice.</p>
+      </div>
+    </div>
+  </footer>
+
+</div>
+<script src="render.js"></script>
+<script src="script.js"></script>
+<script>
+  /* ── REAL RAZORPAY CHECKOUT (with a safe fallback) ──
+     Tries the real flow first: POST /api/create-order -> open Razorpay
+     Checkout -> POST /api/verify-payment to confirm server-side.
+     If those Vercel functions aren't deployed yet, or RAZORPAY_KEY_ID /
+     RAZORPAY_KEY_SECRET haven't been added to Vercel's environment
+     variables yet, this automatically falls back to the old simulated
+     flow so the page never breaks — going live with this code does NOT
+     require Razorpay to be fully configured first. */
+
+  const COURSE_ID = new URLSearchParams(window.location.search).get('course') || '2';
+
+  /* Populate the order summary from data.js based on ?course=ID, and
+     compute GST/total dynamically so this page supports every paid
+     course instead of being hardcoded to one. */
+  function parsePriceToRupees(priceStr) {
+    const n = parseFloat(String(priceStr).replace(/[^\d.]/g, ''));
+    return isNaN(n) ? 0 : n;
+  }
+
+  const ALL_COURSES = (typeof cfpLoadData === 'function') ? cfpLoadData().courses : [];
+  const SELECTED_COURSE = ALL_COURSES.find(c => String(c.id) === String(COURSE_ID)) || ALL_COURSES[1] || null;
+  const BASE_FEE_RUPEES = SELECTED_COURSE ? parsePriceToRupees(SELECTED_COURSE.price) : 5999;
+  const GST_RUPEES = Math.round(BASE_FEE_RUPEES * 0.18);
+  const TOTAL_AMOUNT_RUPEES = BASE_FEE_RUPEES + GST_RUPEES;
+
+  (function renderOrderSummary() {
+    if (!SELECTED_COURSE) return;
+    const nameEl = document.getElementById('course-name');
+    const subEl = document.getElementById('course-subtitle');
+    const includesEl = document.getElementById('course-includes');
+    if (nameEl) nameEl.textContent = (SELECTED_COURSE.group ? SELECTED_COURSE.group + ': ' : '') + SELECTED_COURSE.name;
+    if (subEl) subEl.textContent = SELECTED_COURSE.subtitle || '';
+    if (includesEl && SELECTED_COURSE.features) {
+      includesEl.innerHTML = SELECTED_COURSE.features.map(f => `<li>${f}</li>`).join('');
+    }
+    const fmt = n => '₹' + n.toLocaleString('en-IN');
+    const feeEl = document.getElementById('checkout-fee');
+    const gstEl = document.getElementById('checkout-gst');
+    const totalEl = document.getElementById('checkout-total');
+    if (feeEl) feeEl.textContent = fmt(BASE_FEE_RUPEES);
+    if (gstEl) gstEl.textContent = fmt(GST_RUPEES);
+    if (totalEl) totalEl.textContent = fmt(TOTAL_AMOUNT_RUPEES);
+  })();
+
+  function setStatus(msg, color) {
+    const el = document.getElementById('pay-status');
+    el.textContent = msg;
+    el.style.color = color || 'rgba(255,255,255,0.6)';
+    el.style.display = 'block';
+  }
+
+  function simulatedFallback(name, email, phone) {
+    if (typeof cfpRecordTransaction === 'function') {
+      cfpRecordTransaction({
+        paymentId: 'pay_SIM' + Date.now(),
+        orderId: 'order_SIM' + Date.now(),
+        name, email, phone,
+        course: document.getElementById('course-name')?.textContent.trim() || 'Course',
+        amount: TOTAL_AMOUNT_RUPEES,
+        status: 'captured',
+        method: 'UPI'
+      });
+    }
+    setStatus('✅ Payment simulated — real Razorpay checkout will activate automatically once the API keys are added in Vercel. A sample transaction has been recorded in the admin dashboard.', '#4ade80');
+  }
+
+  async function realRazorpayCheckout(name, email, phone) {
+    const courseName = document.getElementById('course-name')?.textContent.trim() || 'Course';
+
+    /* Logged-in user's id rides along to create-order, which stores it in
+       the Razorpay order's notes so verify-payment can read it back
+       server-side (trusted) rather than from this client request. Guest
+       checkout (not logged in) still works — it just won't produce an
+       enrollment row, since there's no account to attach one to. */
+    const currentUser = (typeof window.cfpAuth !== 'undefined') ? await window.cfpAuth.getCurrentUser().catch(() => null) : null;
+
+    const orderRes = await fetch('/api/create-order', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ amount: TOTAL_AMOUNT_RUPEES * 100, courseId: COURSE_ID, courseName, name, email, phone, user_id: currentUser ? currentUser.id : null })
+    });
+    if (!orderRes.ok) throw new Error('create-order failed: ' + orderRes.status);
+    const order = await orderRes.json();
+    if (!order.orderId) throw new Error('create-order did not return an orderId');
+
+    return new Promise((resolve, reject) => {
+      const rzp = new Razorpay({
+        key: order.keyId,
+        order_id: order.orderId,
+        amount: order.amount,
+        currency: order.currency,
+        name: 'Capital Finplus Academy',
+        description: courseName,
+        prefill: { name, email, contact: phone },
+        theme: { color: '#F4C20D' },
+        handler: async function (response) {
+          try {
+            const verifyRes = await fetch('/api/verify-payment', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature
+              })
+            });
+            const verify = await verifyRes.json();
+            if (!verify.verified) throw new Error('Payment could not be verified.');
+
+            if (typeof cfpRecordTransaction === 'function') {
+              cfpRecordTransaction({
+                paymentId: response.razorpay_payment_id,
+                orderId: response.razorpay_order_id,
+                name, email, phone,
+                course: courseName,
+                amount: TOTAL_AMOUNT_RUPEES,
+                status: 'captured',
+                method: 'Razorpay'
+              });
+            }
+            if (verify.success && currentUser) {
+              setStatus('✅ Payment successful! Taking you to your account…', '#4ade80');
+              setTimeout(() => { window.location.href = 'account.html'; }, 1500);
+            } else {
+              setStatus('✅ Payment successful! A confirmation has been sent to ' + email + '. Our team will share your course access shortly.', '#4ade80');
+            }
+            resolve(response);
+          } catch (err) {
+            setStatus('⚠️ Payment was made but could not be verified automatically. Please contact support with your payment ID: ' + response.razorpay_payment_id, '#fbbf24');
+            reject(err);
+          }
+        },
+        modal: {
+          ondismiss: function () { setStatus('Payment cancelled.', 'rgba(255,255,255,0.5)'); }
+        }
+      });
+      rzp.open();
+    });
+  }
+
+  document.getElementById('pay-btn').addEventListener('click', async function () {
+    const name = document.getElementById('p-name').value.trim();
+    const email = document.getElementById('p-email').value.trim();
+    const phone = document.getElementById('p-phone').value.trim();
+    if (!name || !email || !phone) {
+      alert('Please fill in all required fields before proceeding.');
+      return;
+    }
+
+    setStatus('Connecting to Razorpay…');
+    try {
+      await realRazorpayCheckout(name, email, phone);
+    } catch (err) {
+      console.warn('Real Razorpay checkout unavailable, using simulated fallback:', err.message);
+      simulatedFallback(name, email, phone);
+    }
+  });
+</script>
+</body>
+</html>

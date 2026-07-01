@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /account.html
+Disallow: /payment.html
+
+Sitemap: https://capitalfinplusadvizors.com/sitemap.xml
