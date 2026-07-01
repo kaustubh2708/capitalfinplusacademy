@@ -430,18 +430,13 @@ A practical, market-tested framework designed to help traders move from confusio
       buttonLabel: 'Subscribe Free →'
     }
   },
-  /* ── SAMPLE DATA — replace with live Razorpay / form-backend feed once wired ── */
-  transactions: [
-    { id: 1, paymentId: 'pay_OqSample0001', orderId: 'order_OqSample0001', name: 'Rahul Sharma', email: 'rahul.sharma@example.com', phone: '+91 98765 12340', course: 'The CFA Trading System: Edge + Precision', amount: 24999, status: 'captured', method: 'UPI', date: '2026-06-20 14:32' },
-    { id: 2, paymentId: 'pay_OqSample0002', orderId: 'order_OqSample0002', name: 'Kavya Subramaniam', email: 'kavya.s@example.com', phone: '+91 98220 44211', course: 'The CFA Trading System: Edge + Precision', amount: 24999, status: 'captured', method: 'Card', date: '2026-06-19 09:15' },
-    { id: 3, paymentId: 'pay_OqSample0003', orderId: 'order_OqSample0003', name: 'Arjun Patel', email: 'arjun.patel@example.com', phone: '+91 90123 88761', course: 'The CFA Trading System: Edge + Precision', amount: 24999, status: 'failed', method: 'Net Banking', date: '2026-06-18 19:48' },
-    { id: 4, paymentId: 'pay_OqSample0004', orderId: 'order_OqSample0004', name: 'Priya Tiwari', email: 'priya.t@example.com', phone: '+91 99887 65432', course: 'The CFA Trading System: Edge + Precision', amount: 24999, status: 'refunded', method: 'UPI', date: '2026-06-15 11:02' }
-  ],
-  submissions: [
-    { id: 1, type: 'booking', name: 'Vikas Rao', email: 'vikas.rao@example.com', phone: '+91 98765 99001', experience: 'Some Experience (1–2 yrs)', message: 'Want to understand if F&O suits my schedule as a part-time trader.', date: '2026-06-21 18:20' },
-    { id: 2, type: 'contact', name: 'Siddharth Nair', email: 'sid.nair@example.com', phone: '+91 90909 11223', experience: '', message: 'Do you offer EMI options for the bundle course?', date: '2026-06-21 10:05' },
-    { id: 3, type: 'booking', name: 'Anjali Mehta', email: 'anjali.m@example.com', phone: '+91 91234 56780', experience: 'Complete Beginner', message: 'Total beginner, want to know where to start.', date: '2026-06-20 08:44' }
-  ]
+  /* Local-only write cache for payment.html's simulated-payment fallback
+     and the booking/contact forms — the admin dashboard reads live from
+     Supabase instead, never from this. Starts empty; no seed data here
+     since stale sample rows (old course names, fake customers) showing
+     up anywhere would just be confusing. */
+  transactions: [],
+  submissions: []
 };
 
 /* Merge a saved array with the shipped defaults by id: keeps any admin edits

@@ -10,6 +10,36 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800;900&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
+  <style>
+    /* ── LMS dashboard (post-login account.html only) ── */
+    .lms-layout { display: flex; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; min-height: 60vh; }
+    .lms-sidebar { width: 260px; flex-shrink: 0; background: rgba(255,255,255,0.02); border-right: 1px solid var(--border); padding: 1.5rem 1rem; }
+    .lms-sidebar-heading { font-weight: 800; font-size: 1rem; margin-bottom: 1.5rem; padding: 0 0.75rem; }
+    .lms-tab { display: flex; align-items: center; gap: 0.6rem; width: 100%; text-align: left; background: none; border: none; border-left: 3px solid transparent; color: var(--muted); font-family: inherit; font-size: 0.86rem; font-weight: 600; padding: 0.75rem; border-radius: 6px; cursor: pointer; margin-bottom: 0.25rem; transition: all 0.2s; }
+    .lms-tab:hover { background: rgba(255,255,255,0.04); color: #fff; }
+    .lms-tab.active { border-left-color: var(--purple); background: rgba(244,194,13,0.08); color: #fff; }
+    .lms-panel { flex: 1; min-width: 0; padding: 2rem; overflow-x: hidden; }
+    @media (max-width: 768px) {
+      .lms-layout { flex-direction: column; }
+      .lms-sidebar { width: 100%; border-right: none; border-bottom: 1px solid var(--border); display: flex; overflow-x: auto; gap: 0.4rem; padding: 1rem; }
+      .lms-sidebar-heading { display: none; }
+      .lms-tab { width: auto; white-space: nowrap; border-left: none; border-bottom: 3px solid transparent; margin-bottom: 0; }
+      .lms-tab.active { border-left-color: transparent; border-bottom-color: var(--purple); }
+      .lms-panel { padding: 1.25rem; }
+    }
+    .video-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem; }
+    @media (max-width: 900px) { .video-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 560px) { .video-grid { grid-template-columns: 1fr; } }
+    .video-card { cursor: pointer; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: rgba(255,255,255,0.02); transition: filter 0.2s, transform 0.2s; }
+    .video-card:hover { filter: brightness(1.18); transform: translateY(-2px); }
+    .video-card-thumb { position: relative; width: 100%; aspect-ratio: 16/9; background: #000; overflow: hidden; }
+    .video-card-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .video-card-play { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+    .video-card-play span { width: 48px; height: 48px; border-radius: 50%; background: rgba(0,0,0,0.55); display: flex; align-items: center; justify-content: center; }
+    .video-card-body { padding: 0.85rem 1rem 1rem; }
+    .video-card-title { font-weight: 700; font-size: 0.9rem; margin-bottom: 0.3rem; }
+    .video-card-desc { font-size: 0.78rem; color: var(--muted); line-height: 1.5; }
+  </style>
   <script src="data.js?v=13"></script>
   <script src="config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -81,7 +111,7 @@
 
   <!-- ===== ACCOUNT PAGE ===== -->
   <section class="section-pad" aria-labelledby="account-heading" style="min-height:70vh;">
-    <div class="container" style="max-width:680px;">
+    <div class="container" id="account-container" style="max-width:680px;">
 
       <!-- Shown while logged out -->
       <div id="account-logged-out" style="display:none;text-align:center;padding:3rem 0;">
@@ -115,28 +145,39 @@
         <span class="section-tag">My Account</span>
         <h1 style="font-size:clamp(1.8rem,3.5vw,2.4rem);font-weight:800;margin-top:0.75rem;margin-bottom:1.75rem;">Welcome back.</h1>
 
-        <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:12px;padding:1.5rem 1.75rem;margin-bottom:2rem;">
-          <div style="font-size:0.7rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:0.4rem;">Name</div>
-          <div id="account-name" style="font-size:1.05rem;font-weight:700;margin-bottom:1rem;">—</div>
-          <div style="font-size:0.7rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:0.4rem;">Email</div>
-          <div id="account-email" style="font-size:1.05rem;font-weight:700;">—</div>
+        <div class="lms-layout">
+          <aside class="lms-sidebar">
+            <div class="lms-sidebar-heading">My Dashboard</div>
+            <nav id="lms-tabs">
+              <button type="button" class="lms-tab" data-tab="profile">👤 Profile</button>
+              <button type="button" class="lms-tab" data-tab="pdf" id="lms-tab-pdf">📄 Course PDF</button>
+              <button type="button" class="lms-tab" data-tab="courses">📚 My Courses</button>
+              <button type="button" class="lms-tab" data-tab="guided" id="lms-tab-guided" style="display:none;">🎬 Guided Videos</button>
+              <button type="button" class="lms-tab" data-tab="framework" id="lms-tab-framework" style="display:none;">🎬 Framework Videos</button>
+            </nav>
+          </aside>
+          <div class="lms-panel">
+            <div id="lms-content"><p style="color:var(--muted);font-size:0.9rem;">Loading…</p></div>
+          </div>
         </div>
 
-        <h2 style="font-size:1.1rem;font-weight:800;margin-bottom:1rem;">Enrolled Courses</h2>
-        <div id="account-courses-list" style="margin-bottom:2rem;">
-          <p style="color:var(--muted);font-size:0.9rem;">Loading…</p>
-        </div>
-
-        <h2 style="font-size:1.1rem;font-weight:800;margin-bottom:1rem;">Course Videos</h2>
-        <div id="account-videos-list" style="margin-bottom:2rem;">
-          <p style="color:var(--muted);font-size:0.9rem;">Loading…</p>
-        </div>
-
-        <button type="button" class="btn btn-secondary" id="account-logout-btn">Log Out</button>
+        <button type="button" class="btn btn-secondary" id="account-logout-btn" style="margin-top:1.5rem;">Log Out</button>
       </div>
 
     </div>
   </section>
+
+  <!-- ===== VIDEO POPUP (course videos play in a centered lightbox) ===== -->
+  <div id="video-modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.88);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);z-index:3000;align-items:center;justify-content:center;padding:1.5rem;">
+    <div style="width:100%;max-width:920px;position:relative;">
+      <button type="button" id="video-modal-close" aria-label="Close video" style="position:absolute;top:-2.5rem;right:0;background:none;border:1px solid rgba(244,194,13,0.3);color:#fff;width:34px;height:34px;border-radius:4px;cursor:pointer;font-size:1rem;">✕</button>
+      <div id="video-modal-title" style="color:#fff;font-weight:700;margin-bottom:0.75rem;"></div>
+      <div style="position:relative;width:100%;aspect-ratio:16/9;border-radius:10px;overflow:hidden;background:#000;box-shadow:0 0 60px rgba(244,194,13,0.15);">
+        <iframe id="video-modal-iframe" src="" title="Course video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen
+          style="position:absolute;inset:0;width:100%;height:100%;border:0;"></iframe>
+      </div>
+    </div>
+  </div>
 
   <!-- ===== FOOTER ===== -->
   <footer>
@@ -144,7 +185,21 @@
       <div class="footer-grid">
         <div>
           <a href="index.html" class="footer-logo" aria-label="Capital Finplus Home">
-            <div class="footer-logo-dot" aria-hidden="true">CFΛ</div>
+            <svg class="footer-logo-dot" aria-hidden="true" viewBox="0 0 40 42" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <filter id="cfa-glow-footer" x="-40%" y="-40%" width="180%" height="180%">
+                  <feGaussianBlur in="SourceGraphic" stdDeviation="0.8" result="blur"/>
+                  <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                </filter>
+              </defs>
+              <polygon
+                points="20,39 3.8,27.2 10,7.5 30,7.5 36.2,27.2"
+                fill="rgba(244,194,13,0.07)"
+                stroke="#F4C20D"
+                stroke-width="3.2"
+                stroke-linejoin="round"
+              />
+            </svg>
             CΛPITΛL FINPLUS<span> ΛCΛDEMY</span>
           </a>
           <p class="footer-tagline">Professional-grade trading education and mentorship. Built for those who demand real results from the markets.</p>
@@ -209,88 +264,244 @@
     const loggedInEl = document.getElementById('account-logged-in');
     const setPasswordEl = document.getElementById('account-set-password');
 
+    /* Course video popup player — single shared modal, fed whichever
+       video URL/title was clicked (used by both the old course-card
+       trigger pattern and the new playlist video grid). */
+    const videoModalOverlay = document.getElementById('video-modal-overlay');
+    const videoModalIframe = document.getElementById('video-modal-iframe');
+    const videoModalTitle = document.getElementById('video-modal-title');
+
+    function openVideoModal(url, label) {
+      const sep = url.indexOf('?') === -1 ? '?' : '&';
+      videoModalIframe.src = url + sep + 'autoplay=1';
+      videoModalTitle.textContent = label || '';
+      videoModalOverlay.style.display = 'flex';
+      document.body.style.overflow = 'hidden';
+    }
+    function closeVideoModal() {
+      videoModalOverlay.style.display = 'none';
+      videoModalIframe.src = '';
+      document.body.style.overflow = '';
+    }
+    document.getElementById('video-modal-close').addEventListener('click', closeVideoModal);
+    videoModalOverlay.addEventListener('click', e => { if (e.target === videoModalOverlay) closeVideoModal(); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeVideoModal(); });
+    document.addEventListener('click', e => {
+      const trigger = e.target.closest('.video-card');
+      if (trigger) openVideoModal('https://www.youtube.com/embed/' + trigger.dataset.videoId + '?rel=0', trigger.dataset.videoTitle);
+    });
+
+    /* Course name -> { label, descriptions, unlocks }. Keyed by the real
+       courses.name value (not the data.js id) since enrollments.course_id
+       is a genuine uuid FK to courses.id — the embed join below
+       (`courses(...)`) already resolves it directly, no id->name lookup
+       table needed (deviates from the original spec's id-keyed config,
+       which assumed course_id was still the data.js string id). */
+    const COURSE_DASHBOARD_CONFIG = {
+      'Self-Study': { label: 'Self-Study', desc: 'Access to course PDF and daily post-market analysis.', unlocksGuided: false, unlocksFramework: false },
+      'Guided Learning': { label: 'Guided Learning', desc: 'PDF, recorded sessions, and guided course video playlist.', unlocksGuided: true, unlocksFramework: false },
+      'The CFA Academy Framework for Stock Investing': { label: 'CFA Framework', desc: 'Investing framework PDF and CFA Framework video playlist.', unlocksGuided: false, unlocksFramework: true },
+      'Mentorship Program': { label: 'Mentorship Program', desc: 'Full access — PDF, both video playlists, and 1-on-1 mentorship.', unlocksGuided: true, unlocksFramework: true }
+    };
+
+    const accountContainerEl = document.getElementById('account-container');
+    const lmsContentEl = document.getElementById('lms-content');
+    let cfpEnrollments = [];
+    let cfpAccess = { hasAny: false, guided: false, framework: false };
+    let cfpAcademyPdfUrl = '';
+    let cfpCurrentUser = null;
+
+    const TAB_ORDER = ['profile', 'pdf', 'courses', 'guided', 'framework'];
+    function cfpVisibleTabs() {
+      return TAB_ORDER.filter(t => {
+        if (t === 'pdf') return cfpAccess.hasAny;
+        if (t === 'guided') return cfpAccess.guided;
+        if (t === 'framework') return cfpAccess.framework;
+        return true;
+      });
+    }
+
+    function activateTab(tab) {
+      const visible = cfpVisibleTabs();
+      if (visible.indexOf(tab) === -1) tab = 'profile';
+      document.querySelectorAll('.lms-tab').forEach(btn => btn.classList.toggle('active', btn.dataset.tab === tab));
+      if (window.location.hash.slice(1) !== tab) window.location.hash = tab;
+      const renderers = { profile: renderProfileTab, pdf: renderPdfTab, courses: renderCoursesTab, guided: () => renderVideoTab('guided'), framework: () => renderVideoTab('framework') };
+      (renderers[tab] || renderProfileTab)();
+    }
+
+    document.getElementById('lms-tabs').addEventListener('click', e => {
+      const btn = e.target.closest('.lms-tab');
+      if (btn) activateTab(btn.dataset.tab);
+    });
+    window.addEventListener('hashchange', () => {
+      const tab = window.location.hash.replace('#', '') || 'profile';
+      activateTab(tab);
+    });
+
+    function renderProfileTab() {
+      lmsContentEl.innerHTML = `
+        <h2 style="font-size:1.1rem;font-weight:800;margin-bottom:1.25rem;">Profile</h2>
+        <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:12px;padding:1.5rem 1.75rem;max-width:440px;">
+          <div style="font-size:0.7rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:0.4rem;">Name</div>
+          <div style="font-size:1.05rem;font-weight:700;margin-bottom:1rem;">${(cfpCurrentUser.user_metadata && cfpCurrentUser.user_metadata.full_name) || '—'}</div>
+          <div style="font-size:0.7rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:0.4rem;">Email</div>
+          <div style="font-size:1.05rem;font-weight:700;margin-bottom:1.25rem;">${cfpCurrentUser.email || '—'}</div>
+          <button type="button" class="btn btn-primary" id="account-change-password-btn" style="font-size:0.78rem;">Change Password</button>
+          <p id="account-password-msg" style="display:none;color:#4ade80;font-size:0.82rem;margin-top:0.75rem;"></p>
+        </div>`;
+      const passwordBtn = document.getElementById('account-change-password-btn');
+      const passwordMsg = document.getElementById('account-password-msg');
+      passwordBtn.addEventListener('click', async () => {
+        passwordBtn.disabled = true;
+        try {
+          await window.cfpSupabase.auth.resetPasswordForEmail(cfpCurrentUser.email, {
+            redirectTo: window.location.origin + '/account.html'
+          });
+          passwordMsg.textContent = 'Password reset link sent to your email.';
+          passwordMsg.style.color = '#4ade80';
+          passwordMsg.style.display = 'block';
+        } catch (e) {
+          passwordMsg.textContent = e.message || 'Could not send a reset link — try again.';
+          passwordMsg.style.color = '#fb7185';
+          passwordMsg.style.display = 'block';
+        } finally {
+          passwordBtn.disabled = false;
+        }
+      });
+    }
+
+    async function renderPdfTab() {
+      lmsContentEl.innerHTML = `
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:1.25rem;flex-wrap:wrap;">
+          <h2 style="font-size:1.1rem;font-weight:800;">CFA Academy — Course Framework</h2>
+          <a id="academy-pdf-download" href="#" download target="_blank" class="btn btn-primary" style="display:none;font-size:0.78rem;">Download PDF ↓</a>
+        </div>
+        <div id="academy-pdf-viewer-wrap" style="border:1px solid var(--border);border-radius:10px;overflow:hidden;background:rgba(255,255,255,0.02);min-height:70vh;display:flex;align-items:center;justify-content:center;">
+          <p style="color:var(--muted);font-size:0.9rem;padding:2rem;">Loading…</p>
+        </div>`;
+      const wrap = document.getElementById('academy-pdf-viewer-wrap');
+      try {
+        if (!cfpAcademyPdfUrl) {
+          const { data, error } = await window.cfpSupabase.from('site_content').select('value').eq('key', 'academy_pdf_url').maybeSingle();
+          if (error) throw error;
+          cfpAcademyPdfUrl = (data && data.value) || '';
+        }
+        if (!cfpAcademyPdfUrl) {
+          wrap.innerHTML = '<p style="color:var(--muted);font-size:0.9rem;padding:2rem;text-align:center;">PDF will be available shortly. Check back soon.</p>';
+          return;
+        }
+        document.getElementById('academy-pdf-download').href = cfpAcademyPdfUrl;
+        document.getElementById('academy-pdf-download').style.display = 'inline-flex';
+        wrap.innerHTML = `<embed src="${cfpAcademyPdfUrl}" type="application/pdf" style="width:100%;height:75vh;border:0;display:block;" />`;
+      } catch (e) {
+        wrap.innerHTML = '<p style="color:var(--muted);font-size:0.9rem;padding:2rem;text-align:center;">PDF will be available shortly. Check back soon.</p>';
+      }
+    }
+
+    function renderCoursesTab() {
+      if (cfpEnrollments.length === 0) {
+        lmsContentEl.innerHTML = `
+          <h2 style="font-size:1.1rem;font-weight:800;margin-bottom:1.25rem;">My Courses</h2>
+          <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:12px;padding:3rem 2rem;text-align:center;">
+            <p style="color:var(--muted);font-size:0.95rem;margin-bottom:1.25rem;">No active courses.</p>
+            <a href="courses.html" class="btn btn-primary">Browse our courses →</a>
+          </div>`;
+        return;
+      }
+      const cards = cfpEnrollments.map(e => {
+        const c = e.courses;
+        if (!c) return '';
+        const config = COURSE_DASHBOARD_CONFIG[c.name] || { label: c.name || 'Course', desc: '' };
+        const enrolledDate = e.purchased_at ? new Date(e.purchased_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+        return `
+          <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:12px;padding:1.5rem 1.75rem;margin-bottom:1.25rem;">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:0.6rem;">
+              <h3 style="font-size:1.1rem;font-weight:800;">${config.label}</h3>
+              <span style="font-size:0.68rem;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;padding:3px 10px;border-radius:100px;background:rgba(34,197,94,0.12);color:#4ade80;flex-shrink:0;">Active</span>
+            </div>
+            ${enrolledDate ? `<div style="font-size:0.76rem;color:var(--muted);margin-bottom:0.6rem;">Enrolled ${enrolledDate}</div>` : ''}
+            <p style="color:var(--muted);font-size:0.88rem;line-height:1.6;">${config.desc}</p>
+          </div>`;
+      }).join('');
+      lmsContentEl.innerHTML = `<h2 style="font-size:1.1rem;font-weight:800;margin-bottom:1.25rem;">My Courses</h2>${cards}`;
+    }
+
+    function cfpYtThumb(videoId) { return `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`; }
+
+    async function renderVideoTab(playlistKey) {
+      const titles = { guided: 'Guided Course Videos', framework: 'CFA Framework Videos' };
+      lmsContentEl.innerHTML = `<h2 style="font-size:1.1rem;font-weight:800;margin-bottom:1.25rem;">${titles[playlistKey]}</h2><p style="color:var(--muted);font-size:0.9rem;">Loading…</p>`;
+      try {
+        const { data, error } = await window.cfpSupabase
+          .from('playlist_videos')
+          .select('*')
+          .eq('playlist_key', playlistKey)
+          .order('sort_order', { ascending: true });
+        if (error) throw error;
+        const videos = data || [];
+        if (videos.length === 0) {
+          lmsContentEl.innerHTML = `<h2 style="font-size:1.1rem;font-weight:800;margin-bottom:1.25rem;">${titles[playlistKey]}</h2><p style="color:var(--muted);font-size:0.9rem;">No videos available yet.</p>`;
+          return;
+        }
+        const grid = videos.map(v => `
+          <div class="video-card" data-video-id="${v.video_id}" data-video-title="${(v.title || '').replace(/"/g, '&quot;')}">
+            <div class="video-card-thumb">
+              <img src="${cfpYtThumb(v.video_id)}" alt="${v.title || ''}" loading="lazy" />
+              <div class="video-card-play"><span><svg viewBox="0 0 24 24" width="20" height="20" fill="#fff"><path d="M8 5v14l11-7z"/></svg></span></div>
+            </div>
+            <div class="video-card-body">
+              <div class="video-card-title">${v.title || ''}</div>
+              ${v.description ? `<div class="video-card-desc">${v.description}</div>` : ''}
+            </div>
+          </div>`).join('');
+        lmsContentEl.innerHTML = `<h2 style="font-size:1.1rem;font-weight:800;margin-bottom:1.25rem;">${titles[playlistKey]}</h2><div class="video-grid">${grid}</div>`;
+      } catch (e) {
+        lmsContentEl.innerHTML = `<h2 style="font-size:1.1rem;font-weight:800;margin-bottom:1.25rem;">${titles[playlistKey]}</h2><p style="color:var(--muted);font-size:0.9rem;">Could not load videos right now.</p>`;
+      }
+    }
+
     async function showLoggedIn(user) {
       setPasswordEl.style.display = 'none';
       loggedOutEl.style.display = 'none';
       loggedInEl.style.display = 'block';
-      document.getElementById('account-name').textContent = (user.user_metadata && user.user_metadata.full_name) || '—';
-      document.getElementById('account-email').textContent = user.email || '—';
+      accountContainerEl.style.maxWidth = '1100px';
+      cfpCurrentUser = user;
 
       document.getElementById('account-logout-btn').addEventListener('click', async () => {
         await window.cfpAuth.logout();
         window.location.reload();
       });
 
-      const listEl = document.getElementById('account-courses-list');
-      const videosEl = document.getElementById('account-videos-list');
       try {
         const { data, error } = await window.cfpSupabase
           .from('enrollments')
-          .select('status, purchased_at, courses(name, subtitle, youtube_playlist_a, youtube_playlist_b)')
-          .eq('user_id', user.id);
+          .select('status, purchased_at, courses(name)')
+          .eq('user_id', user.id)
+          .eq('status', 'active');
         if (error) throw error;
-        if (!data || data.length === 0) {
-          listEl.innerHTML = '<p style="color:var(--muted);font-size:0.9rem;">No enrollments yet — <a href="index.html#courses" style="color:var(--purple);">browse courses</a>.</p>';
-          videosEl.innerHTML = '<p style="color:var(--muted);font-size:0.9rem;">Enroll in a course to unlock its video content here.</p>';
-          return;
-        }
-        listEl.innerHTML = data.map(e => `
-          <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;padding:1.1rem 1.4rem;margin-bottom:0.75rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;">
-            <div>
-              <div style="font-weight:700;margin-bottom:0.2rem;">${(e.courses && e.courses.name) || 'Course'}</div>
-              <div style="font-size:0.82rem;color:var(--muted);">${(e.courses && e.courses.subtitle) || ''}</div>
-            </div>
-            <span style="font-size:0.72rem;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;padding:3px 10px;border-radius:100px;background:${e.status === 'active' ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.12)'};color:${e.status === 'active' ? '#4ade80' : '#fb7185'};">${e.status}</span>
-          </div>
-        `).join('');
-        renderAccountVideos(data, videosEl);
+        cfpEnrollments = data || [];
       } catch (e) {
-        listEl.innerHTML = '<p style="color:var(--muted);font-size:0.9rem;">Could not load your courses right now.</p>';
-        videosEl.innerHTML = '<p style="color:var(--muted);font-size:0.9rem;">Could not load your videos right now.</p>';
-      }
-    }
-
-    /* Course Videos — dedupes Playlist A/B across all enrolled courses
-       (e.g. a Guided Learning + Mentorship student would otherwise see
-       Playlist A twice), and shows the Self-Study upgrade note only when
-       none of the enrolled courses unlock any playlist at all. */
-    function renderAccountVideos(enrollments, videosEl) {
-      const seenUrls = new Set();
-      const blocks = [];
-      let hasSelfStudy = false;
-
-      enrollments.forEach(e => {
-        const c = e.courses;
-        if (!c) return;
-        if (c.name === 'Self-Study') hasSelfStudy = true;
-        [['youtube_playlist_a', 'Trading Course Videos'], ['youtube_playlist_b', 'Investing Framework Videos']].forEach(([field, label]) => {
-          const url = c[field];
-          if (!url || seenUrls.has(url)) return;
-          seenUrls.add(url);
-          blocks.push({ label, url });
-        });
-      });
-
-      if (blocks.length === 0) {
-        videosEl.innerHTML = hasSelfStudy
-          ? '<div style="background:rgba(244,194,13,0.06);border:1px solid rgba(244,194,13,0.25);border-radius:10px;padding:1.1rem 1.4rem;color:var(--muted);font-size:0.88rem;">Video content is not included in Self-Study. Upgrade to Guided Learning or above.</div>'
-          : '<p style="color:var(--muted);font-size:0.9rem;">No video content available for your enrolled course(s) yet.</p>';
-        return;
+        cfpEnrollments = [];
       }
 
-      videosEl.innerHTML = blocks.map(b => `
-        <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;padding:1.25rem;margin-bottom:1.25rem;">
-          <div style="font-weight:700;margin-bottom:0.75rem;">${b.label}</div>
-          <div style="position:relative;width:100%;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:#000;">
-            <iframe src="${b.url}" title="${b.label}" loading="lazy"
-              style="position:absolute;inset:0;width:100%;height:100%;border:0;"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-          </div>
-        </div>
-      `).join('');
+      const names = cfpEnrollments.map(e => e.courses && e.courses.name).filter(Boolean);
+      cfpAccess = {
+        hasAny: cfpEnrollments.length > 0,
+        guided: names.some(n => COURSE_DASHBOARD_CONFIG[n] && COURSE_DASHBOARD_CONFIG[n].unlocksGuided),
+        framework: names.some(n => COURSE_DASHBOARD_CONFIG[n] && COURSE_DASHBOARD_CONFIG[n].unlocksFramework)
+      };
+
+      document.getElementById('lms-tab-pdf').style.display = cfpAccess.hasAny ? '' : 'none';
+      document.getElementById('lms-tab-guided').style.display = cfpAccess.guided ? '' : 'none';
+      document.getElementById('lms-tab-framework').style.display = cfpAccess.framework ? '' : 'none';
+
+      const initialTab = window.location.hash.replace('#', '') || 'profile';
+      activateTab(initialTab);
     }
 
     function showSetPassword(user) {
+      accountContainerEl.style.maxWidth = '680px';
       loggedOutEl.style.display = 'none';
       loggedInEl.style.display = 'none';
       setPasswordEl.style.display = 'block';
@@ -334,6 +545,7 @@
 
       const user = await window.cfpAuth.getCurrentUser();
       if (!user) {
+        accountContainerEl.style.maxWidth = '680px';
         loggedOutEl.style.display = 'block';
         return;
       }
