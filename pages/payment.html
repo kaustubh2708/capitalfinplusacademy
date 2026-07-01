@@ -175,7 +175,14 @@
         <div class="checkout-divider"></div>
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;">
           <span style="font-size:0.78rem;color:rgba(255,255,255,0.5);">Course Fee</span>
-          <span style="font-size:0.85rem;" id="checkout-fee">₹5,999</span>
+          <div style="text-align:right;">
+            <span style="font-size:0.78rem;color:rgba(255,255,255,0.3);text-decoration:line-through;text-decoration-color:rgba(255,60,60,0.6);display:none;" id="checkout-fee-original"></span>
+            <span style="font-size:0.85rem;display:block;" id="checkout-fee">₹5,999</span>
+          </div>
+        </div>
+        <div id="checkout-credit-row" style="display:none;justify-content:space-between;align-items:center;margin-bottom:0.5rem;">
+          <span style="font-size:0.78rem;color:#4ade80;">Upgrade Credit</span>
+          <span style="font-size:0.85rem;color:#4ade80;" id="checkout-credit-amount"></span>
         </div>
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
           <span style="font-size:0.78rem;color:rgba(255,255,255,0.5);">GST (18%)</span>
@@ -225,7 +232,9 @@
   const ALL_COURSES = (typeof cfpLoadData === 'function') ? cfpLoadData().courses : [];
   const SELECTED_COURSE = ALL_COURSES.find(c => String(c.id) === String(COURSE_ID)) || ALL_COURSES[1] || null;
   const BASE_FEE_RUPEES = SELECTED_COURSE ? parsePriceToRupees(SELECTED_COURSE.price) : 5999;
-  let EFFECTIVE_FEE_RUPEES = BASE_FEE_RUPEES; // updated when coupon is applied
+  let UPGRADE_CREDIT = 0;       // set by applyUpgradeCredit() after auth check
+  let AFTER_CREDIT_FEE = BASE_FEE_RUPEES; // BASE minus upgrade credit
+  let EFFECTIVE_FEE_RUPEES = BASE_FEE_RUPEES; // further reduced by coupon
   let appliedCoupon = null; // { code, discountType, discountValue }
 
   function getGst(feeRupees) { return Math.round(feeRupees * 0.18); }
@@ -234,12 +243,62 @@
   const fmt = n => '₹' + n.toLocaleString('en-IN');
 
   function refreshOrderSummary() {
-    const feeEl = document.getElementById('checkout-fee');
-    const gstEl = document.getElementById('checkout-gst');
-    const totalEl = document.getElementById('checkout-total');
-    if (feeEl) feeEl.textContent = fmt(EFFECTIVE_FEE_RUPEES);
+    const feeEl        = document.getElementById('checkout-fee');
+    const feeOrigEl    = document.getElementById('checkout-fee-original');
+    const creditRow    = document.getElementById('checkout-credit-row');
+    const creditAmtEl  = document.getElementById('checkout-credit-amount');
+    const gstEl        = document.getElementById('checkout-gst');
+    const totalEl      = document.getElementById('checkout-total');
+
+    if (UPGRADE_CREDIT > 0) {
+      if (feeOrigEl) { feeOrigEl.textContent = fmt(BASE_FEE_RUPEES); feeOrigEl.style.display = 'block'; }
+      if (feeEl) feeEl.textContent = fmt(AFTER_CREDIT_FEE);
+      if (creditRow) creditRow.style.display = 'flex';
+      if (creditAmtEl) creditAmtEl.textContent = '− ' + fmt(UPGRADE_CREDIT);
+    } else {
+      if (feeOrigEl) feeOrigEl.style.display = 'none';
+      if (feeEl) feeEl.textContent = fmt(EFFECTIVE_FEE_RUPEES);
+      if (creditRow) creditRow.style.display = 'none';
+    }
     if (gstEl) gstEl.textContent = fmt(getGst(EFFECTIVE_FEE_RUPEES));
     if (totalEl) totalEl.textContent = fmt(getTotal(EFFECTIVE_FEE_RUPEES));
+  }
+
+  /* Upgrade credit rules — same logic as account.html upsell cards:
+     - Guided Learning (course 5): ₹860 credit if user has Self-Study
+     - Mentorship (course 6):      credit = highest of {Self-Study ₹860,
+                                   Guided ₹6500, CFA Framework ₹4999} */
+  const COURSE_CREDIT_MAP = {
+    'Self-Study': 860,
+    'Guided Learning': 6500,
+    'The CFA Academy Framework for Stock Investing': 4999
+  };
+  async function applyUpgradeCredit() {
+    if (!window.cfpSupabase || !window.cfpAuth) return;
+    const user = await window.cfpAuth.getCurrentUser().catch(() => null);
+    if (!user) return;
+    const { data: enrollments } = await window.cfpSupabase
+      .from('enrollments')
+      .select('courses(name)')
+      .eq('user_id', user.id)
+      .eq('status', 'active');
+    if (!enrollments || !enrollments.length) return;
+    const enrolledNames = enrollments.map(e => e.courses && e.courses.name).filter(Boolean);
+
+    let credit = 0;
+    if (COURSE_ID === '5') {
+      // Guided Learning: only Self-Study qualifies
+      if (enrolledNames.includes('Self-Study')) credit = 860;
+    } else if (COURSE_ID === '6') {
+      // Mentorship: highest of any enrolled lower course
+      credit = enrolledNames.reduce((max, n) => Math.max(max, COURSE_CREDIT_MAP[n] || 0), 0);
+    }
+    if (credit <= 0) return;
+
+    UPGRADE_CREDIT = credit;
+    AFTER_CREDIT_FEE = BASE_FEE_RUPEES - credit;
+    EFFECTIVE_FEE_RUPEES = AFTER_CREDIT_FEE;
+    refreshOrderSummary();
   }
 
   (function renderOrderSummary() {
@@ -254,6 +313,9 @@
     }
     refreshOrderSummary();
   })();
+
+  // Run upgrade credit check asynchronously after page renders
+  applyUpgradeCredit();
 
   /* ── COUPON LOGIC ── */
   document.getElementById('coupon-code').addEventListener('input', function () {
@@ -273,7 +335,7 @@
       const res = await fetch('/api/validate-coupon', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code, email, courseId: COURSE_ID, courseFeeRupees: BASE_FEE_RUPEES })
+        body: JSON.stringify({ code, email, courseId: COURSE_ID, courseFeeRupees: AFTER_CREDIT_FEE })
       });
       const data = await res.json();
       if (!data.valid) {
@@ -300,7 +362,7 @@
 
   document.getElementById('coupon-remove-btn').addEventListener('click', function () {
     appliedCoupon = null;
-    EFFECTIVE_FEE_RUPEES = BASE_FEE_RUPEES;
+    EFFECTIVE_FEE_RUPEES = AFTER_CREDIT_FEE;
     refreshOrderSummary();
     document.getElementById('coupon-chip').style.display = 'none';
     document.getElementById('coupon-input-row').style.display = 'flex';
