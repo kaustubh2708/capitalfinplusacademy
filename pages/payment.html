@@ -89,8 +89,16 @@
 <div class="content-wrapper">
 
   <nav id="navbar">
-    <a href="/" class="nav-logo">
-      <div class="nav-logo-dot">CFΛ</div>
+    <a href="/" class="nav-logo" aria-label="Capital Finplus Home">
+      <svg class="nav-logo-dot" aria-hidden="true" viewBox="0 0 40 42" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <filter id="cfa-glow" x="-40%" y="-40%" width="180%" height="180%">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="0.8" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
+        <polygon points="20,39 3.8,27.2 10,7.5 30,7.5 36.2,27.2" fill="rgba(244,194,13,0.07)" stroke="#F4C20D" stroke-width="3.2" stroke-linejoin="round"/>
+      </svg>
       CΛPITΛL FINPLUS<span> ΛCΛDEMY</span>
     </a>
     <div class="nav-right">
