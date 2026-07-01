@@ -440,7 +440,7 @@
     setText('contact-whatsapp-text', DATA.contact.whatsapp);
     setText('contact-telegram-text', DATA.contact.telegram);
     setText('footer-disclaimer', '*' + DATA.legal.disclaimer);
-    document.querySelectorAll('a[href^="mailto:hello@capitalfinplus.com"]:not(#contact-email-link)').forEach(a => {
+    document.querySelectorAll('a[href^="mailto:hello@capitalfinplusadvizors.com"]:not(#contact-email-link)').forEach(a => {
       a.href = 'mailto:' + DATA.contact.email;
       a.textContent = DATA.contact.email;
     });

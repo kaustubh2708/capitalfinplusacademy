@@ -33,24 +33,6 @@
                          radial-gradient(ellipse 50% 40% at 90% 80%, rgba(154,115,0,0.08) 0%, transparent 60%);
     }
 
-    /* ── LOGIN SCREEN ── */
-    #login-screen { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 9999; }
-    .login-card { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 2.5rem; width: min(420px, 90vw); box-shadow: 0 0 60px rgba(244,194,13,0.08); }
-    .login-logo { display: flex; align-items: center; gap: 10px; margin-bottom: 2rem; }
-    .login-logo a { display: flex; align-items: center; gap: 10px; text-decoration: none; color: inherit; }
-    .login-logo-mark { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; }
-    .login-logo-mark svg { width: 36px; height: 36px; }
-    .login-logo span { font-size: 1.15rem; font-weight: 800; }
-    .login-card h2 { font-size: 1.35rem; font-weight: 800; margin-bottom: 0.4rem; }
-    .login-card p { font-size: 0.85rem; color: var(--text-sec); margin-bottom: 2rem; }
-    .field { margin-bottom: 1.1rem; }
-    .field label { display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-sec); margin-bottom: 0.4rem; }
-    .field input { width: 100%; padding: 0.75rem 1rem; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 0.9rem; font-family: inherit; transition: border-color 0.2s; }
-    .field input:focus { outline: none; border-color: var(--accent); }
-    .login-error { font-size: 0.8rem; color: var(--red); margin-bottom: 0.75rem; display: none; }
-    .btn-accent { width: 100%; padding: 0.875rem; background: var(--accent); color: #fff; border: none; border-radius: 8px; font-size: 0.92rem; font-weight: 700; cursor: pointer; font-family: inherit; transition: opacity 0.2s; box-shadow: 0 0 20px rgba(244,194,13,0.3); }
-    .btn-accent:hover { opacity: 0.9; }
-    .login-hint { font-size: 0.74rem; color: var(--text-muted); margin-top: 0.75rem; text-align: center; }
 
     /* ── MAIN APP ── */
     #app { display: none; width: 100%; }
@@ -163,35 +145,6 @@
   <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
 </head>
 <body>
-
-<!-- ══ LOGIN ══ -->
-<div id="login-screen">
-  <div class="login-card">
-    <div class="login-logo">
-      <a href="../index.html" aria-label="Back to Capital Finplus home">
-        <div class="login-logo-mark">
-          <svg viewBox="0 0 40 42" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <polygon points="20,39 3.8,27.2 10,7.5 30,7.5 36.2,27.2" fill="rgba(244,194,13,0.07)" stroke="#F4C20D" stroke-width="3.2" stroke-linejoin="round"/>
-          </svg>
-        </div>
-        <span>Capital Finplus <span style="color:var(--accent-bright)">Admin</span></span>
-      </a>
-    </div>
-    <h2>Sign in to Dashboard</h2>
-    <p>Manage your website content, blog posts, pricing, transactions and form leads.</p>
-    <div class="login-error" id="login-error">Incorrect password. Please try again.</div>
-    <div class="field">
-      <label for="login-email">Email</label>
-      <input type="email" id="login-email" placeholder="you@capitalfinplus.com" autocomplete="username" />
-    </div>
-    <div class="field">
-      <label for="login-pass">Password</label>
-      <input type="password" id="login-pass" placeholder="Enter admin password" autocomplete="current-password" />
-    </div>
-    <button class="btn-accent" id="login-btn">Sign In →</button>
-    <p class="login-hint">Contact the administrator for access.</p>
-  </div>
-</div>
 
 <!-- ══ APP ══ -->
 <div id="app">
@@ -624,14 +577,14 @@
       <div class="card">
         <h3>🎓 Students &amp; Their Programs</h3>
         <p style="font-size:0.82rem;color:var(--text-sec);margin-bottom:1.25rem">
-          Every active enrollment, with the student's login email and which program it's for. One row per enrollment — a student in more than one course shows up more than once.
+          One row per student. Students enrolled in multiple courses show all their courses as badges. Click <strong>Manage</strong> to add/remove courses or delete the student.
         </p>
         <div style="display:flex;gap:0.6rem;margin-bottom:1rem;" id="students-filter-bar">
           <button class="filter-btn active" data-students-filter="all">All Programs</button>
         </div>
         <div class="table-wrap">
-          <table>
-            <thead><tr><th>Login Email</th><th>Name</th><th>Program</th><th>Status</th><th>Enrolled Since</th></tr></thead>
+          <table id="students-table">
+            <thead><tr><th>Login Email</th><th>Name</th><th>Enrolled Courses</th><th>Latest Enrol</th><th>Actions</th></tr></thead>
             <tbody id="students-table-body"></tbody>
           </table>
         </div>
@@ -771,10 +724,37 @@
       </div>
       <div class="card">
         <h3>🔒 Premium Content Access</h3>
-        <div class="form-group" style="max-width:260px;">
-          <label class="form-label">Free Preview Window (days)</label>
-          <input class="form-input" id="premium-free-days" type="number" min="0" step="1" placeholder="30" />
-          <div class="hint">Blog articles and backtests stay free for this many days after their date, then automatically lock (🔒 + blur + Purchase Now) unless manually marked Free. Applies site-wide immediately on save.</div>
+        <p style="font-size:0.82rem;color:var(--text-sec);margin-bottom:1.5rem;">
+          Controls how many days of blog articles and backtests each tier can access. Changes take effect site-wide on Save.
+        </p>
+
+        <div class="form-group">
+          <label class="form-label">🌐 Free Preview — No Login Required (days)</label>
+          <input class="form-input" id="premium-free-days" type="number" min="0" step="1" placeholder="7" style="max-width:180px" />
+          <div class="hint">New blog posts and backtests stay publicly visible for this many days after their publish date — no account needed. After this window they lock for everyone who isn't enrolled.</div>
+        </div>
+
+        <div style="border-top:1px solid var(--border);margin:1.25rem 0;"></div>
+        <p style="font-size:0.78rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:1rem;">Backtest Access Window per Enrolled Tier</p>
+
+        <div class="form-row-3">
+          <div class="form-group">
+            <label class="form-label">📘 Self Study (days)</label>
+            <input class="form-input" id="premium-self-study-days" type="number" min="1" step="1" placeholder="30" />
+            <div class="hint">How many days back Self Study students can view premium backtests.</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">📗 Guided Learning &amp; Framework (days)</label>
+            <input class="form-input" id="premium-guided-days" type="number" min="1" step="1" placeholder="90" />
+            <div class="hint">Applies to both Guided Learning and CFA Framework enrollees.</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">🏆 Mentorship Program</label>
+            <div style="display:flex;align-items:center;gap:0.6rem;margin-top:0.5rem;">
+              <span style="background:var(--green-dim);color:var(--green);border-radius:8px;padding:0.5rem 1rem;font-size:0.82rem;font-weight:700;">✓ Always Full Access</span>
+            </div>
+            <div class="hint">Mentorship students always have unlimited access — this cannot be changed.</div>
+          </div>
         </div>
       </div>
     </div>
@@ -943,7 +923,7 @@
       <div class="card">
         <h3>📤 Compose &amp; Send Newsletter</h3>
         <p style="font-size:0.82rem;color:var(--amber);margin-bottom:1.25rem;">
-          Emails are sent via Resend from ceo@capitalfinplus.com. <strong>RESEND_API_KEY</strong> must be set as a Vercel environment variable.
+          Emails are sent via Resend from ceo@capitalfinplusadvizors.com. <strong>RESEND_API_KEY</strong> must be set as a Vercel environment variable.
         </p>
         <div class="form-group">
           <label class="form-label">Subject Line</label>

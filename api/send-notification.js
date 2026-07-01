@@ -13,7 +13,7 @@ module.exports = async function sendNotification({ subject, html }) {
       method: 'POST',
       headers: { 'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        from: 'CFA Academy <connect@capitalfinplusadvizors.com>',
+        from: 'CFA Academy <hello@capitalfinplusadvizors.com>',
         to: ['connect@capitalfinplusadvizors.com'],
         subject,
         html

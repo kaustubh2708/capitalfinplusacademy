@@ -577,6 +577,7 @@ function cfpEffectiveAccess(item) {
 function cfpApplyFreeWindow(data) {
   if (typeof window !== 'undefined') {
     window.CFP_FREE_WINDOW_DAYS = (data.premium && Number(data.premium.freeDays)) || CFP_FREE_WINDOW_DAYS;
+    window.CFP_PREMIUM_SETTINGS = data.premium || {};
   }
   (data.backtests || []).forEach(b => { b._useTimeWindow = true; });
   (data.articles || []).forEach(a => { a._useTimeWindow = true; });

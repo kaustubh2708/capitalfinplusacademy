@@ -32,12 +32,15 @@
        - Date   -> only backtests dated on/after this cutoff are unlocked
                    for an otherwise-premium item (free items are still
                    governed separately by cfpEffectiveAccess) */
-  const CFP_TIER_PRIORITY = [
-    { name: 'Mentorship Program', days: null },
-    { name: 'The CFA Academy Framework for Stock Investing', days: null },
-    { name: 'Guided Learning', days: 90 },
-    { name: 'Self-Study', days: 30 }
-  ];
+  function cfpTierPriority() {
+    const ps = (typeof window !== 'undefined' && window.CFP_PREMIUM_SETTINGS) || {};
+    return [
+      { name: 'Mentorship Program', days: null },
+      { name: 'The CFA Academy Framework for Stock Investing', days: null },
+      { name: 'Guided Learning', days: ps.guidedDays != null ? Number(ps.guidedDays) : 90 },
+      { name: 'Self-Study', days: ps.selfStudyDays != null ? Number(ps.selfStudyDays) : 30 }
+    ];
+  }
 
   async function getBacktestCutoffDate(userId) {
     if (!userId || !window.cfpSupabase) return null;
@@ -51,7 +54,7 @@
       return null;
     }
     const enrolledNames = (data || []).map(r => (r.courses && r.courses.name) || '').filter(Boolean);
-    const tier = CFP_TIER_PRIORITY.find(t => enrolledNames.includes(t.name));
+    const tier = cfpTierPriority().find(t => enrolledNames.includes(t.name));
     if (!tier || tier.days === null) return null;
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - tier.days);

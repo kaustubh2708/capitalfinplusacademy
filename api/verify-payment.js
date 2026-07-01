@@ -206,6 +206,66 @@ module.exports = async (req, res) => {
 
       enrollmentId = enrollmentRow.id;
 
+      // Send welcome email to the student (fire-and-forget, never fails the response)
+      try {
+        const resendKey = process.env.RESEND_API_KEY;
+        if (resendKey && checkoutEmail) {
+          const studentName = notes.name ? String(notes.name).split(' ')[0] : 'there';
+          const courseLabel = notes.courseName || COURSE_ID_TO_NAME[String(courseId)] || 'your course';
+          const hasPdf = true;
+          const hasVideos = ['Guided Learning', 'The CFA Academy Framework for Stock Investing', 'Mentorship Program'].includes(courseLabel);
+          const welcomeHtml = `
+<div style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;max-width:600px;margin:0 auto;background:#0d0a02;color:#f0ead6;border-radius:12px;overflow:hidden;border:1px solid rgba(244,194,13,0.2);">
+  <div style="height:4px;background:linear-gradient(90deg,#F4C20D,rgba(244,194,13,0.2));"></div>
+  <div style="padding:40px 40px 32px;">
+    <div style="margin-bottom:28px;">
+      <svg width="36" height="38" viewBox="0 0 40 42" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <polygon points="20,39 3.8,27.2 10,7.5 30,7.5 36.2,27.2" fill="rgba(244,194,13,0.1)" stroke="#F4C20D" stroke-width="3" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <p style="font-size:13px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:#F4C20D;margin:0 0 10px;">Welcome to CFA Academy</p>
+    <h1 style="font-size:26px;font-weight:800;line-height:1.2;margin:0 0 20px;color:#ffffff;">Hi ${studentName}, you're officially enrolled! 🎉</h1>
+    <p style="font-size:15px;line-height:1.7;color:rgba(240,234,214,0.75);margin:0 0 24px;">
+      Your enrolment in <strong style="color:#F4C20D;">${courseLabel}</strong> is confirmed. We're genuinely excited to have you — this is the start of something great.
+    </p>
+    <div style="background:rgba(244,194,13,0.06);border:1px solid rgba(244,194,13,0.18);border-radius:10px;padding:24px 28px;margin-bottom:28px;">
+      <p style="font-size:12px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:rgba(244,194,13,0.7);margin:0 0 14px;">What you now have access to</p>
+      <ul style="margin:0;padding:0;list-style:none;">
+        ${hasPdf ? `<li style="padding:6px 0;font-size:14px;color:rgba(240,234,214,0.8);display:flex;align-items:center;gap:10px;"><span style="color:#F4C20D;font-weight:700;">→</span> Course PDF &amp; study materials</li>` : ''}
+        ${hasVideos ? `<li style="padding:6px 0;font-size:14px;color:rgba(240,234,214,0.8);display:flex;align-items:center;gap:10px;"><span style="color:#F4C20D;font-weight:700;">→</span> Full video lesson library</li>` : ''}
+        <li style="padding:6px 0;font-size:14px;color:rgba(240,234,214,0.8);display:flex;align-items:center;gap:10px;"><span style="color:#F4C20D;font-weight:700;">→</span> Premium backtest data &amp; analysis</li>
+        <li style="padding:6px 0;font-size:14px;color:rgba(240,234,214,0.8);display:flex;align-items:center;gap:10px;"><span style="color:#F4C20D;font-weight:700;">→</span> Blog articles &amp; research</li>
+      </ul>
+    </div>
+    <div style="background:rgba(255,255,255,0.03);border-left:3px solid #F4C20D;border-radius:0 8px 8px 0;padding:16px 20px;margin-bottom:28px;">
+      <p style="font-size:14px;line-height:1.65;color:rgba(240,234,214,0.7);margin:0;">
+        <strong style="color:#ffffff;">Next step:</strong> You'll receive a separate email from Supabase with a one-time link to set your password and log in to your dashboard. Check your spam folder if it doesn't arrive within a few minutes.
+      </p>
+    </div>
+    <p style="font-size:14px;line-height:1.65;color:rgba(240,234,214,0.6);margin:0 0 32px;">
+      Have a question? Just reply to this email or reach us at <a href="mailto:connect@capitalfinplusadvizors.com" style="color:#F4C20D;text-decoration:none;">connect@capitalfinplusadvizors.com</a> — we typically respond within a few hours.
+    </p>
+    <p style="font-size:14px;color:rgba(240,234,214,0.75);margin:0;">Warm regards,<br/><strong style="color:#ffffff;">Pravesh Kumar</strong><br/><span style="font-size:12px;color:rgba(240,234,214,0.45);">Founder, CFA Academy</span></p>
+  </div>
+  <div style="padding:20px 40px;border-top:1px solid rgba(244,194,13,0.1);text-align:center;">
+    <p style="font-size:11px;color:rgba(240,234,214,0.3);margin:0;">Capital Finplus Academy · Educational platform only · Not SEBI investment advice</p>
+  </div>
+</div>`.trim();
+          await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + resendKey, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              from: 'CFA Academy <hello@capitalfinplusadvizors.com>',
+              to: [checkoutEmail],
+              subject: 'Welcome to CFA Academy — you\'re officially enrolled 🎉',
+              html: welcomeHtml
+            })
+          });
+        }
+      } catch (welcomeErr) {
+        console.error('verify-payment: welcome email failed (enrollment unaffected):', welcomeErr);
+      }
+
       // Send admin notification (fire-and-forget, never fails the response)
       const amountRupees = (payment.amount || 0) / 100;
       const courseLabelForEmail = notes.courseName || COURSE_ID_TO_NAME[String(courseId)] || courseId || '—';

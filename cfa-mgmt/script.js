@@ -129,59 +129,33 @@ async function persist() {
   }
 }
 
-/* ── LOGIN ── */
-document.getElementById('login-btn').addEventListener('click', doLogin);
-document.getElementById('login-pass').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
-document.getElementById('login-email').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
-
-async function doLogin() {
-  const errEl = document.getElementById('login-error');
-  errEl.style.display = 'none';
-  const email = document.getElementById('login-email').value.trim();
-  const pw = document.getElementById('login-pass').value;
-  if (!email || !pw) {
-    errEl.textContent = 'Enter your email and password.';
-    errEl.style.display = 'block';
-    return;
-  }
-  try {
-    const { data, error } = await window.cfpSupabase.auth.signInWithPassword({ email, password: pw });
-    if (error) throw error;
-    const userId = data.user.id;
-    const { data: profile, error: profErr } = await window.cfpSupabase.from('profiles').select('is_admin').eq('id', userId).single();
-    if (profErr || !profile || !profile.is_admin) {
-      await window.cfpSupabase.auth.signOut();
-      throw new Error('This account does not have admin access.');
-    }
-    document.getElementById('login-screen').style.display = 'none';
-    document.getElementById('app').style.display = 'flex';
-    await init();
-  } catch (e) {
-    errEl.textContent = e.message || 'Incorrect email or password.';
-    errEl.style.display = 'block';
-  }
-}
-
+/* ── AUTH GATE ── */
+/* No login form here — admins sign in via account.html which redirects
+   them to this page. Anyone arriving without a valid admin session is
+   sent back to account.html to log in. */
 document.getElementById('logout-btn').addEventListener('click', async () => {
   await window.cfpSupabase.auth.signOut();
-  document.getElementById('app').style.display = 'none';
-  document.getElementById('login-screen').style.display = 'flex';
-  document.getElementById('login-pass').value = '';
+  window.location.href = '../account.html';
 });
 
-/* Restore an existing admin session on page reload, so the admin isn't
-   forced to log in again every time this page is opened. */
 (async function checkExistingSession() {
-  if (typeof window.cfpSupabase === 'undefined') return;
+  if (typeof window.cfpSupabase === 'undefined') {
+    window.location.href = '../account.html';
+    return;
+  }
   const { data } = await window.cfpSupabase.auth.getUser();
   const user = data && data.user;
-  if (!user) return;
-  const { data: profile } = await window.cfpSupabase.from('profiles').select('is_admin').eq('id', user.id).single();
-  if (profile && profile.is_admin) {
-    document.getElementById('login-screen').style.display = 'none';
-    document.getElementById('app').style.display = 'flex';
-    await init();
+  if (!user) {
+    window.location.href = '../account.html';
+    return;
   }
+  const { data: profile } = await window.cfpSupabase.from('profiles').select('is_admin').eq('id', user.id).single();
+  if (!profile || !profile.is_admin) {
+    window.location.href = '../account.html';
+    return;
+  }
+  document.getElementById('app').style.display = 'flex';
+  await init();
 })();
 
 /* ── NAV ── */
@@ -252,6 +226,8 @@ function collectFormData() {
   state.contact.razorpayKeyId = val('contact-razorpay');
   state.legal.disclaimer = val('legal-disclaimer-input');
   state.premium.freeDays = Number(val('premium-free-days')) || 0;
+  state.premium.selfStudyDays = Number(val('premium-self-study-days')) || 30;
+  state.premium.guidedDays = Number(val('premium-guided-days')) || 90;
 
   state.pages.blog.tag = val('pc-blog-tag');
   state.pages.blog.title = val('pc-blog-title');
@@ -840,33 +816,47 @@ document.getElementById('publish-bt').addEventListener('click', async () => {
 document.getElementById('cancel-bt-edit').addEventListener('click', () => { resetBtEditor(); switchPanel('bt-list'); });
 
 /* ── STUDENTS (live from Supabase `enrollments`, joined to profiles/courses) ──
-   One row per enrollment — a student in two courses appears twice, once
-   per program, since that's the unit "what can this login see" maps to. */
-let cfpStudentRows = [];
+   Grouped by user — one row per student, all their courses shown as badges.
+   Edit panel expands inline to add/revoke courses or delete the student. */
+let cfpStudentGroups = [];
 let cfpStudentsFilter = 'all';
+let cfpStudentEditingId = null; // userId whose edit row is currently open
 
 async function renderStudents() {
   const tbody = document.getElementById('students-table-body');
   tbody.innerHTML = '<tr><td colspan="5" class="empty-state">Loading…</td></tr>';
   const { data, error } = await window.cfpSupabase
     .from('enrollments')
-    .select('*, profiles(full_name, email), courses(name)')
+    .select('id, user_id, course_id, status, purchased_at, profiles(full_name, email), courses(name)')
     .order('purchased_at', { ascending: false });
   if (error) {
     console.error('renderStudents failed', error);
     tbody.innerHTML = '<tr><td colspan="5" class="empty-state">Could not load students.</td></tr>';
     return;
   }
-  cfpStudentRows = data || [];
-  document.getElementById('nav-students-count').textContent = cfpStudentRows.length;
 
-  // Program filter chips, built from whatever programs actually have students
+  // Group flat enrollment rows by user_id
+  const map = new Map();
+  (data || []).forEach(r => {
+    const uid = r.user_id;
+    if (!map.has(uid)) map.set(uid, {
+      userId: uid,
+      name: (r.profiles && r.profiles.full_name) || '—',
+      email: (r.profiles && r.profiles.email) || '—',
+      enrollments: [],
+      latestAt: r.purchased_at || ''
+    });
+    const g = map.get(uid);
+    g.enrollments.push({ id: r.id, courseId: r.course_id, courseName: (r.courses && r.courses.name) || 'Unknown', status: r.status, purchasedAt: r.purchased_at });
+    if ((r.purchased_at || '') > g.latestAt) g.latestAt = r.purchased_at;
+  });
+  cfpStudentGroups = Array.from(map.values());
+  document.getElementById('nav-students-count').textContent = cfpStudentGroups.length;
+
+  // Filter chips from all distinct program names
   const bar = document.getElementById('students-filter-bar');
   const programs = [];
-  cfpStudentRows.forEach(r => {
-    const name = (r.courses && r.courses.name) || 'Unknown Program';
-    if (!programs.includes(name)) programs.push(name);
-  });
+  (data || []).forEach(r => { const n = (r.courses && r.courses.name) || 'Unknown'; if (!programs.includes(n)) programs.push(n); });
   bar.innerHTML = '<button class="filter-btn active" data-students-filter="all">All Programs</button>' +
     programs.map(p => `<button class="filter-btn" data-students-filter="${escAttr(p)}">${escHtml(p)}</button>`).join('');
   bar.querySelectorAll('.filter-btn').forEach(btn => {
@@ -879,28 +869,134 @@ async function renderStudents() {
   });
 
   cfpStudentsFilter = 'all';
+  cfpStudentEditingId = null;
   cfpRenderStudentsTable();
 }
 
 function cfpRenderStudentsTable() {
   const tbody = document.getElementById('students-table-body');
-  const rows = cfpStudentRows.filter(r => {
-    if (cfpStudentsFilter === 'all') return true;
-    return ((r.courses && r.courses.name) || 'Unknown Program') === cfpStudentsFilter;
-  });
-  tbody.innerHTML = rows.map(r => {
-    const name = (r.profiles && r.profiles.full_name) || '—';
-    const email = (r.profiles && r.profiles.email) || '—';
-    const program = (r.courses && r.courses.name) || 'Unknown Program';
-    return `
-    <tr>
-      <td>${escHtml(email)}</td>
-      <td>${escHtml(name)}</td>
-      <td>${escHtml(program)}</td>
-      <td><span class="badge badge-${r.status === 'active' ? 'published' : 'failed'}">${escHtml(r.status)}</span></td>
-      <td>${r.purchased_at ? new Date(r.purchased_at).toLocaleString('en-IN') : ''}</td>
+  const groups = cfpStudentsFilter === 'all'
+    ? cfpStudentGroups
+    : cfpStudentGroups.filter(g => g.enrollments.some(e => e.courseName === cfpStudentsFilter));
+
+  if (!groups.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="empty-state">No students yet — they appear here automatically once a course purchase is verified.</td></tr>';
+    return;
+  }
+
+  const BADGE_COLORS = {
+    'Self-Study': 'badge-booking',
+    'Guided Learning': 'badge-premium',
+    'The CFA Academy Framework for Stock Investing': 'badge-published',
+    'Mentorship Program': 'badge-booking'
+  };
+
+  tbody.innerHTML = groups.map(g => {
+    const courseBadges = g.enrollments.map(e =>
+      `<span class="badge ${BADGE_COLORS[e.courseName] || 'badge-draft'}" style="margin:2px 3px 2px 0;">${escHtml(e.courseName)}</span>`
+    ).join('');
+    const editOpen = cfpStudentEditingId === g.userId;
+
+    const mainRow = `<tr>
+      <td>${escHtml(g.email)}</td>
+      <td>${escHtml(g.name)}</td>
+      <td style="max-width:280px;">${courseBadges}</td>
+      <td>${g.latestAt ? new Date(g.latestAt).toLocaleDateString('en-IN') : '—'}</td>
+      <td><button class="btn-sm" onclick="cfpToggleStudentEdit('${escAttr(g.userId)}')" style="background:var(--surface-2);border:1px solid var(--border);color:var(--text);padding:0.3rem 0.75rem;border-radius:6px;cursor:pointer;font-size:0.78rem;font-weight:600;">${editOpen ? '✕ Close' : '⚙ Manage'}</button></td>
     </tr>`;
-  }).join('') || '<tr><td colspan="5" class="empty-state">No students yet — they show up here automatically once a course purchase is verified.</td></tr>';
+
+    if (!editOpen) return mainRow;
+
+    // All 4 known courses for the add-course dropdown
+    const ALL_COURSES = ['Self-Study', 'Guided Learning', 'The CFA Academy Framework for Stock Investing', 'Mentorship Program'];
+    const enrolledNames = g.enrollments.map(e => e.courseName);
+    const availableCourses = ALL_COURSES.filter(c => !enrolledNames.includes(c));
+
+    const enrollmentRows = g.enrollments.map(e => `
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:0.5rem 0;border-bottom:1px solid rgba(255,255,255,0.05);">
+        <div>
+          <span class="badge ${BADGE_COLORS[e.courseName] || 'badge-draft'}">${escHtml(e.courseName)}</span>
+          <span style="font-size:0.73rem;color:var(--text-muted);margin-left:0.5rem;">${e.purchasedAt ? new Date(e.purchasedAt).toLocaleDateString('en-IN') : ''}</span>
+        </div>
+        <button onclick="cfpRevokeEnrollment('${escAttr(e.id)}','${escAttr(g.userId)}')" style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:#ef4444;padding:0.25rem 0.6rem;border-radius:5px;cursor:pointer;font-size:0.72rem;font-weight:700;">✕ Revoke</button>
+      </div>`).join('');
+
+    const addCourseHtml = availableCourses.length ? `
+      <div style="display:flex;gap:0.6rem;margin-top:0.75rem;align-items:center;flex-wrap:wrap;">
+        <select id="add-course-${escAttr(g.userId)}" class="form-select" style="flex:1;min-width:180px;padding:0.4rem 0.6rem;font-size:0.82rem;">
+          <option value="">Select course to add…</option>
+          ${availableCourses.map(c => `<option value="${escAttr(c)}">${escHtml(c)}</option>`).join('')}
+        </select>
+        <button onclick="cfpAddEnrollment('${escAttr(g.userId)}')" style="background:var(--accent);color:#fff;border:none;padding:0.4rem 0.9rem;border-radius:6px;cursor:pointer;font-size:0.8rem;font-weight:700;">+ Add Course</button>
+      </div>` : `<p style="font-size:0.78rem;color:var(--text-muted);margin-top:0.6rem;">Enrolled in all available courses.</p>`;
+
+    const editRow = `<tr id="student-edit-${escAttr(g.userId)}">
+      <td colspan="5" style="background:var(--surface-2);padding:1rem 1.25rem;border-bottom:2px solid var(--accent);">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap;">
+          <div style="flex:1;min-width:220px;">
+            <p style="font-size:0.72rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:0.6rem;">Current Enrollments</p>
+            ${enrollmentRows || '<p style="font-size:0.8rem;color:var(--text-muted);">No enrollments.</p>'}
+            ${addCourseHtml}
+            <div id="student-edit-msg-${escAttr(g.userId)}" style="font-size:0.78rem;margin-top:0.5rem;min-height:1rem;"></div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:0.5rem;align-items:flex-end;">
+            <button onclick="cfpDeleteStudent('${escAttr(g.userId)}')" style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.35);color:#ef4444;padding:0.45rem 1rem;border-radius:7px;cursor:pointer;font-size:0.8rem;font-weight:700;white-space:nowrap;">🗑 Delete Student</button>
+          </div>
+        </div>
+      </td>
+    </tr>`;
+
+    return mainRow + editRow;
+  }).join('');
+}
+
+function cfpToggleStudentEdit(userId) {
+  cfpStudentEditingId = (cfpStudentEditingId === userId) ? null : userId;
+  cfpRenderStudentsTable();
+}
+
+async function cfpRevokeEnrollment(enrollmentId, userId) {
+  if (!confirm('Revoke this course enrollment? The student will immediately lose access.')) return;
+  const msg = document.getElementById('student-edit-msg-' + userId);
+  if (msg) msg.textContent = 'Revoking…';
+  const { error } = await window.cfpSupabase.from('enrollments').delete().eq('id', enrollmentId);
+  if (error) {
+    if (msg) msg.style.color = 'var(--red)'; if (msg) msg.textContent = 'Failed: ' + error.message;
+    return;
+  }
+  await renderStudents();
+  cfpStudentEditingId = userId;
+  cfpRenderStudentsTable();
+}
+
+async function cfpAddEnrollment(userId) {
+  const sel = document.getElementById('add-course-' + userId);
+  const courseName = sel && sel.value;
+  if (!courseName) return;
+  const msg = document.getElementById('student-edit-msg-' + userId);
+  if (msg) { msg.style.color = 'var(--text-muted)'; msg.textContent = 'Adding…'; }
+
+  const { data: courseRow, error: courseErr } = await window.cfpSupabase
+    .from('courses').select('id').eq('name', courseName).maybeSingle();
+  if (courseErr || !courseRow) {
+    if (msg) { msg.style.color = 'var(--red)'; msg.textContent = 'Could not find course in database.'; } return;
+  }
+  const { error } = await window.cfpSupabase.from('enrollments').insert({
+    user_id: userId, course_id: courseRow.id, status: 'active', purchased_at: new Date().toISOString()
+  });
+  if (error && error.code !== '23505') {
+    if (msg) { msg.style.color = 'var(--red)'; msg.textContent = 'Failed: ' + error.message; } return;
+  }
+  await renderStudents();
+  cfpStudentEditingId = userId;
+  cfpRenderStudentsTable();
+}
+
+async function cfpDeleteStudent(userId) {
+  if (!confirm('Delete this student? This will remove ALL their enrollments. Their Supabase Auth account and profile will remain — only enrollments are deleted.')) return;
+  const { error } = await window.cfpSupabase.from('enrollments').delete().eq('user_id', userId);
+  if (error) { alert('Failed to delete: ' + error.message); return; }
+  await renderStudents();
 }
 
 /* ── TRANSACTIONS (live from Supabase `payments`, joined to profiles/courses) ── */
@@ -1588,7 +1684,9 @@ async function init() {
   document.getElementById('contact-calendly').value = state.contact.calendlyUrl || '';
   document.getElementById('contact-razorpay').value = state.contact.razorpayKeyId || '';
   document.getElementById('legal-disclaimer-input').value = state.legal.disclaimer || '';
-  document.getElementById('premium-free-days').value = (state.premium && state.premium.freeDays) || 30;
+  document.getElementById('premium-free-days').value = (state.premium && state.premium.freeDays != null ? state.premium.freeDays : 7);
+  document.getElementById('premium-self-study-days').value = (state.premium && state.premium.selfStudyDays) || 30;
+  document.getElementById('premium-guided-days').value = (state.premium && state.premium.guidedDays) || 90;
 
   state.pages = state.pages || {};
   state.pages.blog = state.pages.blog || {};

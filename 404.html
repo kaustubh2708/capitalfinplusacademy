@@ -5,43 +5,221 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>404 — Page Not Found | Capital Finplus Academy</title>
   <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
   <style>
-    .error-page {
-      min-height: 70vh;
+    .error-wrap {
+      min-height: calc(100vh - 80px);
       display: flex;
-      flex-direction: column;
       align-items: center;
       justify-content: center;
-      text-align: center;
-      padding: 4rem 1.5rem;
+      padding: 5rem 1.5rem 4rem;
+    }
+    .error-inner {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 5rem;
+      align-items: center;
+      max-width: 1060px;
+      width: 100%;
+    }
+    /* ── left: text ── */
+    .error-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(244,194,13,0.08);
+      border: 1px solid rgba(244,194,13,0.22);
+      color: #F4C20D;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      padding: 5px 14px;
+      border-radius: 100px;
+      margin-bottom: 1.4rem;
     }
     .error-code {
-      font-size: clamp(6rem, 18vw, 11rem);
+      font-size: clamp(5.5rem, 14vw, 9.5rem);
       font-weight: 900;
-      color: #F4C20D;
       line-height: 1;
-      text-shadow: 0 0 60px rgba(244,194,13,0.35), 0 0 120px rgba(244,194,13,0.12);
-      letter-spacing: -0.04em;
-      margin-bottom: 0.5rem;
+      letter-spacing: -0.05em;
+      margin-bottom: 0.35rem;
+      background: linear-gradient(135deg, #F4C20D 30%, #FFE580 70%, #F4A20D 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      filter: drop-shadow(0 0 42px rgba(244,194,13,0.38));
     }
     .error-heading {
-      font-size: clamp(1.4rem, 4vw, 2rem);
+      font-size: clamp(1.5rem, 3.5vw, 2.1rem);
       font-weight: 800;
+      line-height: 1.2;
+      letter-spacing: -0.025em;
       margin-bottom: 1rem;
+      color: #fff;
     }
     .error-sub {
-      color: var(--muted, rgba(255,255,255,0.45));
-      font-size: 1rem;
-      max-width: 420px;
-      line-height: 1.65;
-      margin-bottom: 2.25rem;
+      color: rgba(255,255,255,0.45);
+      font-size: 0.97rem;
+      line-height: 1.7;
+      max-width: 400px;
+      margin-bottom: 2.5rem;
     }
     .error-btns {
       display: flex;
       gap: 1rem;
       flex-wrap: wrap;
-      justify-content: center;
+    }
+    /* ── right: illustration ── */
+    .error-visual {
+      position: relative;
+    }
+    .chart-terminal {
+      background: rgba(14,10,2,0.9);
+      border: 1px solid rgba(244,194,13,0.18);
+      border-radius: 18px;
+      padding: 1.5rem 1.75rem 1.75rem;
+      box-shadow:
+        0 0 0 1px rgba(244,194,13,0.06),
+        0 8px 60px rgba(0,0,0,0.65),
+        0 0 100px rgba(244,194,13,0.06);
+      overflow: hidden;
+      position: relative;
+    }
+    .chart-terminal::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse 70% 50% at 50% 0%, rgba(244,194,13,0.06) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .terminal-titlebar {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 1.25rem;
+    }
+    .dot { width: 11px; height: 11px; border-radius: 50%; }
+    .dot-r { background: #ff5f57; }
+    .dot-y { background: #febc2e; }
+    .dot-g { background: #28c840; }
+    .terminal-label {
+      margin-left: 0.75rem;
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: rgba(255,255,255,0.25);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+    .chart-ticker-row {
+      display: flex;
+      align-items: baseline;
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+    }
+    .chart-ticker {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: rgba(255,255,255,0.35);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+    .chart-price {
+      font-size: 1.45rem;
+      font-weight: 900;
+      color: #ff4d4d;
+      letter-spacing: -0.03em;
+    }
+    .chart-change {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #ff4d4d;
+    }
+    .chart-svg-wrap {
+      position: relative;
+    }
+    /* floating badge */
+    .crash-badge {
+      position: absolute;
+      top: 12px;
+      right: 10px;
+      background: rgba(255,60,60,0.12);
+      border: 1px solid rgba(255,60,60,0.3);
+      border-radius: 8px;
+      padding: 0.45rem 0.8rem;
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: #ff5e5e;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      backdrop-filter: blur(8px);
+    }
+    /* floating 404 ghost signal */
+    .signal-badge {
+      position: absolute;
+      bottom: 18px;
+      left: 14px;
+      background: rgba(244,194,13,0.1);
+      border: 1px solid rgba(244,194,13,0.28);
+      border-radius: 8px;
+      padding: 0.4rem 0.9rem;
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: #F4C20D;
+      backdrop-filter: blur(8px);
+      animation: float 3.2s ease-in-out infinite;
+    }
+    @keyframes float {
+      0%,100% { transform: translateY(0); }
+      50%      { transform: translateY(-6px); }
+    }
+    /* candlestick blink on crash candles */
+    .candle-crash { animation: candleBlink 1.8s ease-in-out infinite; }
+    @keyframes candleBlink {
+      0%,100% { opacity: 1; }
+      50%      { opacity: 0.55; }
+    }
+    /* bottom stat row */
+    .chart-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.75rem;
+      margin-top: 1.25rem;
+      border-top: 1px solid rgba(255,255,255,0.06);
+      padding-top: 1rem;
+    }
+    .chart-stat-item { text-align: center; }
+    .chart-stat-label {
+      font-size: 0.62rem;
+      font-weight: 600;
+      color: rgba(255,255,255,0.25);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 0.25rem;
+    }
+    .chart-stat-val {
+      font-size: 0.9rem;
+      font-weight: 800;
+      color: rgba(255,255,255,0.55);
+    }
+    .chart-stat-val.red { color: #ff5e5e; }
+    /* ── responsive ── */
+    @media (max-width: 820px) {
+      .error-inner {
+        grid-template-columns: 1fr;
+        gap: 3rem;
+      }
+      .error-visual { order: -1; max-width: 420px; margin: 0 auto; }
+      .error-sub { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .error-wrap { padding: 4rem 1rem 3rem; }
+      .error-btns { flex-direction: column; }
+      .error-btns a { text-align: center; }
     }
   </style>
 </head>
@@ -77,13 +255,194 @@
   </nav>
 
   <main>
-    <div class="error-page">
-      <div class="error-code">404</div>
-      <h1 class="error-heading">Page Not Found</h1>
-      <p class="error-sub">The page you're looking for doesn't exist or has moved.</p>
-      <div class="error-btns">
-        <a href="index.html" class="btn btn-primary">Go Home →</a>
-        <a href="courses.html" class="btn btn-outline">View Courses →</a>
+    <div class="error-wrap">
+      <div class="error-inner">
+
+        <!-- LEFT: copy -->
+        <div class="error-text">
+          <div class="error-tag">
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><circle cx="5" cy="5" r="4" stroke="#F4C20D" stroke-width="1.5"/><line x1="5" y1="3" x2="5" y2="5.5" stroke="#F4C20D" stroke-width="1.5" stroke-linecap="round"/><circle cx="5" cy="7" r="0.75" fill="#F4C20D"/></svg>
+            Signal Lost
+          </div>
+          <div class="error-code">404</div>
+          <h1 class="error-heading">This page went<br/>off the chart.</h1>
+          <p class="error-sub">
+            Looks like you've wandered into uncharted territory — this URL doesn't map to anything on our platform. Even the best traders get a wrong signal sometimes.
+          </p>
+          <div class="error-btns">
+            <a href="index.html" class="btn btn-primary">← Back to Home</a>
+            <a href="courses.html" class="btn btn-outline">View Courses</a>
+          </div>
+        </div>
+
+        <!-- RIGHT: chart illustration -->
+        <div class="error-visual">
+          <div class="chart-terminal">
+            <div class="terminal-titlebar">
+              <span class="dot dot-r"></span>
+              <span class="dot dot-y"></span>
+              <span class="dot dot-g"></span>
+              <span class="terminal-label">CFA · Terminal</span>
+            </div>
+
+            <div class="chart-ticker-row">
+              <span class="chart-ticker">URL/404</span>
+              <span class="chart-price">₹0.00</span>
+              <span class="chart-change">▼ −100.00%</span>
+            </div>
+
+            <div class="chart-svg-wrap">
+              <!-- crash badge -->
+              <div class="crash-badge">
+                <svg width="9" height="9" viewBox="0 0 9 9" fill="none"><path d="M1 1l7 7M8 1L1 8" stroke="#ff5e5e" stroke-width="1.6" stroke-linecap="round"/></svg>
+                Route Not Found
+              </div>
+              <!-- floating signal badge -->
+              <div class="signal-badge">⚡ No signal at this path</div>
+
+              <!-- main chart SVG -->
+              <svg viewBox="0 0 420 220" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:100%;display:block;">
+                <defs>
+                  <linearGradient id="chartGradGold" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#F4C20D" stop-opacity="0.22"/>
+                    <stop offset="100%" stop-color="#F4C20D" stop-opacity="0"/>
+                  </linearGradient>
+                  <linearGradient id="chartGradRed" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#ff4d4d" stop-opacity="0.2"/>
+                    <stop offset="100%" stop-color="#ff4d4d" stop-opacity="0"/>
+                  </linearGradient>
+                  <filter id="glowGold">
+                    <feGaussianBlur stdDeviation="2.5" result="coloredBlur"/>
+                    <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                  </filter>
+                  <filter id="glowRed">
+                    <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                    <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                  </filter>
+                  <clipPath id="chartClip">
+                    <rect x="0" y="0" width="420" height="220"/>
+                  </clipPath>
+                </defs>
+
+                <!-- grid lines -->
+                <line x1="0" y1="44" x2="420" y2="44" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+                <line x1="0" y1="88" x2="420" y2="88" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+                <line x1="0" y1="132" x2="420" y2="132" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+                <line x1="0" y1="176" x2="420" y2="176" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+                <line x1="70" y1="0" x2="70" y2="220" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+                <line x1="140" y1="0" x2="140" y2="220" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+                <line x1="210" y1="0" x2="210" y2="220" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+                <line x1="280" y1="0" x2="280" y2="220" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+                <line x1="350" y1="0" x2="350" y2="220" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+
+                <!-- price labels -->
+                <text x="4" y="42" fill="rgba(255,255,255,0.2)" font-size="8" font-family="Manrope,sans-serif">100</text>
+                <text x="4" y="86" fill="rgba(255,255,255,0.2)" font-size="8" font-family="Manrope,sans-serif">75</text>
+                <text x="4" y="130" fill="rgba(255,255,255,0.2)" font-size="8" font-family="Manrope,sans-serif">50</text>
+                <text x="4" y="174" fill="rgba(255,255,255,0.2)" font-size="8" font-family="Manrope,sans-serif">25</text>
+
+                <!-- area fill: rising section (gold) -->
+                <path d="M22,155 L55,140 L88,125 L121,108 L154,92 L187,78 L210,68 L210,220 L22,220 Z"
+                      fill="url(#chartGradGold)" clip-path="url(#chartClip)"/>
+                <!-- area fill: crash section (red) -->
+                <path d="M210,68 L240,82 L260,104 L278,138 L295,172 L308,210 L308,220 L210,220 Z"
+                      fill="url(#chartGradRed)" clip-path="url(#chartClip)"/>
+
+                <!-- rising line (gold) -->
+                <polyline
+                  points="22,155 55,140 88,125 121,108 154,92 187,78 210,68"
+                  stroke="#F4C20D" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"
+                  filter="url(#glowGold)"/>
+
+                <!-- crash line (red) -->
+                <polyline
+                  points="210,68 240,82 260,104 278,138 295,172 308,210"
+                  stroke="#ff4d4d" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"
+                  filter="url(#glowRed)" class="candle-crash" clip-path="url(#chartClip)"/>
+
+                <!-- crash marker at 404 label position -->
+                <circle cx="210" cy="68" r="4.5" fill="#F4C20D" filter="url(#glowGold)"/>
+                <line x1="210" y1="12" x2="210" y2="63" stroke="rgba(244,194,13,0.35)" stroke-width="1" stroke-dasharray="3 3"/>
+                <rect x="188" y="3" width="44" height="16" rx="4" fill="rgba(244,194,13,0.12)" stroke="rgba(244,194,13,0.3)" stroke-width="0.8"/>
+                <text x="210" y="14.5" fill="#F4C20D" font-size="8.5" font-weight="700" font-family="Manrope,sans-serif" text-anchor="middle">PAGE LOST</text>
+
+                <!-- 404 text watermark on the crash zone -->
+                <text x="310" y="185" fill="rgba(255,60,60,0.12)" font-size="62" font-weight="900"
+                      font-family="Manrope,sans-serif" text-anchor="middle" letter-spacing="-4">404</text>
+
+                <!-- crash annotation arrow -->
+                <path d="M278,138 L296,115" stroke="rgba(255,100,100,0.45)" stroke-width="1.2" stroke-dasharray="3 2"/>
+                <text x="300" y="112" fill="rgba(255,100,100,0.6)" font-size="7.5" font-family="Manrope,sans-serif">wrong path</text>
+
+                <!-- rising candles -->
+                <!-- candle 1 -->
+                <rect x="18" y="148" width="8" height="13" rx="1.5" fill="#22c55e" opacity="0.85"/>
+                <line x1="22" y1="145" x2="22" y2="148" stroke="#22c55e" stroke-width="1.2"/>
+                <line x1="22" y1="161" x2="22" y2="164" stroke="#22c55e" stroke-width="1.2"/>
+                <!-- candle 2 -->
+                <rect x="51" y="133" width="8" height="13" rx="1.5" fill="#22c55e" opacity="0.85"/>
+                <line x1="55" y1="130" x2="55" y2="133" stroke="#22c55e" stroke-width="1.2"/>
+                <line x1="55" y1="146" x2="55" y2="149" stroke="#22c55e" stroke-width="1.2"/>
+                <!-- candle 3 -->
+                <rect x="84" y="118" width="8" height="13" rx="1.5" fill="#22c55e" opacity="0.85"/>
+                <line x1="88" y1="115" x2="88" y2="118" stroke="#22c55e" stroke-width="1.2"/>
+                <line x1="88" y1="131" x2="88" y2="134" stroke="#22c55e" stroke-width="1.2"/>
+                <!-- candle 4 -->
+                <rect x="117" y="101" width="8" height="13" rx="1.5" fill="#22c55e" opacity="0.85"/>
+                <line x1="121" y1="98" x2="121" y2="101" stroke="#22c55e" stroke-width="1.2"/>
+                <line x1="121" y1="114" x2="121" y2="117" stroke="#22c55e" stroke-width="1.2"/>
+                <!-- candle 5 -->
+                <rect x="150" y="85" width="8" height="13" rx="1.5" fill="#22c55e" opacity="0.85"/>
+                <line x1="154" y1="82" x2="154" y2="85" stroke="#22c55e" stroke-width="1.2"/>
+                <line x1="154" y1="98" x2="154" y2="101" stroke="#22c55e" stroke-width="1.2"/>
+                <!-- candle 6 -->
+                <rect x="183" y="71" width="8" height="13" rx="1.5" fill="#22c55e" opacity="0.85"/>
+                <line x1="187" y1="68" x2="187" y2="71" stroke="#22c55e" stroke-width="1.2"/>
+                <line x1="187" y1="84" x2="187" y2="87" stroke="#22c55e" stroke-width="1.2"/>
+
+                <!-- crash candles -->
+                <!-- candle 7 (red) -->
+                <rect x="236" y="72" width="8" height="16" rx="1.5" fill="#ff4d4d" opacity="0.85" class="candle-crash"/>
+                <line x1="240" y1="68" x2="240" y2="72" stroke="#ff4d4d" stroke-width="1.2" class="candle-crash"/>
+                <line x1="240" y1="88" x2="240" y2="92" stroke="#ff4d4d" stroke-width="1.2" class="candle-crash"/>
+                <!-- candle 8 -->
+                <rect x="256" y="95" width="8" height="20" rx="1.5" fill="#ff4d4d" opacity="0.85" class="candle-crash"/>
+                <line x1="260" y1="90" x2="260" y2="95" stroke="#ff4d4d" stroke-width="1.2" class="candle-crash"/>
+                <line x1="260" y1="115" x2="260" y2="120" stroke="#ff4d4d" stroke-width="1.2" class="candle-crash"/>
+                <!-- candle 9 -->
+                <rect x="274" y="128" width="8" height="24" rx="1.5" fill="#ff4d4d" opacity="0.85" class="candle-crash"/>
+                <line x1="278" y1="122" x2="278" y2="128" stroke="#ff4d4d" stroke-width="1.2" class="candle-crash"/>
+                <line x1="278" y1="152" x2="278" y2="158" stroke="#ff4d4d" stroke-width="1.2" class="candle-crash"/>
+                <!-- candle 10 -->
+                <rect x="291" y="162" width="8" height="26" rx="1.5" fill="#ff4d4d" opacity="0.85" class="candle-crash"/>
+                <line x1="295" y1="155" x2="295" y2="162" stroke="#ff4d4d" stroke-width="1.2" class="candle-crash"/>
+                <line x1="295" y1="188" x2="295" y2="194" stroke="#ff4d4d" stroke-width="1.2" class="candle-crash"/>
+
+                <!-- "?" floating off the chart -->
+                <text x="380" y="70" fill="rgba(244,194,13,0.22)" font-size="38" font-weight="900" font-family="Manrope,sans-serif">?</text>
+                <text x="395" y="110" fill="rgba(244,194,13,0.12)" font-size="22" font-weight="900" font-family="Manrope,sans-serif">?</text>
+                <text x="365" y="100" fill="rgba(244,194,13,0.08)" font-size="16" font-weight="900" font-family="Manrope,sans-serif">?</text>
+              </svg>
+            </div>
+
+            <!-- stat strip -->
+            <div class="chart-stats">
+              <div class="chart-stat-item">
+                <div class="chart-stat-label">Volume</div>
+                <div class="chart-stat-val">0</div>
+              </div>
+              <div class="chart-stat-item">
+                <div class="chart-stat-label">Change</div>
+                <div class="chart-stat-val red">−100%</div>
+              </div>
+              <div class="chart-stat-item">
+                <div class="chart-stat-label">Status</div>
+                <div class="chart-stat-val red">DELISTED</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
   </main>
@@ -108,7 +467,6 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase-client.js"></script>
 <script>
-  /* Cursor */
   const cur = document.getElementById('cursor');
   const ring = document.getElementById('cursor-ring');
   let rx = 0, ry = 0;

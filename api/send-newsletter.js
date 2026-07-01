@@ -32,7 +32,7 @@ module.exports = async (req, res) => {
 
   const footer = `<hr style="margin:32px 0;border-color:#eee;border-style:solid;border-width:1px 0 0"><p style="font-size:12px;color:#999;line-height:1.6">You're receiving this because you subscribed to Capital Finplus Academy updates. Reply to this email to unsubscribe.</p>`;
   const fullHtml = html + footer;
-  const FROM = 'Pravesh Kumar — CFA Academy <ceo@capitalfinplus.com>';
+  const FROM = 'Pravesh Kumar — CFA Academy <ceo@capitalfinplusadvizors.com>';
 
   let sent = 0;
   let failed = 0;
