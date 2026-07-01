@@ -29,6 +29,10 @@ let editingArticleId = null;
 let editingBtId = null;
 let cfpLastUpdated = null;
 
+/* ADMIN_SECRET must match the ADMIN_SECRET env var set in Vercel.
+   Used as a simple request gate on /api/send-newsletter. */
+const ADMIN_SECRET = 'set-this-in-vercel-env';
+
 /* ID helpers (cfpIsUuid, cfpTempId) and the row<->local mapper functions
    (cfpCourseToRow/cfpRowToCourse, etc.) live in ../data.js — shared with
    cfpLoadPublicData() so the admin's write-side mapping and the public
@@ -188,15 +192,18 @@ function switchPanel(id) {
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
   document.getElementById('panel-' + id).classList.add('active');
   document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.panel === id));
-  const titles = { dashboard: 'Dashboard', hero: 'Hero Section', about: 'About / Founder', courses: 'Courses & Pricing', testimonials: 'Testimonials', 'blog-list': 'All Articles', 'blog-new': 'New Article', 'bt-list': 'All Backtests', 'bt-new': 'New Backtest', students: 'Students', transactions: 'Transactions', submissions: 'Form Submissions', 'contact-info': 'Contact & Integrations', 'page-content': 'Blog & Backtesting Pages', newsletter: 'Newsletter', coupons: 'Coupons', 'academy-pdf': 'Academy PDF' };
+  const titles = { dashboard: 'Dashboard', hero: 'Hero Section', about: 'About / Founder', courses: 'Courses & Pricing', testimonials: 'Testimonials', 'blog-list': 'All Articles', 'blog-new': 'New Article', 'bt-list': 'All Backtests', 'bt-new': 'New Backtest', students: 'Students', 'manual-enroll': 'Manual Enroll', transactions: 'Transactions', submissions: 'Form Submissions', 'contact-info': 'Contact & Integrations', 'page-content': 'Blog & Backtesting Pages', newsletter: 'Newsletter', 'send-newsletter': 'Send Newsletter', 'playlist-videos': 'Playlist Videos', coupons: 'Coupons', 'academy-pdf': 'Academy PDF' };
   document.getElementById('topbar-title').textContent = titles[id] || id;
   if (id === 'blog-list') renderBlogTable();
   if (id === 'testimonials') renderTestimonials();
   if (id === 'courses') renderCourses();
   if (id === 'students') renderStudents();
+  if (id === 'manual-enroll') renderManualEnroll();
   if (id === 'transactions') renderTransactions();
   if (id === 'submissions') renderSubmissions();
   if (id === 'newsletter') renderNewsletter();
+  if (id === 'send-newsletter') renderSendNewsletter();
+  if (id === 'playlist-videos') renderPlaylistVideos();
   if (id === 'coupons') renderCoupons();
   if (id === 'academy-pdf') initAcademyPdfPanel();
   if (id === 'blog-new' && !editingArticleId) resetEditor();
@@ -310,12 +317,14 @@ function renderDashboard() {
 }
 
 async function cfpLoadDashboardStats() {
-  const [paymentsRes, subCountRes, txCountRes, nlCountRes, studentsCountRes] = await Promise.all([
+  const [paymentsRes, subCountRes, txCountRes, nlCountRes, studentsCountRes, bookingsRes, activeStudentsRes] = await Promise.all([
     window.cfpSupabase.from('payments').select('amount').eq('status', 'captured'),
     window.cfpSupabase.from('form_submissions').select('id', { count: 'exact', head: true }),
     window.cfpSupabase.from('payments').select('id', { count: 'exact', head: true }),
     window.cfpSupabase.from('newsletter_subscribers').select('id', { count: 'exact', head: true }),
-    window.cfpSupabase.from('enrollments').select('id', { count: 'exact', head: true })
+    window.cfpSupabase.from('enrollments').select('id', { count: 'exact', head: true }),
+    window.cfpSupabase.from('form_submissions').select('id', { count: 'exact', head: true }).eq('type', 'booking'),
+    window.cfpSupabase.from('enrollments').select('user_id', { count: 'exact', head: true }).eq('status', 'active')
   ]);
   const captured = paymentsRes.data || [];
   const revenue = captured.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
@@ -326,6 +335,99 @@ async function cfpLoadDashboardStats() {
   document.getElementById('nav-sub-count').textContent = subCountRes.count || 0;
   document.getElementById('nav-nl-count').textContent = nlCountRes.count || 0;
   document.getElementById('nav-students-count').textContent = studentsCountRes.count || 0;
+
+  // Funnel
+  const callsCount = bookingsRes.count || 0;
+  const paymentsCount = txCountRes.count || 0;
+  const activeCount = activeStudentsRes.count || 0;
+  document.getElementById('funnel-calls').textContent = callsCount;
+  document.getElementById('funnel-payments').textContent = paymentsCount;
+  document.getElementById('funnel-students').textContent = activeCount;
+  if (callsCount > 0) document.getElementById('funnel-payments-pct').textContent = Math.round(paymentsCount / callsCount * 100) + '% of calls';
+  if (paymentsCount > 0) document.getElementById('funnel-students-pct').textContent = Math.round(activeCount / paymentsCount * 100) + '% of payments';
+
+  // Charts — lazy-load Chart.js then render
+  cfpLoadChartJs(() => { cfpRenderRevenueChart(); cfpRenderSignupsChart(); });
+}
+
+/* ── CHART.JS LAZY LOADER ── */
+let cfpChartJsPending = [];
+function cfpLoadChartJs(cb) {
+  if (window.Chart) { cb(); return; }
+  cfpChartJsPending.push(cb);
+  if (cfpChartJsPending.length > 1) return;
+  const s = document.createElement('script');
+  s.src = 'https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js';
+  s.onload = () => { cfpChartJsPending.forEach(fn => fn()); cfpChartJsPending = []; };
+  document.head.appendChild(s);
+}
+
+let cfpRevenueChart = null;
+let cfpSignupsChart = null;
+
+async function cfpRenderRevenueChart() {
+  const { data } = await window.cfpSupabase.from('payments').select('amount, courses(name)').eq('status', 'captured');
+  const totals = {};
+  (data || []).forEach(p => {
+    const name = (p.courses && p.courses.name) || 'Unknown';
+    totals[name] = (totals[name] || 0) + Number(p.amount || 0);
+  });
+  const labels = Object.keys(totals);
+  const values = Object.values(totals);
+  const ctx = document.getElementById('chart-revenue');
+  if (!ctx) return;
+  if (cfpRevenueChart) cfpRevenueChart.destroy();
+  cfpRevenueChart = new Chart(ctx, {
+    type: 'bar',
+    data: { labels, datasets: [{ data: values, backgroundColor: '#F4C20D', borderRadius: 6, barThickness: 28 }] },
+    options: {
+      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => '₹' + Number(c.raw).toLocaleString('en-IN') } } },
+      scales: {
+        x: { ticks: { color: 'rgba(255,255,255,0.55)', callback: v => '₹' + Number(v).toLocaleString('en-IN') }, grid: { color: 'rgba(244,194,13,0.08)' } },
+        y: { ticks: { color: 'rgba(255,255,255,0.7)' }, grid: { display: false } }
+      }
+    }
+  });
+}
+
+async function cfpRenderSignupsChart() {
+  const { data } = await window.cfpSupabase.from('newsletter_subscribers').select('subscribed_at').order('subscribed_at', { ascending: true });
+  const now = new Date();
+  const weekStarts = [];
+  for (let i = 11; i >= 0; i--) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - i * 7);
+    weekStarts.push(d);
+  }
+  const labels = weekStarts.map(d => {
+    const month = d.toLocaleString('en-IN', { month: 'short' });
+    return `${month} W${Math.ceil(d.getDate() / 7)}`;
+  });
+  const counts = new Array(12).fill(0);
+  (data || []).forEach(row => {
+    const d = new Date(row.subscribed_at);
+    for (let i = 0; i < 12; i++) {
+      const start = new Date(weekStarts[i]); start.setDate(start.getDate() - 3);
+      const end = new Date(weekStarts[i]); end.setDate(end.getDate() + 4);
+      if (d >= start && d < end) { counts[i]++; break; }
+    }
+  });
+  const ctx = document.getElementById('chart-signups');
+  if (!ctx) return;
+  if (cfpSignupsChart) cfpSignupsChart.destroy();
+  cfpSignupsChart = new Chart(ctx, {
+    type: 'line',
+    data: { labels, datasets: [{ data: counts, borderColor: '#F4C20D', backgroundColor: 'rgba(244,194,13,0.12)', fill: true, tension: 0.4, pointBackgroundColor: '#F4C20D' }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: 'rgba(255,255,255,0.55)', maxRotation: 45 }, grid: { color: 'rgba(244,194,13,0.08)' } },
+        y: { ticks: { color: 'rgba(255,255,255,0.55)' }, grid: { color: 'rgba(244,194,13,0.08)' }, beginAtZero: true }
+      }
+    }
+  });
 }
 
 /* ── COURSES ── */
@@ -1113,6 +1215,278 @@ function initAcademyPdfPanel() {
     }
   });
 }
+
+/* ── PLAYLIST VIDEOS ── */
+let cfpPlaylistVideos = [];
+let cfpEditingVideoId = null;
+
+async function renderPlaylistVideos() {
+  const tbody = document.getElementById('pv-table-body');
+  tbody.innerHTML = '<tr><td colspan="6" class="empty-state">Loading…</td></tr>';
+  const { data, error } = await window.cfpSupabase
+    .from('playlist_videos').select('*')
+    .order('playlist_key', { ascending: true })
+    .order('sort_order', { ascending: true });
+  if (error) { tbody.innerHTML = '<tr><td colspan="6" class="empty-state">Could not load videos — run add-playlist-videos.sql migration first.</td></tr>'; return; }
+  cfpPlaylistVideos = data || [];
+  cfpEditingVideoId = null;
+  cfpRenderPlaylistTable();
+  document.getElementById('pv-thumb-preview').style.display = 'none';
+}
+
+function cfpRenderPlaylistTable() {
+  const tbody = document.getElementById('pv-table-body');
+  if (!cfpPlaylistVideos.length) { tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No videos yet — add one above.</td></tr>'; return; }
+  tbody.innerHTML = cfpPlaylistVideos.map(v => {
+    if (v.id === cfpEditingVideoId) {
+      return `<tr>
+        <td><img src="https://img.youtube.com/vi/${escAttr(v.video_id)}/default.jpg" width="80" style="border-radius:4px"></td>
+        <td><input class="form-input" id="pv-edit-title-${v.id}" value="${escAttr(v.title)}" style="min-width:160px" /></td>
+        <td><select class="form-select" id="pv-edit-playlist-${v.id}" style="width:140px">
+          <option value="guided" ${v.playlist_key==='guided'?'selected':''}>Guided</option>
+          <option value="framework" ${v.playlist_key==='framework'?'selected':''}>Framework</option>
+        </select></td>
+        <td><input class="form-input" id="pv-edit-order-${v.id}" type="number" value="${v.sort_order}" style="width:70px" /></td>
+        <td><input class="form-input" id="pv-edit-vid-${v.id}" value="${escAttr(v.video_id)}" style="width:130px" /></td>
+        <td><div class="actions-cell">
+          <button class="action-btn" onclick="cfpSaveVideoEdit('${v.id}')">✅ Save</button>
+          <button class="action-btn" onclick="cfpCancelVideoEdit()">Cancel</button>
+        </div></td>
+      </tr>`;
+    }
+    return `<tr>
+      <td><img src="https://img.youtube.com/vi/${escAttr(v.video_id)}/default.jpg" width="80" style="border-radius:4px"></td>
+      <td style="color:var(--text);font-weight:500;max-width:220px">${escHtml(v.title)}</td>
+      <td><span class="badge ${v.playlist_key==='guided'?'badge-booking':'badge-premium'}">${v.playlist_key==='guided'?'Guided':'Framework'}</span></td>
+      <td>${v.sort_order}</td>
+      <td class="mono">${escHtml(v.video_id)}</td>
+      <td><div class="actions-cell">
+        <button class="action-btn" onclick="cfpEditVideo('${v.id}')">✏️ Edit</button>
+        <button class="action-btn delete" onclick="cfpDeleteVideo('${v.id}')">🗑 Delete</button>
+      </div></td>
+    </tr>`;
+  }).join('');
+}
+
+function cfpEditVideo(id) { cfpEditingVideoId = id; cfpRenderPlaylistTable(); }
+function cfpCancelVideoEdit() { cfpEditingVideoId = null; cfpRenderPlaylistTable(); }
+
+async function cfpSaveVideoEdit(id) {
+  const title = document.getElementById(`pv-edit-title-${id}`).value.trim();
+  const playlist_key = document.getElementById(`pv-edit-playlist-${id}`).value;
+  const sort_order = parseInt(document.getElementById(`pv-edit-order-${id}`).value) || 1;
+  const video_id = document.getElementById(`pv-edit-vid-${id}`).value.trim();
+  if (!title || !video_id) { showToast('⚠️ Title and Video ID are required'); return; }
+  const { error } = await window.cfpSupabase.from('playlist_videos').update({ title, playlist_key, sort_order, video_id }).eq('id', id);
+  if (error) { showToast('⚠️ Could not save: ' + error.message); return; }
+  cfpEditingVideoId = null;
+  showToast('✅ Video updated');
+  renderPlaylistVideos();
+}
+
+async function cfpDeleteVideo(id) {
+  if (!confirm('Delete this video?')) return;
+  const { error } = await window.cfpSupabase.from('playlist_videos').delete().eq('id', id);
+  if (error) { showToast('⚠️ Could not delete video'); return; }
+  showToast('🗑 Video deleted');
+  renderPlaylistVideos();
+}
+
+(function initPlaylistVideoForm() {
+  document.getElementById('pv-video-id').addEventListener('input', function () {
+    const v = this.value.trim();
+    const preview = document.getElementById('pv-thumb-preview');
+    if (v.length >= 11) { preview.src = `https://img.youtube.com/vi/${v}/default.jpg`; preview.style.display = 'block'; }
+    else preview.style.display = 'none';
+  });
+
+  document.getElementById('pv-add-btn').addEventListener('click', async () => {
+    const playlist_key = document.getElementById('pv-playlist').value;
+    const video_id = document.getElementById('pv-video-id').value.trim();
+    const title = document.getElementById('pv-title').value.trim();
+    const description = document.getElementById('pv-description').value.trim();
+    const sort_order = parseInt(document.getElementById('pv-sort-order').value) || 1;
+    if (!video_id || !title) { showToast('⚠️ Video ID and title are required'); return; }
+    const { error } = await window.cfpSupabase.from('playlist_videos').insert({ playlist_key, video_id, title, description: description || null, sort_order });
+    if (error) { showToast('⚠️ Could not add video: ' + error.message); return; }
+    document.getElementById('pv-video-id').value = '';
+    document.getElementById('pv-title').value = '';
+    document.getElementById('pv-description').value = '';
+    document.getElementById('pv-sort-order').value = '1';
+    document.getElementById('pv-thumb-preview').style.display = 'none';
+    showToast('✅ Video added');
+    renderPlaylistVideos();
+  });
+})();
+
+/* ── MANUAL ENROLL ── */
+let cfpLiveCourses = [];
+
+async function renderManualEnroll() {
+  const courseSelect = document.getElementById('me-course');
+  courseSelect.innerHTML = '<option value="">Loading courses…</option>';
+  const { data: courses } = await window.cfpSupabase
+    .from('courses').select('id, name, price').eq('plan_only', false).order('sort_order', { ascending: true });
+  cfpLiveCourses = courses || [];
+  courseSelect.innerHTML = cfpLiveCourses.map(c =>
+    `<option value="${escAttr(c.id)}">${escHtml(c.name)}${c.price ? ' — ' + escHtml(c.price) : ''}</option>`
+  ).join('') || '<option value="">No courses found</option>';
+  await cfpRenderManualEnrollHistory();
+}
+
+async function cfpRenderManualEnrollHistory() {
+  const tbody = document.getElementById('me-history-body');
+  tbody.innerHTML = '<tr><td colspan="4" class="empty-state">Loading…</td></tr>';
+  const { data } = await window.cfpSupabase
+    .from('payments').select('*, profiles(email), courses(name)')
+    .like('razorpay_payment_id', 'MANUAL-%')
+    .order('created_at', { ascending: false }).limit(20);
+  if (!data || !data.length) { tbody.innerHTML = '<tr><td colspan="4" class="empty-state">No manual enrollments yet.</td></tr>'; return; }
+  tbody.innerHTML = data.map(p => {
+    const email = (p.profiles && p.profiles.email) || '—';
+    const course = (p.courses && p.courses.name) || '—';
+    const type = Number(p.amount) === 0 ? 'Complimentary' : 'Paid (offline)';
+    return `<tr>
+      <td>${escHtml(email)}</td>
+      <td>${escHtml(course)}</td>
+      <td>${p.created_at ? new Date(p.created_at).toLocaleDateString('en-IN') : '—'}</td>
+      <td><span class="badge ${type === 'Complimentary' ? 'badge-booking' : 'badge-published'}">${type}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+(function initManualEnrollForm() {
+  document.getElementById('me-enroll-btn').addEventListener('click', async () => {
+    const email = document.getElementById('me-email').value.trim();
+    const courseId = document.getElementById('me-course').value;
+    const enrollType = document.querySelector('input[name="me-type"]:checked')?.value || 'paid';
+    const notes = document.getElementById('me-notes').value.trim();
+    const msgEl = document.getElementById('me-msg');
+    msgEl.style.display = 'none';
+
+    if (!email || !courseId) {
+      msgEl.textContent = 'Email and course are required.';
+      msgEl.style.color = '#fb7185'; msgEl.style.display = 'block'; return;
+    }
+
+    const { data: profile, error: profErr } = await window.cfpSupabase
+      .from('profiles').select('id').eq('email', email).single();
+
+    if (profErr || !profile) {
+      msgEl.innerHTML = 'No account found for this email. The student must complete account setup first (they receive a set-password link when they make a purchase). For a complimentary seat, ask them to sign up on <a href="../account.html" target="_blank" style="color:var(--accent)">account.html</a> first, then enroll here.';
+      msgEl.style.color = '#fbbf24'; msgEl.style.display = 'block'; return;
+    }
+
+    // Check for existing active enrollment
+    const { data: existing } = await window.cfpSupabase
+      .from('enrollments').select('id').eq('user_id', profile.id).eq('course_id', courseId).eq('status', 'active').maybeSingle();
+    if (existing) {
+      msgEl.textContent = 'This student already has an active enrollment for this course.';
+      msgEl.style.color = '#fbbf24'; msgEl.style.display = 'block'; return;
+    }
+
+    const paymentId = 'MANUAL-' + Date.now();
+    const amount = enrollType === 'complimentary' ? 0 : 0;
+
+    const [enrollRes, payRes] = await Promise.all([
+      window.cfpSupabase.from('enrollments').insert({ user_id: profile.id, course_id: courseId, status: 'active' }),
+      window.cfpSupabase.from('payments').insert({ user_id: profile.id, course_id: courseId, amount, status: 'captured', notes: notes || null, razorpay_payment_id: paymentId })
+    ]);
+
+    if (enrollRes.error || payRes.error) {
+      msgEl.textContent = 'Error: ' + ((enrollRes.error || payRes.error).message);
+      msgEl.style.color = '#fb7185'; msgEl.style.display = 'block'; return;
+    }
+
+    msgEl.textContent = 'Enrolled successfully. Student can now access content on their dashboard.';
+    msgEl.style.color = '#4ade80'; msgEl.style.display = 'block';
+    document.getElementById('me-email').value = '';
+    document.getElementById('me-notes').value = '';
+    cfpRenderManualEnrollHistory();
+  });
+})();
+
+/* ── SEND NEWSLETTER ── */
+async function renderSendNewsletter() {
+  await Promise.all([cfpUpdateRecipientCount(), cfpRenderSendHistory()]);
+}
+
+async function cfpUpdateRecipientCount() {
+  const audience = document.querySelector('input[name="nl-audience"]:checked')?.value || 'all';
+  let query = window.cfpSupabase.from('newsletter_subscribers').select('id', { count: 'exact', head: true });
+  if (audience === 'signups') query = query.eq('source', 'signup');
+  else if (audience === 'buyers') query = query.eq('source', 'purchase');
+  const { count } = await query;
+  const el = document.getElementById('nl-recipient-count');
+  if (el) el.textContent = `${count || 0} recipients selected`;
+}
+
+async function cfpRenderSendHistory() {
+  const tbody = document.getElementById('nl-sends-body');
+  if (!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="4" class="empty-state">Loading…</td></tr>';
+  const { data, error } = await window.cfpSupabase
+    .from('newsletter_sends').select('*').order('sent_at', { ascending: false }).limit(20);
+  if (error || !data || !data.length) {
+    tbody.innerHTML = '<tr><td colspan="4" class="empty-state">No emails sent yet.</td></tr>'; return;
+  }
+  tbody.innerHTML = data.map(s => `
+    <tr>
+      <td style="color:var(--text);font-weight:500;max-width:300px">${escHtml(s.subject)}</td>
+      <td><span class="badge badge-booking">${escHtml(s.audience || 'all')}</span></td>
+      <td>${s.recipient_count}</td>
+      <td>${s.sent_at ? new Date(s.sent_at).toLocaleString('en-IN') : '—'}</td>
+    </tr>
+  `).join('');
+}
+
+(function initSendNewsletterForm() {
+  document.querySelectorAll('input[name="nl-audience"]').forEach(r => r.addEventListener('change', cfpUpdateRecipientCount));
+
+  document.getElementById('nl-preview-btn').addEventListener('click', () => {
+    const html = document.getElementById('nl-body').value;
+    document.getElementById('nl-preview-iframe').srcdoc = html;
+    document.getElementById('nl-preview-modal').classList.add('open');
+  });
+  document.getElementById('nl-preview-close').addEventListener('click', () => {
+    document.getElementById('nl-preview-modal').classList.remove('open');
+  });
+
+  function cfpUpdateSendBtn() {
+    const ok = document.getElementById('nl-subject').value.trim() && document.getElementById('nl-body').value.trim();
+    document.getElementById('nl-send-btn').disabled = !ok;
+  }
+  document.getElementById('nl-subject').addEventListener('input', cfpUpdateSendBtn);
+  document.getElementById('nl-body').addEventListener('input', cfpUpdateSendBtn);
+
+  document.getElementById('nl-send-btn').addEventListener('click', async () => {
+    const subject = document.getElementById('nl-subject').value.trim();
+    const html = document.getElementById('nl-body').value.trim();
+    const audience = document.querySelector('input[name="nl-audience"]:checked')?.value || 'all';
+    const countText = document.getElementById('nl-recipient-count').textContent;
+    if (!confirm(`Send "${subject}" to ${countText}? This cannot be undone.`)) return;
+    const btn = document.getElementById('nl-send-btn');
+    btn.disabled = true; btn.textContent = 'Sending…';
+    try {
+      const res = await fetch('/api/send-newsletter', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-admin-key': ADMIN_SECRET },
+        body: JSON.stringify({ subject, html, audience })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Send failed');
+      showToast(`✅ Sent to ${data.sent} recipients.`);
+      document.getElementById('nl-subject').value = '';
+      document.getElementById('nl-body').value = '';
+      cfpUpdateSendBtn();
+      cfpRenderSendHistory();
+    } catch (e) {
+      showToast('⚠️ Send failed: ' + e.message);
+    } finally {
+      btn.disabled = false; btn.textContent = 'Send Newsletter';
+    }
+  });
+})();
 
 /* ── ESCAPING HELPERS ── */
 function escHtml(str) { return (str || '').toString().replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c])); }
