@@ -484,13 +484,13 @@
         upsellHtml = `
           <div style="border-top:1px solid rgba(255,255,255,0.07);margin:1.5rem 0 1.25rem;"></div>
           <h3 style="font-size:0.78rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:rgba(255,255,255,0.35);margin-bottom:1rem;">Take Your Trading Further</h3>
-          ${upsellCard({ title: 'Upgrade to Guided Learning', price: '₹6,500 + GST', features: ['Live & recorded trading sessions', '3-month backtest access', 'Guided video playlist', 'Step-up from self-paced to structured learning'], cta: 'Upgrade Now →', href: 'payment.html?course=5' })}
-          ${upsellCard({ title: 'Jump to Mentorship Program', price: '₹24,000 + GST', features: ['Everything in Guided Learning', '1-on-1 personal mentorship sessions', 'Both Guided & Framework video playlists', 'Private WhatsApp community access'], cta: 'Apply for Mentorship →', href: 'payment.html?course=6' })}`;
+          ${upsellCard({ title: 'Upgrade to Guided Learning', price: '₹6,500 + GST', features: ['Live & recorded trading sessions', '3-month backtest access', 'Guided video playlist', 'Step-up from self-paced to structured learning'], cta: 'Upgrade Now →', href: '/pages/payment.html?course=5' })}
+          ${upsellCard({ title: 'Jump to Mentorship Program', price: '₹24,000 + GST', features: ['Everything in Guided Learning', '1-on-1 personal mentorship sessions', 'Both Guided & Framework video playlists', 'Private WhatsApp community access'], cta: 'Apply for Mentorship →', href: '/pages/payment.html?course=6' })}`;
       } else if (highestTier === '5') {
         upsellHtml = `
           <div style="border-top:1px solid rgba(255,255,255,0.07);margin:1.5rem 0 1.25rem;"></div>
           <h3 style="font-size:0.78rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:rgba(255,255,255,0.35);margin-bottom:1rem;">Take Your Trading Further</h3>
-          ${upsellCard({ title: 'Upgrade to Mentorship Program', price: '₹24,000 + GST', features: ['Everything in Guided Learning, plus', '1-on-1 personal mentorship sessions', 'CFA Framework video playlist unlocked', 'Private WhatsApp community access'], cta: 'Apply for Mentorship →', href: 'payment.html?course=6' })}`;
+          ${upsellCard({ title: 'Upgrade to Mentorship Program', price: '₹24,000 + GST', features: ['Everything in Guided Learning, plus', '1-on-1 personal mentorship sessions', 'CFA Framework video playlist unlocked', 'Private WhatsApp community access'], cta: 'Apply for Mentorship →', href: '/pages/payment.html?course=6' })}`;
       }
 
       lmsContentEl.innerHTML = `<h2 style="font-size:1.1rem;font-weight:800;margin-bottom:1.25rem;">My Courses</h2>${cards}${upsellHtml}`;

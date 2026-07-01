@@ -48,6 +48,9 @@ function renderBlogGrid() {
   grid.innerHTML = sorted.map(a => {
     const icon = cfpIconSvg(a.icon);
     const isFree = cfpEffectiveAccess(a) === 'free';
+    const isUnlocked = !isFree && cfpUserHasPremiumAccess;
+    const badgeClass = isFree ? 'badge-free' : (isUnlocked ? 'badge-free' : 'badge-premium');
+    const badgeLabel = isFree ? '🔓 Free' : (isUnlocked ? '🔓 Unlocked' : '🔒 Premium');
     const mostReadBadge = a.featured ? '<span class="post-tag-mostread">🔥 Most Read</span>' : '';
     return `
       <div class="post-card" data-category="${a.cat}" data-post="${a.id}" onclick="openArticle('${a.id}')">
@@ -56,7 +59,7 @@ function renderBlogGrid() {
         </div>
         <div class="post-card-body">
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-            <span class="post-access-badge ${isFree ? 'badge-free' : 'badge-premium'}">${isFree ? '🔓 Free' : '🔒 Premium'}</span>
+            <span class="post-access-badge ${badgeClass}">${badgeLabel}</span>
             <span class="post-card-category">${a.category}</span>
             ${mostReadBadge}
           </div>
@@ -193,6 +196,7 @@ function subscribeNewsletter() {
       cfpCurrentUser = null;
       cfpUserHasPremiumAccess = false;
     }
+    renderBlogGrid();
     if (cfpCurrentArticleId !== null) openArticle(cfpCurrentArticleId);
   }
 })();

@@ -48,6 +48,9 @@ function renderBtGrid() {
   grid.innerHTML = sorted.map(b => {
     const icon = cfpBtIconSvg(b.icon);
     const isFree = cfpEffectiveAccess(b) === 'free';
+    const isUnlocked = !isFree && cfpUserHasPremiumAccess && cfpWithinTierCutoff(b.date);
+    const badgeClass = isFree ? 'badge-free' : (isUnlocked ? 'badge-free' : 'badge-premium');
+    const badgeLabel = isFree ? '🔓 Free' : (isUnlocked ? '🔓 Unlocked' : '🔒 Premium');
     const resultBadge = b.result ? `<span class="post-tag-mostread" style="background:${b.result === 'Win' ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.12)'};color:${b.result === 'Win' ? '#4ade80' : '#fb7185'};">${b.result === 'Win' ? '✅' : '❌'} ${b.result}</span>` : '';
     const thumbContent = b.chartImage
       ? `<img src="${b.chartImage}" alt="${b.title}" style="width:100%;height:100%;object-fit:cover;" />`
@@ -59,7 +62,7 @@ function renderBtGrid() {
         </div>
         <div class="post-card-body">
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-            <span class="post-access-badge ${isFree ? 'badge-free' : 'badge-premium'}">${isFree ? '🔓 Free' : '🔒 Premium'}</span>
+            <span class="post-access-badge ${badgeClass}">${badgeLabel}</span>
             <span class="post-card-category">${b.instrument} · ${b.timeframe}</span>
             ${resultBadge}
           </div>

@@ -825,6 +825,12 @@ let cfpStudentEditingId = null; // userId whose edit row is currently open
 async function renderStudents() {
   const tbody = document.getElementById('students-table-body');
   tbody.innerHTML = '<tr><td colspan="5" class="empty-state">Loading…</td></tr>';
+  // Refresh live course list for the add-course dropdown in manage panels
+  if (!cfpLiveCourses.length) {
+    const { data: courses } = await window.cfpSupabase
+      .from('courses').select('id, name').eq('plan_only', false).order('sort_order', { ascending: true });
+    cfpLiveCourses = courses || [];
+  }
   const { data, error } = await window.cfpSupabase
     .from('enrollments')
     .select('id, user_id, course_id, status, purchased_at, profiles(full_name, email), courses(name)')
@@ -907,10 +913,8 @@ function cfpRenderStudentsTable() {
 
     if (!editOpen) return mainRow;
 
-    // All 4 known courses for the add-course dropdown
-    const ALL_COURSES = ['Self-Study', 'Guided Learning', 'The CFA Academy Framework for Stock Investing', 'Mentorship Program'];
     const enrolledNames = g.enrollments.map(e => e.courseName);
-    const availableCourses = ALL_COURSES.filter(c => !enrolledNames.includes(c));
+    const availableCourses = cfpLiveCourses.map(c => c.name).filter(n => !enrolledNames.includes(n));
 
     const enrollmentRows = g.enrollments.map(e => `
       <div style="display:flex;align-items:center;justify-content:space-between;padding:0.5rem 0;border-bottom:1px solid rgba(255,255,255,0.05);">
