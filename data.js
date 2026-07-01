@@ -41,7 +41,7 @@ const CFP_SVG_ICONS = {
    for live editing yet, so "freshest copy wins" is the right default —
    collections like articles/testimonials still merge by id either way, and
    transactions/submissions are always preserved). */
-const CFP_CONTENT_VERSION = 10;
+const CFP_CONTENT_VERSION = 13;
 
 const CFP_DEFAULT_DATA = {
   _contentVersion: CFP_CONTENT_VERSION,
@@ -70,20 +70,38 @@ const CFP_DEFAULT_DATA = {
   },
   courses: [
     {
-      id: 1, level: 'Free · Beginner', name: 'Essentials', group: 'CFA Intraday Trading',
-      subtitle: 'The CFA System — Foundation',
-      desc: 'Build the right foundation before your first trade. Understand what drives price movement, why trends form, and how the CFA Trading Framework sets you up for success.',
-      features: ['What drives price movement', 'Market structure & price behaviour', 'The right trading mindset', 'Traps, fakeouts & how to avoid them', 'CFA Trading Framework — Introduction'],
-      price: 'FREE', priceSub: 'No credit card needed', ctaLabel: 'Get Started Free', ctaLink: 'javascript:void(0)', isModal: true
+      id: 3, level: 'Advanced', name: 'The CFA Academy Framework for Stock Investing',
+      subtitle: 'Target-Based Investing Masterclass',
+      desc: 'A complete investing framework covering market structure, sector rotation, stock selection, portfolio construction, and investor psychology for sustainable wealth creation.',
+      features: ['Market structure & sector rotation', 'Stock selection & screening framework', 'Portfolio construction strategy', 'Investor psychology & discipline', 'Capstone project — Build your own framework'],
+      price: '₹4,999', priceSub: '+ GST · One-time', ctaLabel: 'Enroll Now', ctaLink: 'payment.html?course=3', isModal: false
     },
     {
-      id: 2, level: 'Intermediate · Bundle', name: 'Edge + Precision', group: 'CFA Intraday Trading',
-      subtitle: 'Two Modules — One Complete Framework',
-      desc: 'Master the complete CFA Trading Framework across two power-packed modules. Develop a structured, repeatable trading process and learn to execute with precision.',
-      features: ['Complete CFA Trading System', 'Chart setup & workspace configuration', 'Entry, Target & Stop Loss methodology', 'Detailed backtesting & validation', 'Option premium charts mastery', 'Strike price selection & position sizing'],
-      featuresRich: `## EDGE
+      id: 4, level: 'Self-Study', name: 'Self-Study', subtitle: 'Independent Learning Track', planOnly: true,
+      desc: 'For traders who prefer to learn independently through structured documentation and daily post market analysis. Can upgrade to guided learning and mentorship program anytime.',
+      features: ['Complete PDF trading framework', 'Detailed setup documentation', 'Last 1 month access to backtest documents', 'Daily Post-Market Analysis', 'Weekly Setup Performance Review live session', 'Self-paced implementation support'],
+      price: '₹860', priceSub: '+ GST · One-time', ctaLabel: 'Start Self-Study', ctaLink: 'payment.html?course=4', isModal: false
+    },
+    {
+      id: 5, level: 'Guided Learning', name: 'Guided Learning', subtitle: 'Live Classes + Backtesting', planOnly: true,
+      desc: 'For traders seeking deeper understanding through live classes, recorded sessions, and extensive backtesting. Can upgrade to mentorship program anytime.',
+      features: ['PDF framework + Live/Recorded sessions', 'Video explanations and live sessions', 'Last 3 months access to backtest documents', '3 months of recorded/live backtesting sessions', 'Daily Post-Market Analysis', 'Weekly Setup Performance Review live session', 'Limited one-to-one interaction during sessions', 'Guided learning implementation support'],
+      featuresRich: `## ESSENTIALS
+Build the Right Foundation
+Before placing your first trade, understand how markets truly function.
+- What drives price movement?
+- Why do trends and patterns form?
+- Understanding market structure and price behaviour
+- Developing the right mindset and approach to trading, and the right way to think
+- The importance of a structured trading system
+- Need of a trading system and structure-aligned setups
+- All about traps and fakeouts
+- CFA Trading framework explained
+> Outcome: Gain a clear understanding of how markets move and why structure must come before indicators. Essentials includes CFA post-market Daily Analysis as a means to forward test.
+
+## EDGE
 Develop a Structured & Repeatable Trading Process
-Learn the complete CFA Trading System and the logic behind every trade.
+Learn the complete CFA Trading Framework and the logic behind every trade.
 - The complete CFA Trading System
 - Why the system works across different market conditions
 - Chart setup and workspace configuration
@@ -92,7 +110,7 @@ Learn the complete CFA Trading System and the logic behind every trade.
 - Entry, Target and Stop Loss methodology
 - Detailed backtesting
 - Building confidence through data-driven validation
-> Outcome: Develop a repeatable framework that helps identify high-probability trading opportunities with predefined risk. EDGE and PRECISION includes live market support as and when setup is formed.
+> Outcome: Develop a repeatable framework that helps identify high-probability trading opportunities with predefined risk. EDGE and PRECISION include live market support as and when a setup is formed.
 
 ## PRECISION
 Master Option Buying and Selling Through Premium Charts
@@ -106,15 +124,61 @@ Move beyond index charts and learn to trade the instrument that actually determi
 - Position sizing and trade execution
 - Building trading discipline and psychology
 - Developing consistency in real market conditions
-> Outcome: Learn to execute trades with greater precision, better timing, and improved risk management using option premium charts.`,
-      price: '₹5,999', priceSub: '+ GST · One-time', ctaLabel: 'Enroll Now', ctaLink: 'payment.html?course=2', isModal: false
+> Outcome: Learn to execute trades with greater precision, better timing, and improved risk management using option premium charts.
+
+## Final Promise
+Learn the Structure. Develop the Edge. Execute with Precision.
+A practical, market-tested framework designed to help traders move from confusion and guesswork to clarity, confidence, and consistency.`,
+      price: '₹6,500', priceSub: '+ GST · One-time', ctaLabel: 'Join Guided Learning', ctaLink: 'payment.html?course=5', isModal: false
     },
     {
-      id: 3, level: 'Advanced', name: 'The CFA Academy Framework for Stock Investing',
-      subtitle: 'Target-Based Investing Masterclass',
-      desc: 'A complete investing framework covering market structure, sector rotation, stock selection, portfolio construction, and investor psychology for sustainable wealth creation.',
-      features: ['Market structure & sector rotation', 'Stock selection & screening framework', 'Portfolio construction strategy', 'Investor psychology & discipline', 'Capstone project — Build your own framework'],
-      price: '₹4,999', priceSub: '+ GST · One-time', ctaLabel: 'Enroll Now', ctaLink: 'payment.html?course=3', isModal: false
+      id: 6, level: 'Mentorship Program', name: 'Mentorship Program', subtitle: 'Personalized 1-on-1 Guidance', planOnly: true,
+      desc: 'For traders who want personalized guidance, live market thought process, forward testing, and one-on-one mentorship.',
+      features: ['PDF + Live sessions + personal guidance', 'Personalized implementation support', 'Complete website access', 'Up to 6 months of detailed backtesting sessions', 'Daily Post-Market Analysis', 'Weekly Setup Performance Review live session', 'Forward Testing & Live Structure Updates', 'WhatsApp CFA Inner Circle Community access', 'Investment Module Access', 'Dedicated one-to-one mentorship support', 'Live market thought process'],
+      featuresRich: `## ESSENTIALS
+Build the Right Foundation
+Before placing your first trade, understand how markets truly function.
+- What drives price movement?
+- Why do trends and patterns form?
+- Understanding market structure and price behaviour
+- Developing the right mindset and approach to trading, and the right way to think
+- The importance of a structured trading system
+- Need of a trading system and structure-aligned setups
+- All about traps and fakeouts
+- CFA Trading framework explained
+> Outcome: Gain a clear understanding of how markets move and why structure must come before indicators. Essentials includes CFA post-market Daily Analysis as a means to forward test.
+
+## EDGE
+Develop a Structured & Repeatable Trading Process
+Learn the complete CFA Trading Framework and the logic behind every trade.
+- The complete CFA Trading System
+- Why the system works across different market conditions
+- Chart setup and workspace configuration
+- Tools to identify Market Structure and trend identification
+- Timeframe selection and alignment
+- Entry, Target and Stop Loss methodology
+- Detailed backtesting
+- Building confidence through data-driven validation
+> Outcome: Develop a repeatable framework that helps identify high-probability trading opportunities with predefined risk. EDGE and PRECISION include live market support as and when a setup is formed.
+
+## PRECISION
+Master Option Buying and Selling Through Premium Charts
+Move beyond index charts and learn to trade the instrument that actually determines your profit and loss.
+- Understanding option premium behaviour
+- Why option premium charts matter more for option buyers
+- How to select the right strike price
+- Understanding option writers' perspective
+- Identifying high-probability entry zones on premium charts
+- Timing option buying with market structure
+- Position sizing and trade execution
+- Building trading discipline and psychology
+- Developing consistency in real market conditions
+> Outcome: Learn to execute trades with greater precision, better timing, and improved risk management using option premium charts.
+
+## Final Promise
+Learn the Structure. Develop the Edge. Execute with Precision.
+A practical, market-tested framework designed to help traders move from confusion and guesswork to clarity, confidence, and consistency.`,
+      price: '₹24,000', priceSub: '+ GST · One-time', ctaLabel: 'Apply for Mentorship', ctaLink: 'payment.html?course=6', isModal: false
     }
   ],
   testimonials: [
@@ -162,7 +226,7 @@ Move beyond index charts and learn to trade the instrument that actually determi
       <p>Position Size = (Account Size × Risk %) ÷ (Entry Price − Stop Loss Price). If your account is ₹5,00,000 and you risk 2%, that's ₹10,000 of risk capital. If your entry is ₹500 and your stop is ₹490, your risk per share is ₹10. Position size = ₹10,000 ÷ ₹10 = 1,000 shares. Every trade, every time — no exceptions, no "just this once."</p>
       <h3>Why Traders Ignore It Anyway</h3>
       <p>FOMO. When a setup "feels" perfect, traders double or triple their normal size — and this is exactly the moment the market tends to punish hardest, because conviction and position sizing should never be correlated. The CFA Risk Framework removes the emotional decision entirely: position size is calculated mechanically before entry, and it never changes based on how confident you feel.</p>
-      <p style="color:rgba(255,224,102,0.9);font-style:italic;margin-top:1.5rem;">We cover position sizing in granular detail in the Edge + Precision Bundle. Book a Discovery Call to find the right course for your level.</p>
+      <p style="color:rgba(255,224,102,0.9);font-style:italic;margin-top:1.5rem;">We cover position sizing in granular detail in the Guided Learning and Mentorship Program courses. Book a Discovery Call to find the right course for your level.</p>
     ` },
     { id: 3, icon: 'psychology', color: '#e879f9', bg: 'linear-gradient(135deg,#2a0f18 0%,#4a1c30 100%)', category: 'Psychology', cat: 'psychology', access: 'free', title: 'Revenge Trading: The Emotional Trap That Destroys Accounts and How to Escape It', excerpt: 'Every trader faces losing streaks. The difference between those who survive and those who blow up is entirely psychological.', date: 'May 21, 2026', readtime: '7 min read', body: `
       <p>Every trader, no matter how skilled, faces losing streaks. What separates the traders who survive long enough to become consistently profitable from the ones who blow up their accounts isn't skill — it's almost entirely psychological.</p>
@@ -189,7 +253,7 @@ Move beyond index charts and learn to trade the instrument that actually determi
       <div class="highlight-box">A useful beginner mental model: buying options is like buying a lottery ticket with a built-in countdown timer. Being directionally correct isn't enough — you need to be correct within the time the option gives you, by enough magnitude to overcome the premium you paid.</div>
       <h3>Where Most Beginners Go Wrong</h3>
       <p>New traders buy far out-of-the-money options because they're cheap, not because they make statistical sense. A ₹5 option "feels" like a small bet, but it usually has a very low probability of ever becoming profitable before expiry. Understanding strike selection relative to your actual market view — not your account size — is the first real skill in options trading.</p>
-      <p style="color:rgba(255,224,102,0.9);font-style:italic;margin-top:1.5rem;">We build the complete options foundation — strike selection, premium behaviour, and the Greeks — inside the Edge + Precision Bundle.</p>
+      <p style="color:rgba(255,224,102,0.9);font-style:italic;margin-top:1.5rem;">We build the complete options foundation — strike selection, premium behaviour, and the Greeks — inside the Guided Learning and Mentorship Program courses.</p>
     ` },
     { id: 5, icon: 'auto_graph', color: '#FFD24D', bg: 'linear-gradient(135deg,#2e2208 0%,#56400a 100%)', category: 'Options Strategy', cat: 'options-strategy', access: 'premium', title: 'CFA Option Premium Charts: Reading Volatility Before It Explodes', excerpt: 'This deep-dive covers the exact option premium chart setups we use to identify volatility expansion before it happens. Includes annotated real trade examples from live market sessions over the past quarter, with entry, target, and stop-loss marked on each chart.', date: 'May 7, 2026', readtime: '10 min read', body: `
       <h3>Why Premium Charts, Not Just Price Charts</h3>
@@ -337,6 +401,35 @@ Move beyond index charts and learn to trade the instrument that actually determi
   legal: {
     disclaimer: 'Capital Finplus Academy is an educational platform. Trading in securities involves risk of loss. All course content is for educational purposes only and does not constitute investment advice. Please consult a SEBI-registered advisor before making investment decisions. Past performance is not indicative of future results.'
   },
+  /* Admin-configurable rolling free-preview window: articles/backtests dated
+     within the last `freeDays` days are free regardless of their manual
+     access flag; older items fall back to that flag (see cfpEffectiveAccess). */
+  premium: { freeDays: 30 },
+  /* Editable copy for the Blog and Backtesting standalone pages' hero
+     header + the blog newsletter strip — lets the admin change this text
+     without touching code. */
+  pages: {
+    blog: {
+      tag: 'Market Insights',
+      title: 'The Trading Desk',
+      sub: 'The last month is always free. <strong>Older articles</strong> are premium — unlocked with any course purchase.',
+      freeLabel: 'Free — no signup needed',
+      premiumLabel: 'Premium — course students only'
+    },
+    backtesting: {
+      tag: 'Daily Chart Trends',
+      title: 'The Backtesting Log',
+      sub: 'Real setups, entries, stops and results — posted daily, including the losses. The last 30 days are always free. <strong>Older entries</strong> move to the premium archive — unlocked with any course purchase.',
+      freeLabel: 'Free — last 30 days',
+      premiumLabel: 'Premium — archive, course students only'
+    },
+    newsletter: {
+      tag: 'Stay in the Loop',
+      title: 'The Capital Finplus Weekly',
+      sub: 'Market insights, trade setups &amp; course updates — every week, free in your inbox.',
+      buttonLabel: 'Subscribe Free →'
+    }
+  },
   /* ── SAMPLE DATA — replace with live Razorpay / form-backend feed once wired ── */
   transactions: [
     { id: 1, paymentId: 'pay_OqSample0001', orderId: 'order_OqSample0001', name: 'Rahul Sharma', email: 'rahul.sharma@example.com', phone: '+91 98765 12340', course: 'The CFA Trading System: Edge + Precision', amount: 24999, status: 'captured', method: 'UPI', date: '2026-06-20 14:32' },
@@ -368,8 +461,7 @@ function cfpLoadData() {
     const raw = localStorage.getItem(CFP_STORAGE_KEY);
     if (!raw) {
       const d = JSON.parse(JSON.stringify(CFP_DEFAULT_DATA));
-      (d.backtests || []).forEach(b => { b._useTimeWindow = true; });
-      return d;
+      return cfpApplyFreeWindow(d);
     }
     const parsed = JSON.parse(raw);
     const defaults = JSON.parse(JSON.stringify(CFP_DEFAULT_DATA));
@@ -395,13 +487,11 @@ function cfpLoadData() {
       merged.testimonials = JSON.parse(JSON.stringify(defaults.testimonials));
     }
     merged._contentVersion = CFP_CONTENT_VERSION;
-    (merged.backtests || []).forEach(b => { b._useTimeWindow = true; });
-    return merged;
+    return cfpApplyFreeWindow(merged);
   } catch (e) {
     console.warn('cfpLoadData failed, falling back to defaults', e);
     const d = JSON.parse(JSON.stringify(CFP_DEFAULT_DATA));
-    (d.backtests || []).forEach(b => { b._useTimeWindow = true; });
-    return d;
+    return cfpApplyFreeWindow(d);
   }
 }
 
@@ -418,28 +508,84 @@ function cfpRecordTransaction(tx) {
   cfpSaveData(data);
 }
 
-/* Record a new form submission (booking modal / contact form) */
+/* Record a new form submission (booking modal / contact form / masterclass).
+   Writes to Supabase (form_submissions allows public insert via RLS) so the
+   admin sees every lead from any visitor's device, not just whichever
+   browser happens to load the admin dashboard's old localStorage copy. The
+   localStorage write is kept too as a same-browser fallback/cache. */
 function cfpRecordSubmission(sub) {
   const data = cfpLoadData();
   data.submissions = data.submissions || [];
   data.submissions.unshift(Object.assign({ id: Date.now(), date: new Date().toLocaleString('en-IN') }, sub));
   cfpSaveData(data);
+
+  if (typeof window !== 'undefined' && window.cfpSupabase) {
+    window.cfpSupabase.from('form_submissions').insert({
+      type: sub.type || 'contact',
+      name: sub.name || '',
+      email: sub.email || '',
+      phone: sub.phone || '',
+      message: sub.message || '',
+      metadata: { experience: sub.experience || '' }
+    }).then(function (res) {
+      if (res.error) console.error('cfpRecordSubmission: Supabase insert failed', res.error);
+    });
+  }
 }
 
-/* Content access: articles use their explicit `access` field ('free' or 'premium').
-   Backtests use a 30-day rolling window — free for first 30 days, then premium. */
+/* Record a newsletter signup (blog page "Stay in the Loop" form). Course
+   purchases are added to the same table server-side, with source:'purchase'
+   (see api/verify-payment.js) — this client-side path is only for the
+   manual signup form, source:'signup'. Returns a promise so the caller can
+   show success/duplicate feedback; resolves to { ok, duplicate }. */
+function cfpRecordNewsletterSignup(email, name) {
+  if (typeof window === 'undefined' || !window.cfpSupabase) return Promise.resolve({ ok: false });
+  return window.cfpSupabase.from('newsletter_subscribers')
+    .insert({ email: (email || '').trim().toLowerCase(), name: name || '', source: 'signup' })
+    .then(function (res) {
+      if (res.error) {
+        // unique(email, source) violation -> already subscribed, not a real failure
+        const duplicate = res.error.code === '23505';
+        if (!duplicate) console.error('cfpRecordNewsletterSignup: Supabase insert failed', res.error);
+        return { ok: duplicate, duplicate };
+      }
+      return { ok: true, duplicate: false };
+    });
+}
+
+/* Content access: an item is free if EITHER its manual `access` flag is
+   'free' OR it falls inside the rolling free-preview window (admin-set
+   number of days, default 30 — see the `premium` settings object above
+   and the admin's Site Settings panel). Both articles and backtests use
+   the window (`_useTimeWindow` is set when they're loaded below); a
+   manual 'premium' flag only actually locks the item once it ages out of
+   that window. */
 const CFP_FREE_WINDOW_DAYS = 30;
 
 function cfpEffectiveAccess(item) {
   if (!item) return 'premium';
-  if (item.access === 'premium') return 'premium';
+  if (item.access === 'free') return 'free';
   if (item._useTimeWindow) {
     const parsed = new Date(item.date);
     if (isNaN(parsed.getTime())) return item.access || 'free';
+    const freeDays = (typeof window !== 'undefined' && window.CFP_FREE_WINDOW_DAYS) || CFP_FREE_WINDOW_DAYS;
     const ageDays = (Date.now() - parsed.getTime()) / 86400000;
-    return ageDays <= CFP_FREE_WINDOW_DAYS ? 'free' : 'premium';
+    return ageDays <= freeDays ? 'free' : 'premium';
   }
   return item.access || 'free';
+}
+
+/* Flags articles + backtests for the rolling free-preview window and syncs
+   window.CFP_FREE_WINDOW_DAYS from the loaded `premium` settings (admin's
+   Site Settings panel) so cfpEffectiveAccess() above picks it up. Call
+   this on every data object right before returning it from a loader. */
+function cfpApplyFreeWindow(data) {
+  if (typeof window !== 'undefined') {
+    window.CFP_FREE_WINDOW_DAYS = (data.premium && Number(data.premium.freeDays)) || CFP_FREE_WINDOW_DAYS;
+  }
+  (data.backtests || []).forEach(b => { b._useTimeWindow = true; });
+  (data.articles || []).forEach(a => { a._useTimeWindow = true; });
+  return data;
 }
 
 /* ==============================================
@@ -453,10 +599,16 @@ function cfpIsUuid(v) {
 }
 function cfpTempId() { return 'tmp-' + Date.now() + '-' + Math.random().toString(36).slice(2); }
 
+function cfpPad2(n) { return String(n).padStart(2, '0'); }
 function cfpToISODate(displayDate) {
   const d = new Date(displayDate);
-  if (isNaN(d.getTime())) return new Date().toISOString().slice(0, 10);
-  return d.toISOString().slice(0, 10);
+  /* Build the ISO string from the LOCAL date components, not via
+     toISOString() — that converts to UTC, which silently rolls the date
+     back a day for any timezone ahead of UTC (e.g. IST) once local
+     midnight crosses the UTC boundary. This is what caused the admin's
+     selected date to show as "yesterday" on the public site. */
+  const base = isNaN(d.getTime()) ? new Date() : d;
+  return base.getFullYear() + '-' + cfpPad2(base.getMonth() + 1) + '-' + cfpPad2(base.getDate());
 }
 function cfpFromISODate(isoDate) {
   if (!isoDate) return '';
@@ -479,6 +631,7 @@ function cfpCourseToRow(c, index) {
     cta_label: c.ctaLabel || '',
     cta_link: c.ctaLink || '',
     is_modal: !!c.isModal,
+    plan_only: !!c.planOnly,
     sort_order: index
   };
 }
@@ -487,7 +640,7 @@ function cfpRowToCourse(r) {
     id: r.id, name: r.name, subtitle: r.subtitle, desc: r.desc, level: r.level,
     group: r.group_name || '', features: r.features || [], featuresRich: r.features_rich || '',
     price: r.price || '', priceSub: r.price_sub || '', ctaLabel: r.cta_label || '', ctaLink: r.cta_link || '',
-    isModal: !!r.is_modal
+    isModal: !!r.is_modal, planOnly: !!r.plan_only
   };
 }
 
@@ -548,8 +701,7 @@ async function cfpLoadPublicData() {
   const defaults = CFP_DEFAULT_DATA;
   if (typeof window.cfpSupabase === 'undefined') {
     const d = JSON.parse(JSON.stringify(defaults));
-    (d.backtests || []).forEach(b => { b._useTimeWindow = true; });
-    return d;
+    return cfpApplyFreeWindow(d);
   }
 
   try {
@@ -566,23 +718,24 @@ async function cfpLoadPublicData() {
 
     const courses = (coursesRes.data && coursesRes.data.length) ? coursesRes.data.map(cfpRowToCourse) : defaults.courses;
     const testimonials = (testRes.data && testRes.data.length) ? testRes.data.map(cfpRowToTestimonial) : defaults.testimonials;
-    const articles = (artRes.data && artRes.data.length) ? artRes.data.map(cfpRowToArticle) : defaults.articles;
+    const articles = (artRes.data && artRes.data.length) ? artRes.data.map(cfpRowToArticle) : JSON.parse(JSON.stringify(defaults.articles));
     const backtests = (btRes.data && btRes.data.length)
-      ? btRes.data.map(r => Object.assign(cfpRowToBacktest(r), { _useTimeWindow: true }))
-      : JSON.parse(JSON.stringify(defaults.backtests)).map(b => Object.assign(b, { _useTimeWindow: true }));
+      ? btRes.data.map(cfpRowToBacktest)
+      : JSON.parse(JSON.stringify(defaults.backtests));
 
-    return {
+    return cfpApplyFreeWindow({
       hero: siteMap.hero || defaults.hero,
       about: siteMap.about || defaults.about,
       stats: siteMap.stats || defaults.stats,
       contact: siteMap.contact || defaults.contact,
       legal: siteMap.legal || defaults.legal,
+      premium: siteMap.premium || defaults.premium,
+      pages: siteMap.pages || defaults.pages,
       courses, testimonials, articles, backtests
-    };
+    });
   } catch (e) {
     console.warn('cfpLoadPublicData failed, falling back to defaults', e);
     const d = JSON.parse(JSON.stringify(defaults));
-    (d.backtests || []).forEach(b => { b._useTimeWindow = true; });
-    return d;
+    return cfpApplyFreeWindow(d);
   }
 }

@@ -13,11 +13,13 @@
    (set server-side in create-order.js), not trusted from the
    client request body, so it can't be spoofed at verify time.
 
-   For full production robustness, also add a Razorpay webhook
-   endpoint that listens for `payment.captured` server-to-server —
-   that covers cases like the customer closing the tab right after
-   paying, before this browser-triggered call fires. Flagged as a
-   pending task in Go_Live_Checklist.md.
+   api/razorpay-webhook.js now serves as the server-to-server safety
+   net for this — it listens for Razorpay's `payment.captured` event
+   directly, so a customer closing the tab right after paying (before
+   this browser-triggered endpoint ever fires) still gets their
+   payment/enrollment rows written. Both endpoints check for an
+   existing payments row by razorpay_payment_id first, so whichever
+   one runs first does the real work and the other just no-ops.
    ============================================== */
 
 const crypto = require('crypto');
@@ -69,21 +71,118 @@ module.exports = async (req, res) => {
     ]);
 
     const notes = order.notes || {};
-    const userId = notes.user_id || null;
     const courseId = notes.courseId || null;
+    const checkoutEmail = notes.email ? String(notes.email).trim().toLowerCase() : null;
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+    /* Idempotency: api/razorpay-webhook.js may already have processed this
+       exact payment server-to-server (e.g. if the browser was slow to
+       call this endpoint). Whichever of the two runs first does the real
+       work; the other just reports the existing enrollment back. */
+    const { data: existingPayment } = await supabase
+      .from('payments')
+      .select('id, enrollment:enrollments(id)')
+      .eq('razorpay_payment_id', razorpay_payment_id)
+      .maybeSingle();
+    if (existingPayment) {
+      const existingEnrollmentId = (existingPayment.enrollment && existingPayment.enrollment[0] && existingPayment.enrollment[0].id) || null;
+      return res.status(200).json({
+        verified: true,
+        success: true,
+        paymentId: razorpay_payment_id,
+        orderId: razorpay_order_id,
+        enrollmentId: existingEnrollmentId,
+        dbError: null
+      });
+    }
+
+    /* payments.course_id / enrollments.course_id are real uuid FKs to
+       courses.id — courseId here is the data.js-style id ("4" etc.) used
+       everywhere in URLs/order notes, NOT that uuid. Resolve the real
+       uuid by course name before inserting, or those inserts throw a
+       Postgres type error (caught below, surfaced as dbError, payment
+       still reports success — but the enrollment silently never gets
+       created). courseName comes straight from the order notes already;
+       this id->name map is just a fallback if that's ever missing. */
+    const COURSE_ID_TO_NAME = {
+      '3': 'The CFA Academy Framework for Stock Investing',
+      '4': 'Self-Study',
+      '5': 'Guided Learning',
+      '6': 'Mentorship Program'
+    };
+    let resolvedCourseId = null;
+    if (courseId) {
+      const lookupName = notes.courseName || COURSE_ID_TO_NAME[String(courseId)] || null;
+      if (lookupName) {
+        const { data: courseRow, error: courseLookupErr } = await supabase
+          .from('courses')
+          .select('id')
+          .eq('name', lookupName)
+          .maybeSingle();
+        if (courseLookupErr) console.error('verify-payment: course lookup failed', courseLookupErr);
+        else if (courseRow) resolvedCourseId = courseRow.id;
+      }
+    }
+
+    /* Every paid-course buyer is automatically added to the newsletter list
+       (source:'purchase') — independent of the enrollment flow below, and
+       never allowed to fail the payment response. unique (email, source)
+       on the table means a repeat buyer just no-ops here instead of
+       erroring. */
+    if (checkoutEmail) {
+      await supabase.from('newsletter_subscribers').insert({
+        email: checkoutEmail,
+        name: notes.name || '',
+        source: 'purchase',
+        course_id: courseId,
+        course_name: notes.courseName || ''
+      }).then(res => {
+        if (res.error && res.error.code !== '23505') console.error('verify-payment: newsletter insert failed', res.error);
+      });
+    }
+
+    /* Every purchase results in an account, matched/created by the email
+       typed at checkout — regardless of whether the buyer was logged in
+       under a different email. New accounts get Supabase's built-in
+       invite email (welcome + one-time set-password link); existing
+       accounts are just matched by email so the enrollment attaches to
+       them, no email needed since they already have a password. */
+    let userId = null;
+    if (checkoutEmail) {
+      try {
+        const { data: inviteData, error: inviteErr } = await supabase.auth.admin.inviteUserByEmail(checkoutEmail, {
+          data: { full_name: notes.name || '' },
+          redirectTo: (process.env.SITE_URL || 'https://capitalfinplusadvizors.com') + '/account.html'
+        });
+        if (!inviteErr && inviteData && inviteData.user) {
+          userId = inviteData.user.id;
+        } else if (inviteErr && /already (registered|exists)/i.test(inviteErr.message || '')) {
+          const { data: listData, error: listErr } = await supabase.auth.admin.listUsers({ page: 1, perPage: 1000 });
+          const match = !listErr && listData && listData.users
+            ? listData.users.find(u => (u.email || '').toLowerCase() === checkoutEmail)
+            : null;
+          if (match) userId = match.id;
+          else console.error('verify-payment: could not resolve existing user id for', checkoutEmail, listErr);
+        } else if (inviteErr) {
+          console.error('verify-payment: inviteUserByEmail failed', inviteErr);
+        }
+      } catch (e) {
+        console.error('verify-payment: account resolution failed', e);
+      }
+    }
 
     if (!userId) {
-      dbError = 'No user_id on this order (guest checkout) — payment was not linked to an account.';
+      dbError = 'Could not resolve or create an account for the checkout email — payment was not linked to an account.';
     } else if (!courseId) {
       dbError = 'No courseId on this order — payment was not linked to a course.';
+    } else if (!resolvedCourseId) {
+      dbError = 'Could not resolve the Supabase course row for courseId "' + courseId + '" — payment was not linked to a course.';
     } else {
-      const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-
       const { data: paymentRow, error: paymentErr } = await supabase
         .from('payments')
         .insert({
           user_id: userId,
-          course_id: courseId,
+          course_id: resolvedCourseId,
           razorpay_order_id,
           razorpay_payment_id,
           amount: (payment.amount || 0) / 100, // paise -> rupees
@@ -98,7 +197,7 @@ module.exports = async (req, res) => {
         .from('enrollments')
         .insert({
           user_id: userId,
-          course_id: courseId,
+          course_id: resolvedCourseId,
           payment_id: paymentRow.id,
           status: 'active',
           purchased_at: new Date().toISOString()

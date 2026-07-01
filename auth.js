@@ -54,5 +54,14 @@
     if (error) throw error;
   }
 
-  window.cfpAuth = { signup, login, logout, getCurrentUser, onAuthStateChange, resetPassword };
+  /* Called after landing on account.html via a Supabase invite/recovery
+     link (PASSWORD_RECOVERY event — see account.html) to set the user's
+     first/new password. Supabase already has them in a temporary
+     authenticated session at that point from the link itself. */
+  async function setNewPassword(password) {
+    const { error } = await client().auth.updateUser({ password });
+    if (error) throw error;
+  }
+
+  window.cfpAuth = { signup, login, logout, getCurrentUser, onAuthStateChange, resetPassword, setNewPassword };
 })();

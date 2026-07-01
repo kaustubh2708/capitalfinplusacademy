@@ -17,13 +17,14 @@
      alter table public.articles alter column readtime type text;
      alter table public.backtests alter column readtime type text;
      alter table public.articles add column if not exists cat text;
+     alter table public.courses add column if not exists plan_only boolean not null default false;
 
    Without these, saving a course/article/backtest with a
    non-numeric price or a "8 min read"-style readtime value
    will fail with a Postgres type error.
    ============================================== */
 
-let state = { hero: {}, about: {}, stats: {}, contact: {}, legal: {}, courses: [], testimonials: [], articles: [], backtests: [] };
+let state = { hero: {}, about: {}, stats: {}, contact: {}, legal: {}, premium: {}, pages: { blog: {}, backtesting: {}, newsletter: {} }, courses: [], testimonials: [], articles: [], backtests: [] };
 let editingArticleId = null;
 let editingBtId = null;
 let cfpLastUpdated = null;
@@ -66,8 +67,8 @@ async function cfpSyncCollection(table, localArray, mapToRow) {
   }
 }
 
-/* ── SITE CONTENT (hero/about/stats/contact/legal) ── */
-const CFP_SITE_CONTENT_KEYS = ['hero', 'about', 'stats', 'contact', 'legal'];
+/* ── SITE CONTENT (hero/about/stats/contact/legal/premium/pages) ── */
+const CFP_SITE_CONTENT_KEYS = ['hero', 'about', 'stats', 'contact', 'legal', 'premium', 'pages'];
 
 async function cfpSaveSiteContent() {
   const rows = CFP_SITE_CONTENT_KEYS.map(key => ({ key, value: state[key] }));
@@ -101,6 +102,8 @@ async function cfpAdminLoadData() {
     stats: siteMap.stats || defaults.stats || {},
     contact: siteMap.contact || defaults.contact || {},
     legal: siteMap.legal || defaults.legal || {},
+    premium: siteMap.premium || defaults.premium || { freeDays: 30 },
+    pages: siteMap.pages || defaults.pages || {},
     courses: (coursesRes.data || []).map(cfpRowToCourse),
     testimonials: (testRes.data || []).map(cfpRowToTestimonial),
     articles: (artRes.data || []).map(cfpRowToArticle),
@@ -185,13 +188,15 @@ function switchPanel(id) {
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
   document.getElementById('panel-' + id).classList.add('active');
   document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.panel === id));
-  const titles = { dashboard: 'Dashboard', hero: 'Hero Section', about: 'About / Founder', courses: 'Courses & Pricing', testimonials: 'Testimonials', 'blog-list': 'All Articles', 'blog-new': 'New Article', 'bt-list': 'All Backtests', 'bt-new': 'New Backtest', transactions: 'Transactions', submissions: 'Form Submissions', 'contact-info': 'Contact & Integrations' };
+  const titles = { dashboard: 'Dashboard', hero: 'Hero Section', about: 'About / Founder', courses: 'Courses & Pricing', testimonials: 'Testimonials', 'blog-list': 'All Articles', 'blog-new': 'New Article', 'bt-list': 'All Backtests', 'bt-new': 'New Backtest', students: 'Students', transactions: 'Transactions', submissions: 'Form Submissions', 'contact-info': 'Contact & Integrations', 'page-content': 'Blog & Backtesting Pages', newsletter: 'Newsletter' };
   document.getElementById('topbar-title').textContent = titles[id] || id;
   if (id === 'blog-list') renderBlogTable();
   if (id === 'testimonials') renderTestimonials();
   if (id === 'courses') renderCourses();
+  if (id === 'students') renderStudents();
   if (id === 'transactions') renderTransactions();
   if (id === 'submissions') renderSubmissions();
+  if (id === 'newsletter') renderNewsletter();
   if (id === 'blog-new' && !editingArticleId) resetEditor();
   if (id === 'bt-list') renderBtTable();
   if (id === 'bt-new' && !editingBtId) resetBtEditor();
@@ -240,6 +245,24 @@ function collectFormData() {
   state.contact.calendlyUrl = val('contact-calendly');
   state.contact.razorpayKeyId = val('contact-razorpay');
   state.legal.disclaimer = val('legal-disclaimer-input');
+  state.premium.freeDays = Number(val('premium-free-days')) || 0;
+
+  state.pages.blog.tag = val('pc-blog-tag');
+  state.pages.blog.title = val('pc-blog-title');
+  state.pages.blog.sub = val('pc-blog-sub');
+  state.pages.blog.freeLabel = val('pc-blog-free-label');
+  state.pages.blog.premiumLabel = val('pc-blog-premium-label');
+
+  state.pages.backtesting.tag = val('pc-bt-tag');
+  state.pages.backtesting.title = val('pc-bt-title');
+  state.pages.backtesting.sub = val('pc-bt-sub');
+  state.pages.backtesting.freeLabel = val('pc-bt-free-label');
+  state.pages.backtesting.premiumLabel = val('pc-bt-premium-label');
+
+  state.pages.newsletter.tag = val('pc-nl-tag');
+  state.pages.newsletter.title = val('pc-nl-title');
+  state.pages.newsletter.sub = val('pc-nl-sub');
+  state.pages.newsletter.buttonLabel = val('pc-nl-btn');
 
   // Courses (collected from dynamically rendered inputs — ids are uuid
   // strings, or a temp marker for a course not yet saved)
@@ -250,6 +273,7 @@ function collectFormData() {
     group.querySelectorAll('[data-field]').forEach(el => {
       const f = el.dataset.field;
       if (f === 'features') course.features = el.value.split('\n').map(s => s.trim()).filter(Boolean);
+      else if (el.type === 'checkbox') course[f] = el.checked;
       else course[f] = el.value;
     });
   });
@@ -284,10 +308,12 @@ function renderDashboard() {
 }
 
 async function cfpLoadDashboardStats() {
-  const [paymentsRes, subCountRes, txCountRes] = await Promise.all([
+  const [paymentsRes, subCountRes, txCountRes, nlCountRes, studentsCountRes] = await Promise.all([
     window.cfpSupabase.from('payments').select('amount').eq('status', 'captured'),
     window.cfpSupabase.from('form_submissions').select('id', { count: 'exact', head: true }),
-    window.cfpSupabase.from('payments').select('id', { count: 'exact', head: true })
+    window.cfpSupabase.from('payments').select('id', { count: 'exact', head: true }),
+    window.cfpSupabase.from('newsletter_subscribers').select('id', { count: 'exact', head: true }),
+    window.cfpSupabase.from('enrollments').select('id', { count: 'exact', head: true })
   ]);
   const captured = paymentsRes.data || [];
   const revenue = captured.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
@@ -296,6 +322,8 @@ async function cfpLoadDashboardStats() {
   document.getElementById('stat-leads').textContent = subCountRes.count || 0;
   document.getElementById('nav-tx-count').textContent = txCountRes.count || 0;
   document.getElementById('nav-sub-count').textContent = subCountRes.count || 0;
+  document.getElementById('nav-nl-count').textContent = nlCountRes.count || 0;
+  document.getElementById('nav-students-count').textContent = studentsCountRes.count || 0;
 }
 
 /* ── COURSES ── */
@@ -303,14 +331,20 @@ function renderCourses() {
   const wrap = document.getElementById('courses-edit');
   wrap.innerHTML = state.courses.map((c, i) => `
     <div class="card" data-course-id="${c.id}" id="course-card-${c.id}">
-      <h3>📚 Course ${i + 1} <span class="tag">${escHtml(c.level)}</span>
+      <h3>📚 Course ${i + 1} ${c.planOnly ? '<span class="tag" style="background:rgba(244,194,13,0.18);">Pricing Tier</span>' : ''} <span class="tag">${escHtml(c.level)}</span>
         <button class="action-btn delete" style="margin-left:auto" onclick="deleteCourse('${c.id}')">🗑 Remove</button>
       </h3>
+      <div class="form-group">
+        <label class="form-label" style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;">
+          <input type="checkbox" data-field="planOnly" ${c.planOnly ? 'checked' : ''} />
+          Pricing-tier card (shows in the 3-column pricing block above the table, not the full course grid)
+        </label>
+      </div>
       <div class="form-row">
         <div class="form-group"><label class="form-label">Course Name</label><input class="form-input" data-field="name" value="${escAttr(c.name)}" /></div>
         <div class="form-group"><label class="form-label">Subtitle</label><input class="form-input" data-field="subtitle" value="${escAttr(c.subtitle)}" /></div>
       </div>
-      <div class="form-group"><label class="form-label">Level Tag (e.g. "Free · Beginner")</label><input class="form-input" data-field="level" value="${escAttr(c.level)}" /></div>
+      <div class="form-group"><label class="form-label">Level Tag (e.g. "Free · Beginner") — hidden on pricing-tier cards</label><input class="form-input" data-field="level" value="${escAttr(c.level)}" /></div>
       <div class="form-group"><label class="form-label">Description</label><textarea class="form-textarea" data-field="desc">${escHtml(c.desc)}</textarea></div>
       <div class="form-row-3">
         <div class="form-group"><label class="form-label">Price label (e.g. ₹24,999 / FREE)</label><input class="form-input" data-field="price" value="${escAttr(c.price)}" /></div>
@@ -704,6 +738,70 @@ document.getElementById('publish-bt').addEventListener('click', async () => {
 
 document.getElementById('cancel-bt-edit').addEventListener('click', () => { resetBtEditor(); switchPanel('bt-list'); });
 
+/* ── STUDENTS (live from Supabase `enrollments`, joined to profiles/courses) ──
+   One row per enrollment — a student in two courses appears twice, once
+   per program, since that's the unit "what can this login see" maps to. */
+let cfpStudentRows = [];
+let cfpStudentsFilter = 'all';
+
+async function renderStudents() {
+  const tbody = document.getElementById('students-table-body');
+  tbody.innerHTML = '<tr><td colspan="5" class="empty-state">Loading…</td></tr>';
+  const { data, error } = await window.cfpSupabase
+    .from('enrollments')
+    .select('*, profiles(full_name, email), courses(name)')
+    .order('purchased_at', { ascending: false });
+  if (error) {
+    console.error('renderStudents failed', error);
+    tbody.innerHTML = '<tr><td colspan="5" class="empty-state">Could not load students.</td></tr>';
+    return;
+  }
+  cfpStudentRows = data || [];
+  document.getElementById('nav-students-count').textContent = cfpStudentRows.length;
+
+  // Program filter chips, built from whatever programs actually have students
+  const bar = document.getElementById('students-filter-bar');
+  const programs = [];
+  cfpStudentRows.forEach(r => {
+    const name = (r.courses && r.courses.name) || 'Unknown Program';
+    if (!programs.includes(name)) programs.push(name);
+  });
+  bar.innerHTML = '<button class="filter-btn active" data-students-filter="all">All Programs</button>' +
+    programs.map(p => `<button class="filter-btn" data-students-filter="${escAttr(p)}">${escHtml(p)}</button>`).join('');
+  bar.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      bar.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      cfpStudentsFilter = btn.dataset.studentsFilter;
+      cfpRenderStudentsTable();
+    });
+  });
+
+  cfpStudentsFilter = 'all';
+  cfpRenderStudentsTable();
+}
+
+function cfpRenderStudentsTable() {
+  const tbody = document.getElementById('students-table-body');
+  const rows = cfpStudentRows.filter(r => {
+    if (cfpStudentsFilter === 'all') return true;
+    return ((r.courses && r.courses.name) || 'Unknown Program') === cfpStudentsFilter;
+  });
+  tbody.innerHTML = rows.map(r => {
+    const name = (r.profiles && r.profiles.full_name) || '—';
+    const email = (r.profiles && r.profiles.email) || '—';
+    const program = (r.courses && r.courses.name) || 'Unknown Program';
+    return `
+    <tr>
+      <td>${escHtml(email)}</td>
+      <td>${escHtml(name)}</td>
+      <td>${escHtml(program)}</td>
+      <td><span class="badge badge-${r.status === 'active' ? 'published' : 'failed'}">${escHtml(r.status)}</span></td>
+      <td>${r.purchased_at ? new Date(r.purchased_at).toLocaleString('en-IN') : ''}</td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="5" class="empty-state">No students yet — they show up here automatically once a course purchase is verified.</td></tr>';
+}
+
 /* ── TRANSACTIONS (live from Supabase `payments`, joined to profiles/courses) ── */
 async function renderTransactions() {
   const tbody = document.getElementById('tx-table-body');
@@ -762,6 +860,52 @@ async function renderSubmissions() {
     </tr>
   `).join('') || '<tr><td colspan="7" class="empty-state">No leads yet. Every booking/contact form submission on the live site lands here.</td></tr>';
 }
+
+/* ── NEWSLETTER (live from Supabase `newsletter_subscribers`) ──
+   Two sources land in the same table: 'signup' (blog page form) and
+   'purchase' (auto-added on every verified payment, see verify-payment.js). */
+let cfpNewsletterRows = [];
+let cfpNewsletterFilter = 'all';
+
+async function renderNewsletter() {
+  const tbody = document.getElementById('nl-table-body');
+  tbody.innerHTML = '<tr><td colspan="5" class="empty-state">Loading…</td></tr>';
+  const { data, error } = await window.cfpSupabase
+    .from('newsletter_subscribers')
+    .select('*')
+    .order('subscribed_at', { ascending: false });
+  if (error) {
+    console.error('renderNewsletter failed', error);
+    tbody.innerHTML = '<tr><td colspan="5" class="empty-state">Could not load newsletter subscribers.</td></tr>';
+    return;
+  }
+  cfpNewsletterRows = data || [];
+  document.getElementById('nav-nl-count').textContent = cfpNewsletterRows.length;
+  cfpRenderNewsletterTable();
+}
+
+function cfpRenderNewsletterTable() {
+  const tbody = document.getElementById('nl-table-body');
+  const rows = cfpNewsletterFilter === 'all' ? cfpNewsletterRows : cfpNewsletterRows.filter(r => r.source === cfpNewsletterFilter);
+  tbody.innerHTML = rows.map(r => `
+    <tr>
+      <td>${escHtml(r.email)}</td>
+      <td>${escHtml(r.name || '—')}</td>
+      <td><span class="badge ${r.source === 'purchase' ? 'badge-published' : 'badge-booking'}">${r.source === 'purchase' ? '💳 Course Buyer' : '📧 Signup'}</span></td>
+      <td>${escHtml(r.course_name || '—')}</td>
+      <td>${r.subscribed_at ? new Date(r.subscribed_at).toLocaleString('en-IN') : ''}</td>
+    </tr>
+  `).join('') || '<tr><td colspan="5" class="empty-state">No subscribers yet.</td></tr>';
+}
+
+document.querySelectorAll('#nl-filter-bar .filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#nl-filter-bar .filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    cfpNewsletterFilter = btn.dataset.nlFilter;
+    cfpRenderNewsletterTable();
+  });
+});
 
 function cfpSubmissionStatusBadge(status) {
   const map = { new: { label: '🆕 New', cls: 'badge-failed' }, read: { label: '👀 Read', cls: 'badge-booking' }, actioned: { label: '✅ Actioned', cls: 'badge-published' } };
@@ -877,6 +1021,26 @@ async function init() {
   document.getElementById('contact-calendly').value = state.contact.calendlyUrl || '';
   document.getElementById('contact-razorpay').value = state.contact.razorpayKeyId || '';
   document.getElementById('legal-disclaimer-input').value = state.legal.disclaimer || '';
+  document.getElementById('premium-free-days').value = (state.premium && state.premium.freeDays) || 30;
+
+  state.pages = state.pages || {};
+  state.pages.blog = state.pages.blog || {};
+  state.pages.backtesting = state.pages.backtesting || {};
+  state.pages.newsletter = state.pages.newsletter || {};
+  document.getElementById('pc-blog-tag').value = state.pages.blog.tag || '';
+  document.getElementById('pc-blog-title').value = state.pages.blog.title || '';
+  document.getElementById('pc-blog-sub').value = state.pages.blog.sub || '';
+  document.getElementById('pc-blog-free-label').value = state.pages.blog.freeLabel || '';
+  document.getElementById('pc-blog-premium-label').value = state.pages.blog.premiumLabel || '';
+  document.getElementById('pc-bt-tag').value = state.pages.backtesting.tag || '';
+  document.getElementById('pc-bt-title').value = state.pages.backtesting.title || '';
+  document.getElementById('pc-bt-sub').value = state.pages.backtesting.sub || '';
+  document.getElementById('pc-bt-free-label').value = state.pages.backtesting.freeLabel || '';
+  document.getElementById('pc-bt-premium-label').value = state.pages.backtesting.premiumLabel || '';
+  document.getElementById('pc-nl-tag').value = state.pages.newsletter.tag || '';
+  document.getElementById('pc-nl-title').value = state.pages.newsletter.title || '';
+  document.getElementById('pc-nl-sub').value = state.pages.newsletter.sub || '';
+  document.getElementById('pc-nl-btn').value = state.pages.newsletter.buttonLabel || '';
 
   renderDashboard();
   renderBlogTable();

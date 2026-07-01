@@ -162,7 +162,7 @@ nav#navbar {
   height: var(--nav-h);
   z-index: 500;
   display: flex; align-items: center;
-  padding: 0 5vw;
+  padding: 0 2.5vw 0 5vw;
   background: rgba(10,8,3,0.55);
   backdrop-filter: blur(22px);
   -webkit-backdrop-filter: blur(22px);
@@ -204,8 +204,23 @@ nav#navbar.scrolled { background: rgba(10,8,3,0.88); }
 }
 .nav-logo span { color: var(--purple); }
 
+/* Profile-icon button (My Account) — replaces the plain text nav link */
+.nav-account-btn {
+  display: flex; align-items: center; justify-content: center;
+  width: 36px; height: 36px; border-radius: 50%;
+  background: rgba(244,194,13,0.1); border: 1px solid rgba(244,194,13,0.35);
+  color: var(--purple); flex-shrink: 0;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+.nav-account-btn svg { width: 18px; height: 18px; }
+.nav-account-btn:hover { background: var(--purple); border-color: var(--purple); color: #0c0a02; }
+.mobile-nav .nav-account-btn-mobile {
+  display: flex; align-items: center; gap: 10px;
+}
+.mobile-nav .nav-account-btn-mobile svg { width: 18px; height: 18px; color: var(--purple); }
+
 .nav-right {
-  display: flex; align-items: center; gap: 2.5rem;
+  display: flex; align-items: center; gap: 1.75rem;
 }
 .nav-links {
   display: flex; align-items: center; gap: 2.2rem;
@@ -728,7 +743,7 @@ nav#navbar.scrolled { background: rgba(10,8,3,0.88); }
 .courses-header { margin-bottom: 3.5rem; }
 .courses-header h2 {
   font-size: clamp(2rem, 3.5vw, 3.5rem);
-  font-weight: 800; letter-spacing: -0.015em;
+  font-weight: 800; letter-spacing: -0.015em; line-height: 1.05;
 }
 .courses-grid { display: block; }
 .courses-group-heading {
@@ -740,7 +755,68 @@ nav#navbar.scrolled { background: rgba(10,8,3,0.88); }
 .courses-row { display: grid; gap: 1.5rem; }
 .courses-row-pair { grid-template-columns: repeat(2, 1fr); }
 .courses-row-single { grid-template-columns: 1fr; margin-top: 1.5rem; }
-@media (max-width: 900px) { .courses-row-pair { grid-template-columns: 1fr; } }
+.plans-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; margin-top: 1rem; }
+.plans-grid .course-footer { flex-direction: column; align-items: stretch; gap: 1rem; }
+.plans-grid .course-enroll { justify-content: center; width: 100%; }
+.plans-grid .course-card h3 { text-transform: uppercase; letter-spacing: 0.01em; }
+.courses-subheading {
+  text-align: center; font-size: 1.25rem; font-weight: 700;
+  letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--purple); margin: 0 0 2rem;
+}
+@media (max-width: 900px) { .courses-row-pair { grid-template-columns: 1fr; } .plans-grid { grid-template-columns: 1fr; } }
+
+.objective-card {
+  position: relative;
+  max-width: 760px;
+  margin: 5rem auto 0;
+  padding: 3.5rem 3rem;
+  text-align: center;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: linear-gradient(180deg, rgba(244,194,13,0.05), rgba(16,12,2,0.6));
+  overflow: hidden;
+}
+.objective-glow {
+  position: absolute; top: -60%; left: 50%; transform: translateX(-50%);
+  width: 420px; height: 420px;
+  background: radial-gradient(circle, rgba(244,194,13,0.18), transparent 70%);
+  pointer-events: none;
+}
+.objective-heading {
+  position: relative; font-size: 1.9rem; font-weight: 800; color: #fff;
+  margin: 0.6rem 0 1.25rem; letter-spacing: -0.01em;
+  text-transform: uppercase; line-height: 1.05;
+}
+.objective-lead {
+  position: relative; color: var(--muted); font-size: 1rem; line-height: 1.8; margin-bottom: 2rem;
+}
+.objective-pillars {
+  position: relative;
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem;
+  margin-bottom: 2.25rem;
+}
+.objective-pillar {
+  display: flex; flex-direction: column; align-items: center; gap: 0.6rem;
+  padding: 1.25rem 0.75rem;
+  border: 1px solid var(--border); border-radius: 12px;
+  color: var(--lilac); font-size: 0.95rem; font-weight: 700;
+  background: rgba(244,194,13,0.03);
+  transition: border-color 0.3s, transform 0.3s;
+}
+.objective-pillar:hover { border-color: var(--purple-bright); transform: translateY(-3px); }
+.objective-pillar-num {
+  font-size: 0.72rem; font-weight: 800; letter-spacing: 0.1em;
+  color: var(--purple);
+}
+.objective-footer {
+  position: relative; color: var(--muted); font-style: italic; font-size: 0.95rem; margin: 0;
+}
+.objective-footer em { color: var(--purple); font-style: normal; font-weight: 700; }
+@media (max-width: 700px) {
+  .objective-card { padding: 2.5rem 1.5rem; }
+  .objective-pillars { grid-template-columns: repeat(2, 1fr); }
+}
 .course-card {
   background: rgba(16,12,2,0.85);
   border: 1px solid var(--border);
@@ -818,10 +894,29 @@ nav#navbar.scrolled { background: rgba(10,8,3,0.88); }
   border-radius: 50%; flex-shrink: 0;
   box-shadow: 0 0 6px var(--purple);
 }
-/* Multi-section bundle features (e.g. EDGE + PRECISION) — rendered from
-   course.featuresRich instead of a flat course.features list. */
+/* Multi-section bundle features (e.g. ESSENTIALS + EDGE + PRECISION) —
+   rendered from course.featuresRich instead of a flat course.features
+   list. 3+ sections lay out side by side (paired with .modal-wide on the
+   modal itself); collapses to stacked below 900px regardless. */
+.course-features-columns {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem;
+  align-items: start;
+}
+@media (max-width: 900px) { .course-features-columns { grid-template-columns: 1fr; gap: 0; } }
 .course-features-group { margin-bottom: 1.75rem; }
+.course-features-columns .course-features-group { margin-bottom: 0; }
 .course-features-group:last-of-type { margin-bottom: 0; }
+.course-features-closing {
+  margin-top: 2rem; padding-top: 1.5rem;
+  border-top: 1px solid rgba(244,194,13,0.15);
+  text-align: center;
+}
+.course-features-closing p {
+  color: var(--lilac); font-size: 0.95rem; font-style: italic; line-height: 1.7;
+}
+.course-features-closing p:first-child {
+  color: #fff; font-style: normal; font-weight: 700; font-size: 1.05rem; margin-bottom: 0.5rem;
+}
 .course-features-group-heading {
   font-size: 1rem; font-weight: 800; letter-spacing: 0.04em;
   text-transform: uppercase; color: var(--purple);
@@ -838,6 +933,37 @@ nav#navbar.scrolled { background: rgba(10,8,3,0.88); }
   border-radius: 8px; padding: 0.85rem 1rem; margin-top: 0.5rem;
 }
 .course-features-outcome strong { color: var(--purple); }
+.course-doc-preview { margin-top: 1.25rem; }
+.course-doc-page {
+  position: relative;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.25rem 1.5rem 1.5rem;
+  overflow: hidden;
+}
+.course-doc-pagehead {
+  font-size: 0.68rem; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--muted); margin-bottom: 0.85rem;
+  padding-bottom: 0.6rem; border-bottom: 1px dashed rgba(255,255,255,0.1);
+}
+.course-doc-line {
+  font-size: 0.85rem; color: rgba(255,255,255,0.75); line-height: 1.8;
+}
+.course-doc-blur-wrap { position: relative; margin-top: 0.2rem; }
+.course-doc-blur-wrap .course-doc-line {
+  filter: blur(4px); user-select: none; pointer-events: none;
+}
+.course-doc-lock-overlay {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 0.4rem; text-align: center;
+  background: linear-gradient(180deg, rgba(16,12,2,0.2), rgba(16,12,2,0.9) 60%);
+}
+.course-doc-lock-icon { font-size: 1.3rem; }
+.course-doc-lock-overlay p {
+  font-size: 0.76rem; color: var(--lilac); font-weight: 600; max-width: 220px; margin: 0;
+}
 .course-footer {
   display: flex; align-items: center;
   justify-content: space-between;
@@ -862,7 +988,7 @@ nav#navbar.scrolled { background: rgba(10,8,3,0.88); }
   border: 1px solid rgba(244,194,13,0.4);
   padding: 9px 18px; border-radius: 3px;
   transition: all 0.3s; cursor: pointer;
-  background: none;
+  background: none; font-family: inherit;
 }
 .course-enroll:hover {
   border-color: var(--purple);
@@ -885,6 +1011,7 @@ nav#navbar.scrolled { background: rgba(10,8,3,0.88); }
 .testimonials-header h2 {
   font-size: clamp(2rem, 3.5vw, 3.2rem);
   font-weight: 800; letter-spacing: -0.015em;
+  text-transform: uppercase; line-height: 1.05;
 }
 .marquee-wrap {
   position: relative;
@@ -958,6 +1085,7 @@ nav#navbar.scrolled { background: rgba(10,8,3,0.88); }
 .blog-header h2 {
   font-size: clamp(2rem, 3.5vw, 3.2rem);
   font-weight: 800; letter-spacing: -0.015em;
+  text-transform: uppercase; line-height: 1.05;
 }
 .blog-grid {
   display: grid; grid-template-columns: repeat(3, 1fr);

@@ -17,7 +17,7 @@
 
   function setText(id, html) {
     const el = document.getElementById(id);
-    if (el) el.innerHTML = html;
+    if (el && html != null) el.innerHTML = html;
   }
 
   /* ── HERO ── */
@@ -85,34 +85,66 @@
           <h3>${c.name}</h3>
           <div class="course-subtitle">${c.subtitle}</div>
           <p class="course-desc">${c.desc}</p>
-          <button type="button" class="course-features-btn" onclick="openCourseFeatures('${c.id}')">View What's Included →</button>
           <div class="course-footer">
             <div>
               <div class="course-price">${c.price}</div>
               <div class="course-price-sub">${c.priceSub}</div>
             </div>
-            <a href="${c.ctaLink}" class="course-enroll${c.isModal ? ' open-modal' : ''}">
+            <button type="button" class="course-enroll" onclick="openCourseFeatures('${c.id}')">
               ${c.ctaLabel}
               <svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
-            </a>
+            </button>
           </div>
         </div>
       </div>`;
   }
 
+  /* Plan-tier cards (Self-Study / Guided Learning / Mentorship) render into
+     the pricing block above the table with no level/subtitle eyebrow — the
+     name itself is the label, so repeating it as a tag looked redundant. */
+  function planCardHtml(c, i) {
+    return `
+      <div class="course-card reveal${i ? ' reveal-delay-' + Math.min(i, 2) : ''}">
+        <div class="course-top-border"></div>
+        <div class="course-body">
+          <h3>${c.name}</h3>
+          <p class="course-desc">${c.desc}</p>
+          <div class="course-footer">
+            <div>
+              <div class="course-price">${c.price}</div>
+              <div class="course-price-sub">${c.priceSub}</div>
+            </div>
+            <button type="button" class="course-enroll" onclick="openCourseFeatures('${c.id}')">
+              ${c.ctaLabel}
+              <svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+            </button>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  function renderPlans() {
+    const grid = document.getElementById('plans-grid');
+    if (!grid || !DATA.courses) return;
+    const plans = DATA.courses.filter(c => c.planOnly);
+    if (plans.length) grid.innerHTML = plans.map((c, i) => planCardHtml(c, i)).join('');
+  }
+
   function renderCourses() {
     const grid = document.getElementById('courses-grid');
     if (!grid || !DATA.courses) return;
-    // First two courses (the Intraday Trading System pair) share a row and
-    // a common group heading; anything after that gets its own full-width
-    // block below.
-    const pair = DATA.courses.slice(0, 2);
-    const rest = DATA.courses.slice(2);
-    const groupHeading = pair.find(c => c.group) ? pair.find(c => c.group).group : '';
-    let html = groupHeading ? `<div class="courses-group-heading">${groupHeading}</div>` : '';
-    html += `<div class="courses-row courses-row-pair">${pair.map((c, i) => courseCardHtml(c, i)).join('')}</div>`;
+    // The pricing table + plan cards above now cover the Self-Study /
+    // Guided Learning / Mentorship tiers (flagged planOnly so they don't
+    // duplicate here) — only the standalone course (Academy Framework)
+    // renders below. The old Essentials/Edge+Precision pair is being
+    // removed from the database (see supabase/remove-legacy-courses.sql);
+    // excluded by name here too as a safety net in case that migration
+    // hasn't run yet on whatever environment loads this.
+    const LEGACY_HIDDEN = ['Essentials', 'Edge + Precision'];
+    const rest = DATA.courses.filter(c => !c.planOnly && !LEGACY_HIDDEN.includes(c.name));
+    let html = '';
     if (rest.length) {
-      html += `<div class="courses-row courses-row-single">${rest.map((c, i) => courseCardHtml(c, i + 2)).join('')}</div>`;
+      html += `<div class="courses-row courses-row-single">${rest.map((c, i) => courseCardHtml(c, i)).join('')}</div>`;
     }
     grid.innerHTML = html;
   }
@@ -152,25 +184,72 @@
     return `<div class="course-features-group">${heading}${intro}${learnLabel}${bullets}${outcome}</div>`;
   }
 
+  /* Faux-document preview: teases the course PDF/curriculum without a real
+     file — first 2 lines readable, rest blurred behind a lock overlay.
+     Swap the line source for a real PDF render later without touching the
+     surrounding popup markup. */
+  function cfpDocPreviewHtml(c) {
+    const bulletLines = (c.featuresRich || '').trim()
+      ? cfpParseFeaturesRich(c.featuresRich).reduce((acc, g) => acc.concat(g.bullets), [])
+      : (c.features || []);
+    const lines = [c.desc].concat(bulletLines).filter(Boolean);
+    const visible = lines.slice(0, 2);
+    const blurred = lines.slice(2, 6);
+    return `
+      <div class="course-doc-preview">
+        <div class="course-doc-page">
+          <div class="course-doc-pagehead">${c.name} — Course Overview.pdf</div>
+          ${visible.map(l => `<div class="course-doc-line">${l}</div>`).join('')}
+          <div class="course-doc-blur-wrap">
+            ${blurred.map(l => `<div class="course-doc-line">${l}</div>`).join('')}
+            <div class="course-doc-lock-overlay">
+              <span class="course-doc-lock-icon">🔒</span>
+              <p>Full document unlocks instantly after enrollment</p>
+            </div>
+          </div>
+        </div>
+      </div>`;
+  }
+
   window.openCourseFeatures = function (id) {
     if (!DATA) return;
     const modal = document.getElementById('course-features-modal');
+    const modalEl = document.getElementById('course-features-modal-el');
     const content = document.getElementById('course-features-content');
     if (!modal || !content) return;
     const c = (DATA.courses || []).find(x => String(x.id) === String(id));
     if (!c) return;
-    const body = (c.featuresRich || '').trim()
-      ? cfpParseFeaturesRich(c.featuresRich).map(cfpRenderFeatureGroup).join('')
-      : `<ul class="course-features">${(c.features || []).map(f => `<li>${f}</li>`).join('')}</ul>`;
+
+    /* A trailing "Final Promise" section (e.g. the ESSENTIALS/EDGE/PRECISION
+       curriculum) renders as a full-width closing tagline below the
+       columns instead of becoming a 4th column. 3+ remaining sections lay
+       out side by side and widen the modal to fit them. */
+    let body;
+    let wide = false;
+    if ((c.featuresRich || '').trim()) {
+      const groups = cfpParseFeaturesRich(c.featuresRich);
+      const closing = groups.length && /^final promise$/i.test(groups[groups.length - 1].heading) ? groups.pop() : null;
+      wide = groups.length >= 3;
+      const columns = groups.map(cfpRenderFeatureGroup).join('');
+      const closingHtml = closing ? `<div class="course-features-closing">${closing.intro.map(l => `<p>${l}</p>`).join('')}</div>` : '';
+      body = (wide ? `<div class="course-features-columns">${columns}</div>` : columns) + closingHtml;
+    } else {
+      body = `<ul class="course-features">${(c.features || []).map(f => `<li>${f}</li>`).join('')}</ul>`;
+    }
+
+    if (modalEl) modalEl.classList.toggle('modal-wide', wide);
+    const levelLine = (c.level && c.level !== c.name) ? `<div class="course-features-modal-level">${c.level}</div>` : '';
+    const subLine = (c.subtitle && c.subtitle !== c.name) ? `<div class="course-features-modal-sub">${c.subtitle}</div>` : '';
     content.innerHTML = `
       <div class="course-features-modal-top"></div>
       <div class="course-features-modal-head">
-        <div class="course-features-modal-level">${c.level}</div>
+        ${levelLine}
         <div class="course-features-modal-title">${c.name}</div>
-        <div class="course-features-modal-sub">${c.subtitle}</div>
+        ${subLine}
       </div>
       ${body}
-      <a href="${c.isModal ? 'javascript:void(0)' : c.ctaLink}" class="btn btn-primary" style="width:100%;justify-content:center;margin-top:1rem;" onclick="closeCourseFeatures();${c.isModal ? ' if (typeof openModal === \'function\') openModal();' : ''}">${c.ctaLabel} →</a>
+      ${cfpDocPreviewHtml(c)}
+      <a href="${c.isModal ? 'javascript:void(0)' : c.ctaLink}" class="btn btn-primary" style="width:100%;justify-content:center;margin-top:1rem;" onclick="closeCourseFeatures();${c.isModal ? ' if (typeof openModal === \'function\') openModal();' : ''}">${c.isModal ? c.ctaLabel : 'Proceed to Payment'} →</a>
     `;
     modal.classList.add('active');
     document.body.style.overflow = 'hidden';
@@ -323,8 +402,8 @@
           <div class="article-modal-cat" style="margin-bottom:0.6rem;">${a.category} · Premium</div>
           <div class="article-modal-title" style="margin-bottom:1.5rem;">${a.title}</div>
           <div class="article-lock-preview"><p>${a.excerpt}</p><div class="article-lock-gradient"></div></div>
-          <p style="font-size:0.85rem;color:rgba(255,255,255,0.5);margin-bottom:1.75rem;">This article is available exclusively to students enrolled in any paid course.</p>
-          <a href="payment.html?course=2" class="btn btn-primary" style="display:inline-flex;margin-bottom:0.75rem;">Unlock with Edge + Precision Bundle →</a><br>
+          <p style="font-size:0.85rem;color:rgba(255,255,255,0.5);margin-bottom:1.75rem;">This article is outside the current free preview window — available exclusively to students enrolled in any paid course.</p>
+          <a href="courses.html" class="btn btn-primary" style="display:inline-flex;margin-bottom:0.75rem;">Purchase Now →</a><br>
           <button class="btn btn-secondary" style="display:inline-flex;margin-top:0.5rem;" onclick="closeArticle()">Maybe Later</button>
         </div>`;
     } else {
@@ -528,17 +607,45 @@
     calEl.setAttribute('data-url', themedUrl);
   }
 
+  /* Blog/Backtesting standalone-page headers + the blog newsletter strip —
+     guarded so this is a no-op on pages that don't have these elements. */
+  function renderPageContent() {
+    const pages = DATA.pages || {};
+    const blog = pages.blog || {};
+    const bt = pages.backtesting || {};
+    const nl = pages.newsletter || {};
+
+    setText('blog-page-tag', blog.tag);
+    setText('blog-page-title', blog.title);
+    setText('blog-page-sub', blog.sub);
+    setText('blog-page-free-label', blog.freeLabel);
+    setText('blog-page-premium-label', blog.premiumLabel);
+
+    setText('bt-page-tag', bt.tag);
+    setText('bt-page-title', bt.title);
+    setText('bt-page-sub', bt.sub);
+    setText('bt-page-free-label', bt.freeLabel);
+    setText('bt-page-premium-label', bt.premiumLabel);
+
+    setText('nl-tag', nl.tag);
+    setText('nl-title', nl.title);
+    setText('nl-sub', nl.sub);
+    setText('nl-btn-label', nl.buttonLabel);
+  }
+
   (async function initRender() {
     DATA = await cfpLoadPublicData();
     renderHero();
     renderStats();
     renderAbout();
+    renderPlans();
     renderCourses();
     renderTestimonials();
     renderBlogPreview();
     renderContact();
     renderBookingWidget();
     renderMasterclassWidget();
+    renderPageContent();
 
     window.CFP_RENDER_DATA = DATA;
 

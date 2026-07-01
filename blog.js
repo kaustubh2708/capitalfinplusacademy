@@ -76,6 +76,24 @@ function renderBlogGrid() {
    articles. Re-checked/re-rendered if it resolves while an article is open. */
 let cfpUserHasPremiumAccess = false;
 let cfpCurrentArticleId = null;
+let cfpCurrentUser = null;
+
+/* The paywall card's copy/buttons are identical whether or not the
+   visitor is logged in by default — which reads exactly like "it's
+   asking me to log in" even to someone who IS logged in but just
+   doesn't have an active enrollment. Distinguish the two cases. */
+function cfpUpdatePaywallCopy() {
+  const loginPrompt = document.getElementById('paywall-login-prompt');
+  const sub = document.getElementById('paywall-sub');
+  if (!loginPrompt || !sub) return;
+  if (cfpCurrentUser) {
+    loginPrompt.style.display = 'none';
+    sub.textContent = "You're logged in, but this content isn't included in your current plan. Purchase any course to unlock it.";
+  } else {
+    loginPrompt.style.display = '';
+    sub.textContent = 'Articles outside the current free preview window are part of the premium archive. Purchase any course to unlock full access to all premium articles, trade breakdowns, and live session recordings.';
+  }
+}
 
 function openArticle(id) {
   const a = CFP_ARTICLES.find(x => String(x.id) === String(id));
@@ -107,7 +125,9 @@ function openArticle(id) {
   } else {
     document.getElementById('article-free-content').innerHTML = `<p>${a.excerpt}</p>`;
     premiumSection.style.display = 'block';
-    document.getElementById('article-premium-content').innerHTML = a.body;
+    const premiumContentEl = document.getElementById('article-premium-content');
+    premiumContentEl.innerHTML = a.body;
+    premiumContentEl.classList.toggle('is-unlocked', unlocked);
     /* Unlocked: clear any inline override so the existing CSS/layout for the
        gate elements is untouched, just hidden. Locked: clear override too,
        so the original CSS-driven display value is restored (no guessing). */
@@ -115,6 +135,7 @@ function openArticle(id) {
     const paywallFade = premiumSection.querySelector('.paywall-fade');
     if (paywallGate) paywallGate.style.display = unlocked ? 'none' : '';
     if (paywallFade) paywallFade.style.display = unlocked ? 'none' : '';
+    cfpUpdatePaywallCopy();
   }
 
   document.getElementById('article-overlay').classList.add('open');
@@ -132,8 +153,15 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeArticle
 function subscribeNewsletter() {
   const input = document.getElementById('nl-email');
   if (!input.value || !input.value.includes('@')) { input.style.borderColor = '#ef4444'; return; }
-  document.getElementById('nl-success').style.display = 'block';
+  const email = input.value;
   input.disabled = true;
+  if (typeof cfpRecordNewsletterSignup === 'function') {
+    cfpRecordNewsletterSignup(email).then(() => {
+      document.getElementById('nl-success').style.display = 'block';
+    });
+  } else {
+    document.getElementById('nl-success').style.display = 'block';
+  }
 }
 
 /* ── INIT (async — Supabase fetch, then render) ── */
@@ -159,8 +187,10 @@ function subscribeNewsletter() {
   if (typeof window.cfpAuth !== 'undefined' && typeof window.canAccessPremium !== 'undefined') {
     try {
       const user = await window.cfpAuth.getCurrentUser();
+      cfpCurrentUser = user || null;
       cfpUserHasPremiumAccess = user ? await window.canAccessPremium(user.id) : false;
     } catch (e) {
+      cfpCurrentUser = null;
       cfpUserHasPremiumAccess = false;
     }
     if (cfpCurrentArticleId !== null) openArticle(cfpCurrentArticleId);

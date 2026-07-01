@@ -74,11 +74,38 @@ function renderBtGrid() {
   }).join('');
 }
 
-/* Set once on page load (see initPremiumGate below) — true if the logged-in
-   user has at least one active enrollment, which unlocks all premium
-   backtests. Re-checked/re-rendered if it resolves while one is open. */
+/* Set once on page load (see init below) — true if the logged-in user has
+   at least one active enrollment, which unlocks premium backtests, but
+   only up to cfpBacktestCutoffDate (null = unlimited) — the tiered access
+   promised on the comparison table (1mo/3mo/full by course). Re-checked/
+   re-rendered if it resolves while one is open. */
 let cfpUserHasPremiumAccess = false;
+let cfpBacktestCutoffDate = null;
 let cfpCurrentBacktestId = null;
+let cfpCurrentUser = null;
+
+/* See the matching function in blog.js — same reasoning: the paywall
+   card's default copy reads like "log in" even to a visitor who already
+   is logged in but just isn't covered by their plan/tier. */
+function cfpUpdatePaywallCopy() {
+  const loginPrompt = document.getElementById('paywall-login-prompt');
+  const sub = document.getElementById('paywall-sub');
+  if (!loginPrompt || !sub) return;
+  if (cfpCurrentUser) {
+    loginPrompt.style.display = 'none';
+    sub.textContent = "You're logged in, but this entry is outside your current plan's access window. Upgrade your course to unlock it.";
+  } else {
+    loginPrompt.style.display = '';
+    sub.textContent = 'Backtests outside the current free preview window move to the premium archive. Purchase any course to unlock the full history.';
+  }
+}
+
+function cfpWithinTierCutoff(dateStr) {
+  if (!cfpBacktestCutoffDate) return true;
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return true;
+  return d >= cfpBacktestCutoffDate;
+}
 
 function openBacktest(id) {
   const b = CFP_BACKTESTS.find(x => String(x.id) === String(id));
@@ -86,15 +113,24 @@ function openBacktest(id) {
   cfpCurrentBacktestId = id;
   const icon = cfpBtIconSvg(b.icon);
   const isFree = cfpEffectiveAccess(b) === 'free';
-  const unlocked = isFree || cfpUserHasPremiumAccess;
+  const unlocked = isFree || (cfpUserHasPremiumAccess && cfpWithinTierCutoff(b.date));
 
   const thumbEl = document.getElementById('article-thumb-area');
   thumbEl.style.background = b.bg;
-  thumbEl.innerHTML = b.chartImage
-    ? `<img src="${b.chartImage}" alt="${b.title}" style="width:100%;height:100%;object-fit:cover;" />`
-    : `<span style="color:${b.color};opacity:0.55;">${icon}</span>`;
+  if (b.chartImage) {
+    /* Full reader: show the whole chart, uncropped. The grid card thumbnail
+       (renderBtGrid) intentionally still crops via object-fit:cover — this
+       is just the full-article view, where height:auto + object-fit:contain
+       means the image's own aspect ratio decides the box size instead of
+       being forced into the fixed 220px crop window. */
+    thumbEl.style.height = 'auto';
+    thumbEl.innerHTML = `<img src="${b.chartImage}" alt="${b.title}" style="width:100%;height:auto;display:block;object-fit:contain;" />`;
+  } else {
+    thumbEl.style.height = '';
+    thumbEl.innerHTML = `<span style="color:${b.color};opacity:0.55;">${icon}</span>`;
+  }
 
-  const badgeLabel = isFree ? '🔓 Free' : (cfpUserHasPremiumAccess ? '🔓 Premium · Unlocked' : '🔒 Premium');
+  const badgeLabel = isFree ? '🔓 Free' : (unlocked ? '🔓 Premium · Unlocked' : '🔒 Premium');
   document.getElementById('article-header').innerHTML = `
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:0.75rem;flex-wrap:wrap;">
       <span class="post-access-badge ${isFree ? 'badge-free' : 'badge-premium'}">${badgeLabel}</span>
@@ -112,11 +148,14 @@ function openBacktest(id) {
   } else {
     document.getElementById('article-free-content').innerHTML = `<p>${b.excerpt}</p>`;
     premiumSection.style.display = 'block';
-    document.getElementById('article-premium-content').innerHTML = b.body;
+    const premiumContentEl = document.getElementById('article-premium-content');
+    premiumContentEl.innerHTML = b.body;
+    premiumContentEl.classList.toggle('is-unlocked', unlocked);
     const paywallGate = premiumSection.querySelector('.paywall-gate');
     const paywallFade = premiumSection.querySelector('.paywall-fade');
     if (paywallGate) paywallGate.style.display = unlocked ? 'none' : '';
     if (paywallFade) paywallFade.style.display = unlocked ? 'none' : '';
+    cfpUpdatePaywallCopy();
   }
 
   document.getElementById('article-overlay').classList.add('open');
@@ -147,17 +186,42 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeArticle
     setTimeout(() => openBacktest(entryId), 200);
   }
 
-  /* Premium unlock check — re-render the open entry (if any) once it
-     resolves, in case the user clicked into a premium entry before this
+  /* Premium unlock check — re-render the grid + open entry (if any) once
+     it resolves, in case the user clicked into a premium entry before this
      finished (default is locked, so the worst case is a brief flash of the
      paywall for an already-enrolled user, never an accidental unlock). */
   if (typeof window.cfpAuth !== 'undefined' && typeof window.canAccessPremium !== 'undefined') {
     try {
       const user = await window.cfpAuth.getCurrentUser();
+      cfpCurrentUser = user || null;
       cfpUserHasPremiumAccess = user ? await window.canAccessPremium(user.id) : false;
+      cfpBacktestCutoffDate = (user && typeof window.getBacktestCutoffDate === 'function')
+        ? await window.getBacktestCutoffDate(user.id)
+        : null;
     } catch (e) {
+      cfpCurrentUser = null;
       cfpUserHasPremiumAccess = false;
+      cfpBacktestCutoffDate = null;
     }
+    renderAccessTierLabel();
+    renderBtGrid();
     if (cfpCurrentBacktestId !== null) openBacktest(cfpCurrentBacktestId);
   }
 })();
+
+/* Small visible label on the page showing what the logged-in visitor's
+   current backtest access tier actually is. */
+function renderAccessTierLabel() {
+  const el = document.getElementById('bt-access-tier');
+  if (!el) return;
+  if (!cfpUserHasPremiumAccess) { el.style.display = 'none'; return; }
+  let label;
+  if (!cfpBacktestCutoffDate) {
+    label = 'Your access: All backtests';
+  } else {
+    const days = Math.round((Date.now() - cfpBacktestCutoffDate.getTime()) / 86400000);
+    label = days >= 80 ? 'Your access: Last 3 months' : days >= 25 ? 'Your access: Last 1 month' : `Your access: Last ${days} days`;
+  }
+  el.textContent = label;
+  el.style.display = 'inline-block';
+}

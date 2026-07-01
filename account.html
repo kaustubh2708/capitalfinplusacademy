@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800;900&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
-  <script src="data.js"></script>
+  <script src="data.js?v=13"></script>
   <script src="config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-client.js"></script>
@@ -33,7 +33,15 @@
   <!-- ===== NAVBAR ===== -->
   <nav id="navbar" role="navigation" aria-label="Main navigation">
     <a href="index.html" class="nav-logo" aria-label="Capital Finplus Home">
-      <div class="nav-logo-dot" aria-hidden="true">CFΛ</div>
+      <svg class="nav-logo-dot" aria-hidden="true" viewBox="0 0 40 42" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <filter id="cfa-glow" x="-40%" y="-40%" width="180%" height="180%">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="0.8" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
+        <polygon points="20,39 3.8,27.2 10,7.5 30,7.5 36.2,27.2" fill="rgba(244,194,13,0.07)" stroke="#F4C20D" stroke-width="3.2" stroke-linejoin="round"/>
+      </svg>
       CΛPITΛL FINPLUS<span> ΛCΛDEMY</span>
     </a>
     <div class="nav-right">
@@ -49,8 +57,10 @@
           </ul>
         </li>
         <li><a href="index.html#contact-section">Contact</a></li>
-        <li><a href="account.html" aria-current="page">My Account</a></li>
       </ul>
+      <a href="account.html" class="nav-account-btn" aria-label="My Account" aria-current="page">
+        <svg viewBox="0 0 24 24" stroke="currentColor" fill="currentColor"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>
+      </a>
       <a href="javascript:void(0)" class="btn btn-primary open-modal" id="nav-cta">Book a Discovery Call</a>
     </div>
     <button class="nav-hamburger" id="hamburger" aria-label="Toggle menu" aria-expanded="false">
@@ -66,7 +76,7 @@
     <a href="blog.html">Blog</a>
     <a href="backtesting.html">Backtesting</a>
     <a href="index.html#contact-section">Contact</a>
-    <a href="account.html">My Account</a>
+    <a href="account.html" class="nav-account-btn-mobile"><svg viewBox="0 0 24 24" stroke="currentColor" fill="currentColor"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg> My Account</a>
   </div>
 
   <!-- ===== ACCOUNT PAGE ===== -->
@@ -79,6 +89,25 @@
         <h1 id="account-heading" style="font-size:clamp(1.8rem,3.5vw,2.4rem);font-weight:800;margin-top:0.75rem;margin-bottom:0.75rem;">Log in to see your courses</h1>
         <p style="color:var(--muted);max-width:440px;margin:0 auto 1.5rem;">Sign in with the email you used at checkout to view your enrolled courses and unlock premium articles.</p>
         <button type="button" class="btn btn-primary" onclick="cfpOpenAuthModal('login')">Log In / Sign Up</button>
+      </div>
+
+      <!-- Shown when arriving via the welcome/invite email's one-time link -->
+      <div id="account-set-password" style="display:none;max-width:380px;margin:0 auto;padding:3rem 0;text-align:center;">
+        <span class="section-tag">Welcome to Capital Finplus</span>
+        <h1 style="font-size:clamp(1.6rem,3vw,2.1rem);font-weight:800;margin-top:0.75rem;margin-bottom:0.75rem;">Set your password</h1>
+        <p style="color:var(--muted);margin:0 auto 1.5rem;">One last step — choose a password for <strong id="set-password-email" style="color:#fff;">your account</strong> to access your course.</p>
+        <form id="set-password-form" style="text-align:left;display:flex;flex-direction:column;gap:1rem;">
+          <div class="form-group">
+            <label for="set-password-input">New Password</label>
+            <input class="form-input" type="password" id="set-password-input" placeholder="At least 8 characters" minlength="8" required />
+          </div>
+          <div class="form-group">
+            <label for="set-password-confirm">Confirm Password</label>
+            <input class="form-input" type="password" id="set-password-confirm" placeholder="Re-enter your password" minlength="8" required />
+          </div>
+          <p id="set-password-error" style="display:none;color:#fb7185;font-size:0.82rem;"></p>
+          <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;">Set Password &amp; Continue →</button>
+        </form>
       </div>
 
       <!-- Shown while logged in -->
@@ -95,6 +124,11 @@
 
         <h2 style="font-size:1.1rem;font-weight:800;margin-bottom:1rem;">Enrolled Courses</h2>
         <div id="account-courses-list" style="margin-bottom:2rem;">
+          <p style="color:var(--muted);font-size:0.9rem;">Loading…</p>
+        </div>
+
+        <h2 style="font-size:1.1rem;font-weight:800;margin-bottom:1rem;">Course Videos</h2>
+        <div id="account-videos-list" style="margin-bottom:2rem;">
           <p style="color:var(--muted);font-size:0.9rem;">Loading…</p>
         </div>
 
@@ -123,13 +157,18 @@
             <li><a href="blog.html">Blog</a></li>
             <li><a href="backtesting.html">Backtesting</a></li>
             <li><a href="index.html#contact-section">Contact</a></li>
+            <li><a href="privacy-policy.html">Privacy Policy</a></li>
+            <li><a href="terms-and-conditions.html">Terms &amp; Conditions</a></li>
+            <li><a href="refund-policy.html">Refund Policy</a></li>
           </ul>
         </div>
         <div class="footer-col">
           <h4>Courses</h4>
           <ul class="footer-links">
-            <li><a href="index.html#courses">Intraday Essentials (Free)</a></li>
-            <li><a href="payment.html?course=2">Edge + Precision Bundle</a></li>
+            <li><a href="payment.html?course=4">Self-Study</a></li>
+            <li><a href="payment.html?course=5">Guided Learning</a></li>
+            <li><a href="payment.html?course=6">Mentorship Program</a></li>
+            <li><a href="payment.html?course=3">CFA Investing Framework</a></li>
           </ul>
         </div>
         <div class="footer-col">
@@ -144,6 +183,11 @@
       <div class="footer-bottom">
         <p class="footer-copy">© 2026 Capital Finplus Academy. All rights reserved.</p>
         <p class="footer-disclaimer" id="footer-disclaimer">*Capital Finplus Academy is an educational platform. Trading in securities involves risk of loss. All course content is for educational purposes only and does not constitute investment advice. Please consult a SEBI-registered advisor before making investment decisions. Past performance is not indicative of future results.</p>
+        <div class="footer-legal-links" style="margin-top: 16px; display: flex; gap: 24px; justify-content: center; flex-wrap: wrap;">
+          <a href="privacy-policy.html" style="color: #F4C20D; font-size: 0.82rem; text-decoration: none;">Privacy Policy</a>
+          <a href="terms-and-conditions.html" style="color: #F4C20D; font-size: 0.82rem; text-decoration: none;">Terms &amp; Conditions</a>
+          <a href="refund-policy.html" style="color: #F4C20D; font-size: 0.82rem; text-decoration: none;">Refund &amp; Cancellation Policy</a>
+        </div>
       </div>
     </div>
   </footer>
@@ -156,50 +200,145 @@
   /* ── Account page logic ──
      Reads the logged-in user + their enrollments straight from Supabase
      (no admin localStorage dependency here, since this is live account
-     data, not site-editable copy). */
-  (async function initAccountPage() {
-    if (typeof window.cfpAuth === 'undefined') return;
-    const user = await window.cfpAuth.getCurrentUser();
+     data, not site-editable copy). Also handles landing here via the
+     welcome-email "set your password" link (Supabase fires a
+     PASSWORD_RECOVERY auth event for both invite and recovery links once
+     the token in the URL is parsed). */
+  (function () {
     const loggedOutEl = document.getElementById('account-logged-out');
     const loggedInEl = document.getElementById('account-logged-in');
+    const setPasswordEl = document.getElementById('account-set-password');
 
-    if (!user) {
-      loggedOutEl.style.display = 'block';
-      return;
+    async function showLoggedIn(user) {
+      setPasswordEl.style.display = 'none';
+      loggedOutEl.style.display = 'none';
+      loggedInEl.style.display = 'block';
+      document.getElementById('account-name').textContent = (user.user_metadata && user.user_metadata.full_name) || '—';
+      document.getElementById('account-email').textContent = user.email || '—';
+
+      document.getElementById('account-logout-btn').addEventListener('click', async () => {
+        await window.cfpAuth.logout();
+        window.location.reload();
+      });
+
+      const listEl = document.getElementById('account-courses-list');
+      const videosEl = document.getElementById('account-videos-list');
+      try {
+        const { data, error } = await window.cfpSupabase
+          .from('enrollments')
+          .select('status, purchased_at, courses(name, subtitle, youtube_playlist_a, youtube_playlist_b)')
+          .eq('user_id', user.id);
+        if (error) throw error;
+        if (!data || data.length === 0) {
+          listEl.innerHTML = '<p style="color:var(--muted);font-size:0.9rem;">No enrollments yet — <a href="index.html#courses" style="color:var(--purple);">browse courses</a>.</p>';
+          videosEl.innerHTML = '<p style="color:var(--muted);font-size:0.9rem;">Enroll in a course to unlock its video content here.</p>';
+          return;
+        }
+        listEl.innerHTML = data.map(e => `
+          <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;padding:1.1rem 1.4rem;margin-bottom:0.75rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;">
+            <div>
+              <div style="font-weight:700;margin-bottom:0.2rem;">${(e.courses && e.courses.name) || 'Course'}</div>
+              <div style="font-size:0.82rem;color:var(--muted);">${(e.courses && e.courses.subtitle) || ''}</div>
+            </div>
+            <span style="font-size:0.72rem;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;padding:3px 10px;border-radius:100px;background:${e.status === 'active' ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.12)'};color:${e.status === 'active' ? '#4ade80' : '#fb7185'};">${e.status}</span>
+          </div>
+        `).join('');
+        renderAccountVideos(data, videosEl);
+      } catch (e) {
+        listEl.innerHTML = '<p style="color:var(--muted);font-size:0.9rem;">Could not load your courses right now.</p>';
+        videosEl.innerHTML = '<p style="color:var(--muted);font-size:0.9rem;">Could not load your videos right now.</p>';
+      }
     }
 
-    loggedInEl.style.display = 'block';
-    document.getElementById('account-name').textContent = (user.user_metadata && user.user_metadata.full_name) || '—';
-    document.getElementById('account-email').textContent = user.email || '—';
+    /* Course Videos — dedupes Playlist A/B across all enrolled courses
+       (e.g. a Guided Learning + Mentorship student would otherwise see
+       Playlist A twice), and shows the Self-Study upgrade note only when
+       none of the enrolled courses unlock any playlist at all. */
+    function renderAccountVideos(enrollments, videosEl) {
+      const seenUrls = new Set();
+      const blocks = [];
+      let hasSelfStudy = false;
 
-    document.getElementById('account-logout-btn').addEventListener('click', async () => {
-      await window.cfpAuth.logout();
-      window.location.reload();
-    });
+      enrollments.forEach(e => {
+        const c = e.courses;
+        if (!c) return;
+        if (c.name === 'Self-Study') hasSelfStudy = true;
+        [['youtube_playlist_a', 'Trading Course Videos'], ['youtube_playlist_b', 'Investing Framework Videos']].forEach(([field, label]) => {
+          const url = c[field];
+          if (!url || seenUrls.has(url)) return;
+          seenUrls.add(url);
+          blocks.push({ label, url });
+        });
+      });
 
-    const listEl = document.getElementById('account-courses-list');
-    try {
-      const { data, error } = await window.cfpSupabase
-        .from('enrollments')
-        .select('status, purchased_at, courses(name, subtitle)')
-        .eq('user_id', user.id);
-      if (error) throw error;
-      if (!data || data.length === 0) {
-        listEl.innerHTML = '<p style="color:var(--muted);font-size:0.9rem;">No enrollments yet — <a href="index.html#courses" style="color:var(--purple);">browse courses</a>.</p>';
+      if (blocks.length === 0) {
+        videosEl.innerHTML = hasSelfStudy
+          ? '<div style="background:rgba(244,194,13,0.06);border:1px solid rgba(244,194,13,0.25);border-radius:10px;padding:1.1rem 1.4rem;color:var(--muted);font-size:0.88rem;">Video content is not included in Self-Study. Upgrade to Guided Learning or above.</div>'
+          : '<p style="color:var(--muted);font-size:0.9rem;">No video content available for your enrolled course(s) yet.</p>';
         return;
       }
-      listEl.innerHTML = data.map(e => `
-        <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;padding:1.1rem 1.4rem;margin-bottom:0.75rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;">
-          <div>
-            <div style="font-weight:700;margin-bottom:0.2rem;">${(e.courses && e.courses.name) || 'Course'}</div>
-            <div style="font-size:0.82rem;color:var(--muted);">${(e.courses && e.courses.subtitle) || ''}</div>
+
+      videosEl.innerHTML = blocks.map(b => `
+        <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;padding:1.25rem;margin-bottom:1.25rem;">
+          <div style="font-weight:700;margin-bottom:0.75rem;">${b.label}</div>
+          <div style="position:relative;width:100%;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:#000;">
+            <iframe src="${b.url}" title="${b.label}" loading="lazy"
+              style="position:absolute;inset:0;width:100%;height:100%;border:0;"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
           </div>
-          <span style="font-size:0.72rem;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;padding:3px 10px;border-radius:100px;background:${e.status === 'active' ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.12)'};color:${e.status === 'active' ? '#4ade80' : '#fb7185'};">${e.status}</span>
         </div>
       `).join('');
-    } catch (e) {
-      listEl.innerHTML = '<p style="color:var(--muted);font-size:0.9rem;">Could not load your courses right now.</p>';
     }
+
+    function showSetPassword(user) {
+      loggedOutEl.style.display = 'none';
+      loggedInEl.style.display = 'none';
+      setPasswordEl.style.display = 'block';
+      document.getElementById('set-password-email').textContent = (user && user.email) || 'your account';
+    }
+
+    document.getElementById('set-password-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const pass = document.getElementById('set-password-input').value;
+      const confirm = document.getElementById('set-password-confirm').value;
+      const errEl = document.getElementById('set-password-error');
+      errEl.style.display = 'none';
+      if (pass.length < 8) { errEl.textContent = 'Password must be at least 8 characters.'; errEl.style.display = 'block'; return; }
+      if (pass !== confirm) { errEl.textContent = 'Passwords do not match.'; errEl.style.display = 'block'; return; }
+      try {
+        await window.cfpAuth.setNewPassword(pass);
+        const user = await window.cfpAuth.getCurrentUser();
+        if (user) showLoggedIn(user);
+      } catch (err) {
+        errEl.textContent = err.message || 'Could not set your password — try the link again.';
+        errEl.style.display = 'block';
+      }
+    });
+
+    (async function initAccountPage() {
+      if (typeof window.cfpAuth === 'undefined') return;
+
+      let recoveryUser = null;
+      window.cfpAuth.onAuthStateChange((event, session) => {
+        if (event === 'PASSWORD_RECOVERY') {
+          recoveryUser = session && session.user;
+          showSetPassword(recoveryUser);
+        }
+      });
+
+      // Give the auth client a moment to parse the link's URL hash and
+      // fire PASSWORD_RECOVERY before falling back to the normal
+      // logged-in/logged-out check below.
+      await new Promise(r => setTimeout(r, 250));
+      if (recoveryUser) return;
+
+      const user = await window.cfpAuth.getCurrentUser();
+      if (!user) {
+        loggedOutEl.style.display = 'block';
+        return;
+      }
+      showLoggedIn(user);
+    })();
   })();
 </script>
 

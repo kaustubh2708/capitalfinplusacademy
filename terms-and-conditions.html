@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Terms &amp; Conditions | Capital Finplus Academy</title>
+  <meta name="description" content="Terms and Conditions for using Capital Finplus Academy's website and courses." />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <link rel="canonical" href="https://capitalfinplusadvizors.com/terms-and-conditions.html" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800;900&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="blog.css" />
+  <script src="data.js?v=13"></script>
+  <script src="config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-client.js"></script>
+</head>
+<body>
+
+<!-- Galaxy canvas — always behind everything -->
+<canvas id="galaxy-canvas" aria-hidden="true"></canvas>
+<div class="noise-overlay" aria-hidden="true"></div>
+
+<!-- Custom cursor -->
+<div class="cursor" id="cursor" aria-hidden="true"></div>
+<div class="cursor-ring" id="cursor-ring" aria-hidden="true"></div>
+
+<div class="content-wrapper">
+
+  <!-- ===== NAVBAR ===== -->
+  <nav id="navbar" role="navigation" aria-label="Main navigation">
+    <a href="index.html" class="nav-logo" aria-label="Capital Finplus Home">
+      <svg class="nav-logo-dot" aria-hidden="true" viewBox="0 0 40 42" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <filter id="cfa-glow" x="-40%" y="-40%" width="180%" height="180%">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="0.8" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
+        <polygon points="20,39 3.8,27.2 10,7.5 30,7.5 36.2,27.2" fill="rgba(244,194,13,0.07)" stroke="#F4C20D" stroke-width="3.2" stroke-linejoin="round"/>
+      </svg>
+      CΛPITΛL FINPLUS<span> ΛCΛDEMY</span>
+    </a>
+    <div class="nav-right">
+      <ul class="nav-links" role="list">
+        <li><a href="index.html#about">About</a></li>
+        <li><a href="index.html#services">Services</a></li>
+        <li><a href="index.html#courses">Courses</a></li>
+        <li class="nav-dropdown" id="nav-knowledge-dropdown">
+          <button type="button" class="nav-dropdown-toggle">Knowledge <span class="caret">▾</span></button>
+          <ul class="nav-dropdown-menu">
+            <li><a href="blog.html">Blog</a></li>
+            <li><a href="backtesting.html">Backtesting</a></li>
+          </ul>
+        </li>
+        <li><a href="index.html#contact-section">Contact</a></li>
+      </ul>
+      <a href="account.html" class="nav-account-btn" aria-label="My Account">
+        <svg viewBox="0 0 24 24" stroke="currentColor" fill="currentColor"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>
+      </a>
+      <a href="index.html" class="btn btn-primary" id="nav-cta">Back to Home</a>
+    </div>
+    <button class="nav-hamburger" id="hamburger" aria-label="Toggle menu" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </nav>
+
+  <!-- Mobile nav -->
+  <div class="mobile-nav" id="mobile-nav">
+    <a href="index.html#about">About</a>
+    <a href="index.html#services">Services</a>
+    <a href="index.html#courses">Courses</a>
+    <a href="blog.html">Blog</a>
+    <a href="backtesting.html">Backtesting</a>
+    <a href="index.html#contact-section">Contact</a>
+    <a href="account.html" class="nav-account-btn-mobile"><svg viewBox="0 0 24 24" stroke="currentColor" fill="currentColor"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg> My Account</a>
+  </div>
+
+  <!-- ===== TERMS & CONDITIONS ===== -->
+  <section class="section-pad" aria-labelledby="policy-heading">
+    <div class="container" style="max-width:760px;">
+      <span class="section-tag reveal">Legal</span>
+      <h1 id="policy-heading" class="reveal reveal-delay-1" style="font-size:clamp(2rem,4vw,2.6rem);font-weight:800;letter-spacing:-0.02em;margin-top:0.75rem;margin-bottom:0.5rem;">Terms &amp; Conditions</h1>
+      <p class="reveal reveal-delay-2" style="color:var(--muted);font-size:0.85rem;margin-bottom:2.5rem;padding-bottom:1.5rem;border-bottom:1px solid var(--border);">Effective Date: June 27, 2026 &nbsp;·&nbsp; Last Updated: June 27, 2026</p>
+
+      <div class="article-body reveal reveal-delay-3" style="padding:0;">
+
+        <p>Welcome to Capital Finplus Academy ("CFA", "we", "us", or "our"). By accessing or using our website at <a href="https://capitalfinplusadvizors.com">capitalfinplusadvizors.com</a> or purchasing any of our courses or services, you agree to be bound by these Terms and Conditions. Please read them carefully before proceeding.</p>
+
+        <div class="highlight-box">
+          <strong>Important:</strong> Capital Finplus Academy is a stock market education platform. All content is for educational purposes only and does not constitute investment advice. We are not SEBI-registered investment advisors.
+        </div>
+
+        <h2>1. Acceptance of Terms</h2>
+        <p>By accessing this website, enrolling in any course, or using any of our services, you confirm that you are at least 18 years of age and have the legal capacity to enter into this agreement. If you do not agree to these terms, please discontinue use of our website immediately.</p>
+
+        <h2>2. Educational Nature of Services</h2>
+        <p>All courses, mentorship sessions, live trading sessions, articles, and other content provided by Capital Finplus Academy are strictly for <strong>educational and informational purposes only</strong>. Nothing on this website should be construed as:</p>
+        <ul>
+          <li>Investment advice or a recommendation to buy or sell any security</li>
+          <li>A guarantee of profits or specific trading outcomes</li>
+          <li>A solicitation to invest in any particular financial product</li>
+          <li>Professional financial, legal, or tax advice</li>
+        </ul>
+        <p>Always consult a SEBI-registered investment advisor before making financial decisions. Past performance discussed in our courses does not guarantee future results.</p>
+
+        <h2>3. Course Enrolment &amp; Access</h2>
+        <p>Upon successful payment, you will receive access to the purchased course(s) as per the access terms communicated at the time of purchase. Course access is:</p>
+        <ul>
+          <li>Personal and non-transferable — your login may not be shared with others</li>
+          <li>Subject to the specific access duration mentioned at purchase</li>
+          <li>Revocable if these Terms are violated</li>
+        </ul>
+        <p>We reserve the right to update, modify, or remove course content at any time to ensure accuracy and relevance.</p>
+
+        <h2>4. Payment Terms</h2>
+        <p>All prices are listed in Indian Rupees (INR) and are exclusive of applicable GST unless otherwise stated. Payments are processed securely through Razorpay. By completing a payment, you confirm that you are authorised to use the payment method provided.</p>
+
+        <h2>5. No Refund Policy</h2>
+        <div class="highlight-box">
+          <strong>All sales are final. We do not offer refunds, exchanges, or credits under any circumstances.</strong> Please review the course details carefully and make use of our free Discovery Call before purchasing. By completing your purchase, you acknowledge and agree to this no-refund policy.
+        </div>
+        <p>For detailed information, please refer to our <a href="refund-policy.html">Refund Policy</a>.</p>
+
+        <h2>6. Intellectual Property</h2>
+        <p>All content on this website — including but not limited to course material, videos, articles, frameworks, methodologies, graphics, logos, and written content — is the exclusive intellectual property of Capital Finplus Academy and is protected by applicable copyright and intellectual property laws.</p>
+        <p>You may not:</p>
+        <ul>
+          <li>Copy, reproduce, distribute, or resell any course content</li>
+          <li>Record or screenshot paid course sessions for distribution</li>
+          <li>Use the CFA name, logo, or brand without written permission</li>
+          <li>Create derivative works based on our course content</li>
+        </ul>
+        <p>Violation of these terms may result in immediate access revocation and legal action.</p>
+
+        <h2>7. User Conduct</h2>
+        <p>You agree not to use our website or services to:</p>
+        <ul>
+          <li>Violate any applicable law or regulation</li>
+          <li>Impersonate any person or entity</li>
+          <li>Transmit any harmful, offensive, or unlawful content</li>
+          <li>Attempt to gain unauthorised access to our systems</li>
+          <li>Interfere with the proper functioning of the website</li>
+        </ul>
+
+        <h2>8. Limitation of Liability</h2>
+        <p>To the maximum extent permitted by law, Capital Finplus Academy shall not be liable for any direct, indirect, incidental, consequential, or punitive damages arising from:</p>
+        <ul>
+          <li>Your use of or inability to use our website or courses</li>
+          <li>Any trading or investment decisions made based on our educational content</li>
+          <li>Loss of profits, data, or goodwill</li>
+          <li>Interruption of service or technical errors</li>
+        </ul>
+        <p>Our total liability, in any case, shall not exceed the amount paid by you for the specific course or service in question.</p>
+
+        <h2>9. Risk Disclaimer</h2>
+        <p>Trading in securities, derivatives, and commodities involves substantial risk of loss and is not suitable for all investors. The risk of loss in trading can be significant. You should carefully consider whether trading is appropriate for you in light of your financial condition, investment objectives, and risk tolerance.</p>
+
+        <h2>10. Governing Law &amp; Jurisdiction</h2>
+        <p>These Terms shall be governed by and construed in accordance with the laws of India. Any disputes arising under these Terms shall be subject to the exclusive jurisdiction of the courts in India.</p>
+
+        <h2>11. Modifications to Terms</h2>
+        <p>We reserve the right to modify these Terms at any time. Updated Terms will be posted on this page with a revised effective date. Your continued use of our services after any changes constitutes your acceptance of the new Terms.</p>
+
+        <h2>12. Contact Us</h2>
+        <p>For any questions regarding these Terms and Conditions, please contact us at:</p>
+        <ul>
+          <li><strong>Email:</strong> <a href="mailto:connect@capitalfinplusadvizors.com">connect@capitalfinplusadvizors.com</a></li>
+          <li><strong>Website:</strong> <a href="https://capitalfinplusadvizors.com">capitalfinplusadvizors.com</a></li>
+        </ul>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== FOOTER ===== -->
+  <footer>
+    <div class="footer-inner">
+      <div class="footer-grid">
+        <div>
+          <a href="index.html" class="footer-logo" aria-label="Capital Finplus Home">
+            <div class="footer-logo-dot" aria-hidden="true">CFΛ</div>
+            CΛPITΛL FINPLUS<span> ΛCΛDEMY</span>
+          </a>
+          <p class="footer-tagline">Professional-grade trading education and mentorship. Built for those who demand real results from the markets.</p>
+        </div>
+        <div class="footer-col">
+          <h4>Company</h4>
+          <ul class="footer-links">
+            <li><a href="index.html#about">About Us</a></li>
+            <li><a href="index.html#services">Services</a></li>
+            <li><a href="blog.html">Blog</a></li>
+            <li><a href="backtesting.html">Backtesting</a></li>
+            <li><a href="index.html#contact-section">Contact</a></li>
+            <li><a href="privacy-policy.html">Privacy Policy</a></li>
+            <li><a href="terms-and-conditions.html">Terms &amp; Conditions</a></li>
+            <li><a href="refund-policy.html">Refund Policy</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>Courses</h4>
+          <ul class="footer-links">
+            <li><a href="payment.html?course=4">Self-Study</a></li>
+            <li><a href="payment.html?course=5">Guided Learning</a></li>
+            <li><a href="payment.html?course=6">Mentorship Program</a></li>
+            <li><a href="payment.html?course=3">CFA Investing Framework</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>Contact</h4>
+          <ul class="footer-links">
+            <li><a href="mailto:connect@capitalfinplusadvizors.com" id="footer-email">connect@capitalfinplusadvizors.com</a></li>
+            <li><a href="#" id="footer-whatsapp" target="_blank" rel="noopener">WhatsApp Us</a></li>
+            <li><a href="#" id="footer-telegram" target="_blank" rel="noopener">Telegram Channel</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p class="footer-copy">© 2026 Capital Finplus Academy. All rights reserved.</p>
+        <p class="footer-disclaimer" id="footer-disclaimer">*Capital Finplus Academy is an educational platform. Trading in securities involves risk of loss. All course content is for educational purposes only and does not constitute investment advice. Please consult a SEBI-registered advisor before making investment decisions. Past performance is not indicative of future results.</p>
+        <div class="footer-legal-links" style="margin-top: 16px; display: flex; gap: 24px; justify-content: center; flex-wrap: wrap;">
+          <a href="privacy-policy.html" style="color: #F4C20D; font-size: 0.82rem; text-decoration: none;">Privacy Policy</a>
+          <a href="terms-and-conditions.html" style="color: #F4C20D; font-size: 0.82rem; text-decoration: none;">Terms &amp; Conditions</a>
+          <a href="refund-policy.html" style="color: #F4C20D; font-size: 0.82rem; text-decoration: none;">Refund &amp; Cancellation Policy</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+</div><!-- /content-wrapper -->
+
+<script src="script.js"></script>
+<script src="render.js"></script>
+
+</body>
+</html>

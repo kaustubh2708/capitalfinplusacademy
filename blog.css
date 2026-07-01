@@ -251,6 +251,7 @@
   z-index: 2;
 }
 .premium-content { filter: blur(4px); user-select: none; pointer-events: none; }
+.premium-content.is-unlocked { filter: none; user-select: text; pointer-events: auto; }
 .paywall-gate {
   position: absolute;
   bottom: 0; left: 0; right: 0;

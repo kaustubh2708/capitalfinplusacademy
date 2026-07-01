@@ -23,7 +23,15 @@
     if (dialogEl) return dialogEl;
     dialogEl = document.createElement('dialog');
     dialogEl.id = 'cfp-auth-dialog';
-    dialogEl.style.cssText = 'border:1px solid #e8b84b;border-radius:10px;background:#0a0a0a;color:#fff;padding:0;max-width:380px;width:90vw;';
+    /* position/inset/margin restore the browser's native dialog centering —
+       the site's global `* { margin: 0 }` reset otherwise wipes out the
+       UA stylesheet's `dialog:modal { margin: auto }` centering rule, since
+       author styles always win over UA styles. cursor:auto overrides the
+       inherited site-wide `cursor:none` (the custom cursor dot renders in
+       a regular DOM layer, but a <dialog> opened with showModal() renders
+       in the browser's top layer above it — so without this, no cursor of
+       any kind is visible while this dialog is open). */
+    dialogEl.style.cssText = 'border:1px solid #e8b84b;border-radius:10px;background:#0a0a0a;color:#fff;padding:0;max-width:380px;width:90vw;position:fixed;inset:0;margin:auto;cursor:auto;';
     dialogEl.innerHTML = `
       <div style="padding:1.75rem;font-family:inherit;position:relative;">
         <button type="button" id="cfp-auth-close" aria-label="Close"
