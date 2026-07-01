@@ -18,6 +18,14 @@ module.exports = async (req, res) => {
     return res.status(500).json({ error: 'Supabase service role env vars not configured.' });
   }
 
+  const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+  const token = (req.headers['authorization'] || '').replace('Bearer ', '').trim();
+  if (!token) return res.status(401).json({ error: 'Unauthorized' });
+  const { data: { user }, error: authErr } = await adminClient.auth.getUser(token);
+  if (authErr || !user) return res.status(401).json({ error: 'Unauthorized' });
+  const { data: profile } = await adminClient.from('profiles').select('is_admin').eq('id', user.id).single();
+  if (!profile?.is_admin) return res.status(403).json({ error: 'Forbidden' });
+
   const { fileBase64 } = req.body || {};
   if (!fileBase64) {
     return res.status(400).json({ error: 'No file data provided.' });

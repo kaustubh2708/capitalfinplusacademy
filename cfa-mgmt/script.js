@@ -29,9 +29,6 @@ let editingArticleId = null;
 let editingBtId = null;
 let cfpLastUpdated = null;
 
-/* ADMIN_SECRET must match the ADMIN_SECRET env var set in Vercel.
-   Used as a simple request gate on /api/send-newsletter. */
-const ADMIN_SECRET = 'set-this-in-vercel-env';
 
 /* ID helpers (cfpIsUuid, cfpTempId) and the row<->local mapper functions
    (cfpCourseToRow/cfpRowToCourse, etc.) live in ../data.js — shared with
@@ -1185,9 +1182,10 @@ function initAcademyPdfPanel() {
         reader.readAsDataURL(file);
       });
 
+      const { data: { session: pdfSession } } = await window.cfpSupabase.auth.getSession();
       const res = await fetch('/api/upload-pdf', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (pdfSession?.access_token || '') },
         body: JSON.stringify({ fileBase64: base64 })
       });
 
@@ -1468,9 +1466,10 @@ async function cfpRenderSendHistory() {
     const btn = document.getElementById('nl-send-btn');
     btn.disabled = true; btn.textContent = 'Sending…';
     try {
+      const { data: { session } } = await window.cfpSupabase.auth.getSession();
       const res = await fetch('/api/send-newsletter', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-admin-key': ADMIN_SECRET },
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (session?.access_token || '') },
         body: JSON.stringify({ subject, html, audience })
       });
       const data = await res.json();

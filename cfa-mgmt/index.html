@@ -696,36 +696,36 @@
         <h3>🏷️ Create Coupon</h3>
         <div class="form-row" style="margin-bottom:1rem;">
           <div class="form-group">
-            <label class="field-label">Code</label>
-            <input type="text" id="coupon-new-code" class="field-input" placeholder="e.g. LAUNCH20" style="text-transform:uppercase;" />
+            <label class="form-label">Code</label>
+            <input type="text" id="coupon-new-code" class="form-input" placeholder="e.g. LAUNCH20" style="text-transform:uppercase;" />
           </div>
           <div class="form-group">
-            <label class="field-label">Discount Value</label>
-            <input type="number" id="coupon-new-value" class="field-input" placeholder="e.g. 20" min="1" />
+            <label class="form-label">Discount Value</label>
+            <input type="number" id="coupon-new-value" class="form-input" placeholder="e.g. 20" min="1" />
           </div>
         </div>
         <div class="form-row" style="margin-bottom:1rem;">
           <div class="form-group">
-            <label class="field-label">Discount Type</label>
-            <select id="coupon-new-type" class="field-input">
+            <label class="form-label">Discount Type</label>
+            <select id="coupon-new-type" class="form-select">
               <option value="percent">Percentage (%)</option>
               <option value="fixed">Fixed Amount (₹)</option>
             </select>
           </div>
           <div class="form-group">
-            <label class="field-label">Max Total Uses (blank = unlimited)</label>
-            <input type="number" id="coupon-new-max-uses" class="field-input" placeholder="Leave blank for unlimited" min="1" />
+            <label class="form-label">Max Total Uses (blank = unlimited)</label>
+            <input type="number" id="coupon-new-max-uses" class="form-input" placeholder="Leave blank for unlimited" min="1" />
           </div>
         </div>
         <div class="form-row" style="margin-bottom:1.25rem;">
           <div class="form-group">
-            <label class="field-label">Valid From</label>
-            <input type="datetime-local" id="coupon-new-valid-from" class="field-input" />
+            <label class="form-label">Valid From</label>
+            <input type="datetime-local" id="coupon-new-valid-from" class="form-input" />
           </div>
           <div class="form-group">
-            <label class="field-label">Valid Until (optional)</label>
+            <label class="form-label">Valid Until (optional)</label>
             <div style="display:flex;gap:0.5rem;align-items:center;">
-              <input type="datetime-local" id="coupon-new-valid-until" class="field-input" style="flex:1;" />
+              <input type="datetime-local" id="coupon-new-valid-until" class="form-input" style="flex:1;" />
               <button type="button" id="coupon-clear-until" style="background:none;border:1px solid var(--border);border-radius:6px;color:var(--text-sec);padding:0.4rem 0.7rem;cursor:pointer;font-size:0.78rem;white-space:nowrap;">No expiry</button>
             </div>
           </div>

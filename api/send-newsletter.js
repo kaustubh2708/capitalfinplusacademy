@@ -8,9 +8,12 @@ const supabase = createClient(
 module.exports = async (req, res) => {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  if (req.headers['x-admin-key'] !== process.env.ADMIN_SECRET) {
-    return res.status(403).json({ error: 'Forbidden' });
-  }
+  const token = (req.headers['authorization'] || '').replace('Bearer ', '').trim();
+  if (!token) return res.status(401).json({ error: 'Unauthorized' });
+  const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
+  if (authErr || !user) return res.status(401).json({ error: 'Unauthorized' });
+  const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', user.id).single();
+  if (!profile?.is_admin) return res.status(403).json({ error: 'Forbidden' });
 
   const { subject, html, audience } = req.body || {};
   if (!subject || !html) return res.status(400).json({ error: 'Missing subject or html' });

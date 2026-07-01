@@ -551,6 +551,14 @@
     }
 
     async function showLoggedIn(user) {
+      // Redirect admins straight to the management dashboard
+      const { data: adminCheck } = await window.cfpSupabase
+        .from('profiles').select('is_admin').eq('id', user.id).single();
+      if (adminCheck && adminCheck.is_admin) {
+        window.location.href = '/cfa-mgmt/index.html';
+        return;
+      }
+
       setPasswordEl.style.display = 'none';
       loggedOutEl.style.display = 'none';
       loggedInEl.style.display = 'block';

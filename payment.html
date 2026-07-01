@@ -201,14 +201,8 @@
 <script src="render.js"></script>
 <script src="script.js"></script>
 <script>
-  /* ── REAL RAZORPAY CHECKOUT (with a safe fallback) ──
-     Tries the real flow first: POST /api/create-order -> open Razorpay
-     Checkout -> POST /api/verify-payment to confirm server-side.
-     If those Vercel functions aren't deployed yet, or RAZORPAY_KEY_ID /
-     RAZORPAY_KEY_SECRET haven't been added to Vercel's environment
-     variables yet, this automatically falls back to the old simulated
-     flow so the page never breaks — going live with this code does NOT
-     require Razorpay to be fully configured first. */
+  /* ── RAZORPAY CHECKOUT ──
+     POST /api/create-order -> open Razorpay Checkout -> POST /api/verify-payment */
 
   const COURSE_ID = new URLSearchParams(window.location.search).get('course') || '2';
 
@@ -313,21 +307,6 @@
     el.style.display = 'block';
   }
 
-  function simulatedFallback(name, email, phone) {
-    if (typeof cfpRecordTransaction === 'function') {
-      cfpRecordTransaction({
-        paymentId: 'pay_SIM' + Date.now(),
-        orderId: 'order_SIM' + Date.now(),
-        name, email, phone,
-        course: document.getElementById('course-name')?.textContent.trim() || 'Course',
-        amount: getTotal(EFFECTIVE_FEE_RUPEES),
-        status: 'captured',
-        method: 'UPI'
-      });
-    }
-    setStatus('✅ Payment simulated — real Razorpay checkout will activate automatically once the API keys are added in Vercel. A sample transaction has been recorded in the admin dashboard.', '#4ade80');
-  }
-
   async function realRazorpayCheckout(name, email, phone) {
     const courseName = document.getElementById('course-name')?.textContent.trim() || 'Course';
 
@@ -415,8 +394,8 @@
     try {
       await realRazorpayCheckout(name, email, phone);
     } catch (err) {
-      console.warn('Real Razorpay checkout unavailable, using simulated fallback:', err.message);
-      simulatedFallback(name, email, phone);
+      console.error('Razorpay checkout failed:', err.message);
+      setStatus('Payment service temporarily unavailable. Please try again or contact support.', '#ef4444');
     }
   });
 </script>
