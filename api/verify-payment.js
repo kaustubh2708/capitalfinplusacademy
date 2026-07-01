@@ -153,7 +153,7 @@ module.exports = async (req, res) => {
       try {
         const { data: inviteData, error: inviteErr } = await supabase.auth.admin.inviteUserByEmail(checkoutEmail, {
           data: { full_name: notes.name || '' },
-          redirectTo: (process.env.SITE_URL || 'https://capitalfinplusadvizors.com') + '/account.html'
+          redirectTo: (process.env.SITE_URL || 'https://capitalfinplusadvizors.com') + '/pages/account.html'
         });
         if (!inviteErr && inviteData && inviteData.user) {
           userId = inviteData.user.id;

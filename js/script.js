@@ -346,7 +346,7 @@ const modalSuccess  = document.getElementById('modal-success');
 const modalFormBody = document.getElementById('modal-form-body');
 
 function openModal() {
-  if (!modalOverlay) { window.location.href = 'index.html#book'; return; }
+  if (!modalOverlay) { window.location.href = '/#book'; return; }
   modalOverlay.classList.add('active');
   document.body.style.overflow = 'hidden';
 }

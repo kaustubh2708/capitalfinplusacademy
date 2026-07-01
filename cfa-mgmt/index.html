@@ -7,11 +7,11 @@
   <title>Capital Finplus — Admin Dashboard</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
-  <script src="../data.js"></script>
-  <script src="../config.js"></script>
+  <script src="/js/data.js"></script>
+  <script src="/js/config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="../supabase-client.js"></script>
-  <script src="../auth.js"></script>
+  <script src="/js/supabase-client.js"></script>
+  <script src="/js/auth.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
@@ -142,7 +142,7 @@
       .form-row, .form-row-3 { grid-template-columns: 1fr; }
     }
   </style>
-  <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 </head>
 <body>
 
@@ -152,7 +152,7 @@
   <!-- SIDEBAR -->
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-logo">
-      <a href="../index.html" aria-label="Back to Capital Finplus home">
+      <a href="/" aria-label="Back to Capital Finplus home">
         <div class="sidebar-logo-mark">
           <svg viewBox="0 0 40 42" fill="none" xmlns="http://www.w3.org/2000/svg">
             <polygon points="20,39 3.8,27.2 10,7.5 30,7.5 36.2,27.2" fill="rgba(244,194,13,0.07)" stroke="#F4C20D" stroke-width="3.2" stroke-linejoin="round"/>
@@ -200,7 +200,7 @@
     <div class="topbar">
       <h1 id="topbar-title">Dashboard</h1>
       <div class="topbar-actions">
-        <a href="../index.html" target="_blank" class="btn-outline"><span>↗</span> Preview Site</a>
+        <a href="/" target="_blank" class="btn-outline"><span>↗</span> Preview Site</a>
         <button class="btn-save" id="global-save">Save Changes</button>
       </div>
     </div>

@@ -74,13 +74,13 @@ const CFP_DEFAULT_DATA = {
       subtitle: 'Target-Based Investing Masterclass',
       desc: 'A complete investing framework covering market structure, sector rotation, stock selection, portfolio construction, and investor psychology for sustainable wealth creation.',
       features: ['Market structure & sector rotation', 'Stock selection & screening framework', 'Portfolio construction strategy', 'Investor psychology & discipline', 'Capstone project — Build your own framework'],
-      price: '₹4,999', priceSub: '+ GST · One-time', ctaLabel: 'Enroll Now', ctaLink: 'payment.html?course=3', isModal: false
+      price: '₹4,999', priceSub: '+ GST · One-time', ctaLabel: 'Enroll Now', ctaLink: '/pages/payment.html?course=3', isModal: false
     },
     {
       id: 4, level: 'Self-Study', name: 'Self-Study', subtitle: 'Independent Learning Track', planOnly: true,
       desc: 'For traders who prefer to learn independently through structured documentation and daily post market analysis. Can upgrade to guided learning and mentorship program anytime.',
       features: ['Complete PDF trading framework', 'Detailed setup documentation', 'Last 1 month access to backtest documents', 'Daily Post-Market Analysis', 'Weekly Setup Performance Review live session', 'Self-paced implementation support'],
-      price: '₹860', priceSub: '+ GST · One-time', ctaLabel: 'Start Self-Study', ctaLink: 'payment.html?course=4', isModal: false
+      price: '₹860', priceSub: '+ GST · One-time', ctaLabel: 'Start Self-Study', ctaLink: '/pages/payment.html?course=4', isModal: false
     },
     {
       id: 5, level: 'Guided Learning', name: 'Guided Learning', subtitle: 'Live Classes + Backtesting', planOnly: true,
@@ -129,7 +129,7 @@ Move beyond index charts and learn to trade the instrument that actually determi
 ## Final Promise
 Learn the Structure. Develop the Edge. Execute with Precision.
 A practical, market-tested framework designed to help traders move from confusion and guesswork to clarity, confidence, and consistency.`,
-      price: '₹6,500', priceSub: '+ GST · One-time', ctaLabel: 'Join Guided Learning', ctaLink: 'payment.html?course=5', isModal: false
+      price: '₹6,500', priceSub: '+ GST · One-time', ctaLabel: 'Join Guided Learning', ctaLink: '/pages/payment.html?course=5', isModal: false
     },
     {
       id: 6, level: 'Mentorship Program', name: 'Mentorship Program', subtitle: 'Personalized 1-on-1 Guidance', planOnly: true,
@@ -178,7 +178,7 @@ Move beyond index charts and learn to trade the instrument that actually determi
 ## Final Promise
 Learn the Structure. Develop the Edge. Execute with Precision.
 A practical, market-tested framework designed to help traders move from confusion and guesswork to clarity, confidence, and consistency.`,
-      price: '₹24,000', priceSub: '+ GST · One-time', ctaLabel: 'Apply for Mentorship', ctaLink: 'payment.html?course=6', isModal: false
+      price: '₹24,000', priceSub: '+ GST · One-time', ctaLabel: 'Apply for Mentorship', ctaLink: '/pages/payment.html?course=6', isModal: false
     }
   ],
   testimonials: [

@@ -7,13 +7,13 @@
   <meta name="robots" content="noindex" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800;900&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css" />
-  <script src="data.js?v=13"></script>
+  <link rel="stylesheet" href="/css/styles.css" />
+  <script src="/js/data.js"></script>
   <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
-  <script src="config.js"></script>
+  <script src="/js/config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="supabase-client.js"></script>
-  <script src="auth.js"></script>
+  <script src="/js/supabase-client.js"></script>
+  <script src="/js/auth.js"></script>
   <style>
     .checkout-page { padding: calc(72px + 60px) 5vw 80px; min-height: 100vh; }
     .checkout-wrap {
@@ -89,12 +89,12 @@
 <div class="content-wrapper">
 
   <nav id="navbar">
-    <a href="index.html" class="nav-logo">
+    <a href="/" class="nav-logo">
       <div class="nav-logo-dot">CFΛ</div>
       CΛPITΛL FINPLUS<span> ΛCΛDEMY</span>
     </a>
     <div class="nav-right">
-      <a href="index.html" class="btn btn-secondary nav-keep" style="font-size:0.72rem;">← Back to Site</a>
+      <a href="/" class="btn btn-secondary nav-keep" style="font-size:0.72rem;">← Back to Site</a>
     </div>
   </nav>
 
@@ -189,17 +189,17 @@
         <p class="footer-copy">© 2026 Capital Finplus Academy. All rights reserved.</p>
         <p class="footer-disclaimer">*Educational platform only. Not SEBI investment advice.</p>
         <div class="footer-legal-links" style="margin-top: 16px; display: flex; gap: 24px; justify-content: center; flex-wrap: wrap;">
-          <a href="privacy-policy.html" style="color: #F4C20D; font-size: 0.82rem; text-decoration: none;">Privacy Policy</a>
-          <a href="terms-and-conditions.html" style="color: #F4C20D; font-size: 0.82rem; text-decoration: none;">Terms &amp; Conditions</a>
-          <a href="refund-policy.html" style="color: #F4C20D; font-size: 0.82rem; text-decoration: none;">Refund &amp; Cancellation Policy</a>
+          <a href="/pages/privacy-policy.html" style="color: #F4C20D; font-size: 0.82rem; text-decoration: none;">Privacy Policy</a>
+          <a href="/pages/terms-and-conditions.html" style="color: #F4C20D; font-size: 0.82rem; text-decoration: none;">Terms &amp; Conditions</a>
+          <a href="/pages/refund-policy.html" style="color: #F4C20D; font-size: 0.82rem; text-decoration: none;">Refund &amp; Cancellation Policy</a>
         </div>
       </div>
     </div>
   </footer>
 
 </div>
-<script src="render.js"></script>
-<script src="script.js"></script>
+<script src="/js/render.js"></script>
+<script src="/js/script.js"></script>
 <script>
   /* ── RAZORPAY CHECKOUT ──
      POST /api/create-order -> open Razorpay Checkout -> POST /api/verify-payment */

@@ -403,7 +403,7 @@
           <div class="article-modal-title" style="margin-bottom:1.5rem;">${a.title}</div>
           <div class="article-lock-preview"><p>${a.excerpt}</p><div class="article-lock-gradient"></div></div>
           <p style="font-size:0.85rem;color:rgba(255,255,255,0.5);margin-bottom:1.75rem;">This article is outside the current free preview window — available exclusively to students enrolled in any paid course.</p>
-          <a href="courses.html" class="btn btn-primary" style="display:inline-flex;margin-bottom:0.75rem;">Purchase Now →</a><br>
+          <a href="/pages/courses.html" class="btn btn-primary" style="display:inline-flex;margin-bottom:0.75rem;">Purchase Now →</a><br>
           <button class="btn btn-secondary" style="display:inline-flex;margin-top:0.5rem;" onclick="closeArticle()">Maybe Later</button>
         </div>`;
     } else {

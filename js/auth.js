@@ -48,7 +48,7 @@
 
   async function resetPassword(email) {
     const { error } = await client().auth.resetPasswordForEmail(email, {
-      redirectTo: window.location.origin + '/account.html'
+      redirectTo: window.location.origin + '/pages/account.html'
     });
     if (error) throw error;
   }

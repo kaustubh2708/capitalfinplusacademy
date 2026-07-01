@@ -1,4 +1,14 @@
 {
+  "redirects": [
+    { "source": "/account.html", "destination": "/pages/account.html", "permanent": true },
+    { "source": "/blog.html", "destination": "/pages/blog.html", "permanent": true },
+    { "source": "/backtesting.html", "destination": "/pages/backtesting.html", "permanent": true },
+    { "source": "/courses.html", "destination": "/pages/courses.html", "permanent": true },
+    { "source": "/payment.html", "destination": "/pages/payment.html", "permanent": true },
+    { "source": "/privacy-policy.html", "destination": "/pages/privacy-policy.html", "permanent": true },
+    { "source": "/refund-policy.html", "destination": "/pages/refund-policy.html", "permanent": true },
+    { "source": "/terms-and-conditions.html", "destination": "/pages/terms-and-conditions.html", "permanent": true }
+  ],
   "routes": [
     { "handle": "filesystem" },
     { "src": "/(.*)", "dest": "/404.html", "status": 404 }

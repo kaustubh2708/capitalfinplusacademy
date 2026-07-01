@@ -135,23 +135,23 @@ async function persist() {
    sent back to account.html to log in. */
 document.getElementById('logout-btn').addEventListener('click', async () => {
   await window.cfpSupabase.auth.signOut();
-  window.location.href = '../account.html';
+  window.location.href = '/pages/account.html';
 });
 
 (async function checkExistingSession() {
   if (typeof window.cfpSupabase === 'undefined') {
-    window.location.href = '../account.html';
+    window.location.href = '/pages/account.html';
     return;
   }
   const { data } = await window.cfpSupabase.auth.getUser();
   const user = data && data.user;
   if (!user) {
-    window.location.href = '../account.html';
+    window.location.href = '/pages/account.html';
     return;
   }
   const { data: profile } = await window.cfpSupabase.from('profiles').select('is_admin').eq('id', user.id).single();
   if (!profile || !profile.is_admin) {
-    window.location.href = '../account.html';
+    window.location.href = '/pages/account.html';
     return;
   }
   document.getElementById('app').style.display = 'flex';
@@ -451,7 +451,7 @@ Master Option Buying and Selling Through Premium Charts
 }
 
 document.getElementById('add-course').addEventListener('click', () => {
-  state.courses.push({ id: cfpTempId(), level: 'New · Tier', name: 'New Course', subtitle: 'Subtitle here', desc: 'Course description...', features: ['Feature one', 'Feature two'], featuresRich: '', price: '₹0', priceSub: '+ GST · One-time', ctaLabel: 'Enroll Now', ctaLink: 'payment.html', isModal: false });
+  state.courses.push({ id: cfpTempId(), level: 'New · Tier', name: 'New Course', subtitle: 'Subtitle here', desc: 'Course description...', features: ['Feature one', 'Feature two'], featuresRich: '', price: '₹0', priceSub: '+ GST · One-time', ctaLabel: 'Enroll Now', ctaLink: '/pages/payment.html', isModal: false });
   renderCourses();
   showToast('✅ Course added — fill in the details and Save Changes');
 });
@@ -1467,7 +1467,7 @@ async function cfpRenderManualEnrollHistory() {
       .from('profiles').select('id').eq('email', email).single();
 
     if (profErr || !profile) {
-      msgEl.innerHTML = 'No account found for this email. The student must complete account setup first (they receive a set-password link when they make a purchase). For a complimentary seat, ask them to sign up on <a href="../account.html" target="_blank" style="color:var(--accent)">account.html</a> first, then enroll here.';
+      msgEl.innerHTML = 'No account found for this email. The student must complete account setup first (they receive a set-password link when they make a purchase). For a complimentary seat, ask them to sign up on <a href="/pages/account.html" target="_blank" style="color:var(--accent)">account.html</a> first, then enroll here.';
       msgEl.style.color = '#fbbf24'; msgEl.style.display = 'block'; return;
     }
 
