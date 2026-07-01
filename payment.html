@@ -132,6 +132,18 @@
           <div style="background:rgba(244,194,13,0.06);border:1px solid rgba(244,194,13,0.15);border-radius:8px;padding:1rem;margin-bottom:1.5rem;">
             <p style="font-size:0.8rem;color:rgba(255,255,255,0.55);line-height:1.65;">After payment, you will receive your course access link via email within 2 hours. For any issues, WhatsApp us or email <strong>connect@capitalfinplusadvizors.com</strong>.</p>
           </div>
+          <!-- Promo code -->
+          <div id="coupon-input-row" style="display:flex;gap:0.5rem;margin-bottom:1.25rem;">
+            <input class="form-input" type="text" id="coupon-code" placeholder="Have a promo code?" style="flex:1;text-transform:uppercase;letter-spacing:0.05em;" autocomplete="off" />
+            <button type="button" id="coupon-apply-btn" style="padding:0 1.1rem;background:rgba(244,194,13,0.12);border:1px solid rgba(244,194,13,0.3);border-radius:8px;color:#F4C20D;font-weight:700;font-size:0.82rem;cursor:pointer;white-space:nowrap;font-family:inherit;transition:background 0.2s;">Apply</button>
+          </div>
+          <div id="coupon-chip" style="display:none;align-items:center;gap:0.6rem;background:rgba(74,222,128,0.08);border:1px solid rgba(74,222,128,0.25);border-radius:8px;padding:0.55rem 0.85rem;margin-bottom:1.25rem;font-size:0.82rem;">
+            <span style="color:#4ade80;">✔</span>
+            <span id="coupon-chip-label" style="flex:1;color:#4ade80;font-weight:600;"></span>
+            <button type="button" id="coupon-remove-btn" style="background:none;border:none;color:rgba(255,255,255,0.4);cursor:pointer;font-size:0.9rem;line-height:1;padding:0;">✕</button>
+          </div>
+          <div id="coupon-error" style="display:none;font-size:0.78rem;color:#fb7185;margin-bottom:0.75rem;margin-top:-0.75rem;"></div>
+
           <button type="button" id="pay-btn" class="razorpay-btn">Proceed to Payment →</button>
           <p class="secure-note">🔒 Secured by Razorpay · 256-bit SSL Encryption</p>
           <p id="pay-status" style="display:none;font-size:0.8rem;text-align:center;margin-top:0.75rem;"></p>
@@ -211,8 +223,22 @@
   const ALL_COURSES = (typeof cfpLoadData === 'function') ? cfpLoadData().courses : [];
   const SELECTED_COURSE = ALL_COURSES.find(c => String(c.id) === String(COURSE_ID)) || ALL_COURSES[1] || null;
   const BASE_FEE_RUPEES = SELECTED_COURSE ? parsePriceToRupees(SELECTED_COURSE.price) : 5999;
-  const GST_RUPEES = Math.round(BASE_FEE_RUPEES * 0.18);
-  const TOTAL_AMOUNT_RUPEES = BASE_FEE_RUPEES + GST_RUPEES;
+  let EFFECTIVE_FEE_RUPEES = BASE_FEE_RUPEES; // updated when coupon is applied
+  let appliedCoupon = null; // { code, discountType, discountValue }
+
+  function getGst(feeRupees) { return Math.round(feeRupees * 0.18); }
+  function getTotal(feeRupees) { return feeRupees + getGst(feeRupees); }
+
+  const fmt = n => '₹' + n.toLocaleString('en-IN');
+
+  function refreshOrderSummary() {
+    const feeEl = document.getElementById('checkout-fee');
+    const gstEl = document.getElementById('checkout-gst');
+    const totalEl = document.getElementById('checkout-total');
+    if (feeEl) feeEl.textContent = fmt(EFFECTIVE_FEE_RUPEES);
+    if (gstEl) gstEl.textContent = fmt(getGst(EFFECTIVE_FEE_RUPEES));
+    if (totalEl) totalEl.textContent = fmt(getTotal(EFFECTIVE_FEE_RUPEES));
+  }
 
   (function renderOrderSummary() {
     if (!SELECTED_COURSE) return;
@@ -224,14 +250,61 @@
     if (includesEl && SELECTED_COURSE.features) {
       includesEl.innerHTML = SELECTED_COURSE.features.map(f => `<li>${f}</li>`).join('');
     }
-    const fmt = n => '₹' + n.toLocaleString('en-IN');
-    const feeEl = document.getElementById('checkout-fee');
-    const gstEl = document.getElementById('checkout-gst');
-    const totalEl = document.getElementById('checkout-total');
-    if (feeEl) feeEl.textContent = fmt(BASE_FEE_RUPEES);
-    if (gstEl) gstEl.textContent = fmt(GST_RUPEES);
-    if (totalEl) totalEl.textContent = fmt(TOTAL_AMOUNT_RUPEES);
+    refreshOrderSummary();
   })();
+
+  /* ── COUPON LOGIC ── */
+  document.getElementById('coupon-code').addEventListener('input', function () {
+    this.value = this.value.toUpperCase();
+  });
+
+  document.getElementById('coupon-apply-btn').addEventListener('click', async function () {
+    const code = document.getElementById('coupon-code').value.trim().toUpperCase();
+    const email = document.getElementById('p-email').value.trim();
+    const errEl = document.getElementById('coupon-error');
+    errEl.style.display = 'none';
+    if (!code) return;
+    if (!email) { errEl.textContent = 'Enter your email first so we can validate the code.'; errEl.style.display = 'block'; return; }
+    const btn = this;
+    btn.textContent = '…'; btn.disabled = true;
+    try {
+      const res = await fetch('/api/validate-coupon', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, email, courseId: COURSE_ID, courseFeeRupees: BASE_FEE_RUPEES })
+      });
+      const data = await res.json();
+      if (!data.valid) {
+        errEl.textContent = data.reason || 'Invalid code.';
+        errEl.style.display = 'block';
+      } else {
+        appliedCoupon = { code, discountType: data.discountType, discountValue: data.discountValue };
+        EFFECTIVE_FEE_RUPEES = data.discountedAmount !== null ? data.discountedAmount : BASE_FEE_RUPEES;
+        refreshOrderSummary();
+        const label = data.discountType === 'percent'
+          ? `${code} — ${data.discountValue}% off applied`
+          : `${code} — ₹${data.discountValue} off applied`;
+        document.getElementById('coupon-chip-label').textContent = label;
+        document.getElementById('coupon-input-row').style.display = 'none';
+        document.getElementById('coupon-chip').style.display = 'flex';
+      }
+    } catch (e) {
+      errEl.textContent = 'Could not validate code — please try again.';
+      errEl.style.display = 'block';
+    } finally {
+      btn.textContent = 'Apply'; btn.disabled = false;
+    }
+  });
+
+  document.getElementById('coupon-remove-btn').addEventListener('click', function () {
+    appliedCoupon = null;
+    EFFECTIVE_FEE_RUPEES = BASE_FEE_RUPEES;
+    refreshOrderSummary();
+    document.getElementById('coupon-chip').style.display = 'none';
+    document.getElementById('coupon-input-row').style.display = 'flex';
+    document.getElementById('coupon-code').value = '';
+    document.getElementById('coupon-error').style.display = 'none';
+  });
 
   function setStatus(msg, color) {
     const el = document.getElementById('pay-status');
@@ -247,7 +320,7 @@
         orderId: 'order_SIM' + Date.now(),
         name, email, phone,
         course: document.getElementById('course-name')?.textContent.trim() || 'Course',
-        amount: TOTAL_AMOUNT_RUPEES,
+        amount: getTotal(EFFECTIVE_FEE_RUPEES),
         status: 'captured',
         method: 'UPI'
       });
@@ -268,7 +341,7 @@
     const orderRes = await fetch('/api/create-order', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ amount: TOTAL_AMOUNT_RUPEES * 100, courseId: COURSE_ID, courseName, name, email, phone, user_id: currentUser ? currentUser.id : null })
+      body: JSON.stringify({ amount: getTotal(EFFECTIVE_FEE_RUPEES) * 100, courseId: COURSE_ID, courseName, name, email, phone, user_id: currentUser ? currentUser.id : null, couponCode: appliedCoupon ? appliedCoupon.code : null, discountType: appliedCoupon ? appliedCoupon.discountType : null, discountValue: appliedCoupon ? appliedCoupon.discountValue : null })
     });
     if (!orderRes.ok) throw new Error('create-order failed: ' + orderRes.status);
     const order = await orderRes.json();
@@ -304,7 +377,7 @@
                 orderId: response.razorpay_order_id,
                 name, email, phone,
                 course: courseName,
-                amount: TOTAL_AMOUNT_RUPEES,
+                amount: getTotal(EFFECTIVE_FEE_RUPEES),
                 status: 'captured',
                 method: 'Razorpay'
               });

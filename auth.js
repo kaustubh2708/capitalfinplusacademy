@@ -33,9 +33,8 @@
 
   /* Returns the current user object, or null if not logged in. */
   async function getCurrentUser() {
-    const { data, error } = await client().auth.getUser();
-    if (error) return null;
-    return data.user || null;
+    const { data: { session } } = await client().auth.getSession();
+    return session?.user ?? null;
   }
 
   /* callback(event, session) — event is e.g. 'SIGNED_IN' / 'SIGNED_OUT'.

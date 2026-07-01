@@ -39,6 +39,8 @@
     .video-card-body { padding: 0.85rem 1rem 1rem; }
     .video-card-title { font-weight: 700; font-size: 0.9rem; margin-bottom: 0.3rem; }
     .video-card-desc { font-size: 0.78rem; color: var(--muted); line-height: 1.5; }
+    .video-watched { opacity: 0.75; }
+    .video-watched-badge { position: absolute; top: 6px; right: 6px; width: 22px; height: 22px; border-radius: 50%; background: rgba(34,197,94,0.85); color: #fff; font-size: 0.72rem; font-weight: 800; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 6px rgba(34,197,94,0.5); }
   </style>
   <script src="data.js?v=13"></script>
   <script src="config.js"></script>
@@ -232,6 +234,7 @@
             <li><a href="mailto:hello@capitalfinplus.com" id="footer-email">hello@capitalfinplus.com</a></li>
             <li><a href="#" id="footer-whatsapp" target="_blank" rel="noopener">WhatsApp Us</a></li>
             <li><a href="#" id="footer-telegram" target="_blank" rel="noopener">Telegram Channel</a></li>
+            <li><a href="javascript:void(0)" class="open-modal">Book a Discovery Call</a></li>
           </ul>
         </div>
       </div>
@@ -288,7 +291,42 @@
     document.addEventListener('keydown', e => { if (e.key === 'Escape') closeVideoModal(); });
     document.addEventListener('click', e => {
       const trigger = e.target.closest('.video-card');
-      if (trigger) openVideoModal('https://www.youtube.com/embed/' + trigger.dataset.videoId + '?rel=0', trigger.dataset.videoTitle);
+      if (!trigger) return;
+      const videoId = trigger.dataset.videoId;
+      openVideoModal('https://www.youtube.com/embed/' + videoId + '?rel=0', trigger.dataset.videoTitle);
+
+      // Mark as watched immediately (fire-and-forget) then update UI
+      if (cfpCurrentUser && videoId) {
+        window.cfpSupabase.from('video_progress').upsert(
+          { user_id: cfpCurrentUser.id, video_id: videoId, watched: true },
+          { onConflict: 'user_id,video_id' }
+        ).then(() => {
+          // Add badge and watched style to the card
+          if (!trigger.classList.contains('video-watched')) {
+            trigger.classList.add('video-watched');
+            const thumb = trigger.querySelector('.video-card-thumb');
+            if (thumb && !thumb.querySelector('.video-watched-badge')) {
+              const badge = document.createElement('div');
+              badge.className = 'video-watched-badge';
+              badge.textContent = '✓';
+              thumb.appendChild(badge);
+            }
+            // Update progress bar
+            const label = document.getElementById('video-progress-label');
+            const fill = document.getElementById('video-progress-fill');
+            if (label && fill) {
+              const allCards = document.querySelectorAll('.video-grid .video-card');
+              const watchedCards = document.querySelectorAll('.video-grid .video-card.video-watched');
+              const total = allCards.length;
+              const watched = watchedCards.length;
+              const pct = total ? Math.round(watched / total * 100) : 0;
+              label.textContent = `${watched} of ${total} videos watched`;
+              fill.style.width = pct + '%';
+              fill.closest('div').previousElementSibling.lastElementChild.textContent = pct + '%';
+            }
+          }
+        }).catch(() => {});
+      }
     });
 
     /* Course name -> { label, descriptions, unlocks }. Keyed by the real
@@ -375,27 +413,25 @@
       lmsContentEl.innerHTML = `
         <div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:1.25rem;flex-wrap:wrap;">
           <h2 style="font-size:1.1rem;font-weight:800;">CFA Academy — Course Framework</h2>
-          <a id="academy-pdf-download" href="#" download target="_blank" class="btn btn-primary" style="display:none;font-size:0.78rem;">Download PDF ↓</a>
+          <a id="academy-pdf-download" href="#" target="_blank" class="btn btn-primary" style="display:none;font-size:0.78rem;">Download PDF ↓</a>
         </div>
         <div id="academy-pdf-viewer-wrap" style="border:1px solid var(--border);border-radius:10px;overflow:hidden;background:rgba(255,255,255,0.02);min-height:70vh;display:flex;align-items:center;justify-content:center;">
           <p style="color:var(--muted);font-size:0.9rem;padding:2rem;">Loading…</p>
         </div>`;
       const wrap = document.getElementById('academy-pdf-viewer-wrap');
       try {
-        if (!cfpAcademyPdfUrl) {
-          const { data, error } = await window.cfpSupabase.from('site_content').select('value').eq('key', 'academy_pdf_url').maybeSingle();
-          if (error) throw error;
-          cfpAcademyPdfUrl = (data && data.value) || '';
-        }
-        if (!cfpAcademyPdfUrl) {
-          wrap.innerHTML = '<p style="color:var(--muted);font-size:0.9rem;padding:2rem;text-align:center;">PDF will be available shortly. Check back soon.</p>';
-          return;
-        }
-        document.getElementById('academy-pdf-download').href = cfpAcademyPdfUrl;
+        /* Generate a fresh signed URL each time the tab is opened — expires in 1 hour.
+           The course-materials bucket is private; Supabase Storage RLS gates access
+           to authenticated users only (see supabase/add-pdf-storage.sql). */
+        const { data, error } = await window.cfpSupabase.storage
+          .from('course-materials')
+          .createSignedUrl('cfa-framework-sample.pdf', 3600);
+        if (error || !data || !data.signedUrl) throw new Error('signed_url_failed');
+        document.getElementById('academy-pdf-download').href = data.signedUrl;
         document.getElementById('academy-pdf-download').style.display = 'inline-flex';
-        wrap.innerHTML = `<embed src="${cfpAcademyPdfUrl}" type="application/pdf" style="width:100%;height:75vh;border:0;display:block;" />`;
+        wrap.innerHTML = `<embed src="${data.signedUrl}" type="application/pdf" style="width:100%;height:75vh;border:0;display:block;" />`;
       } catch (e) {
-        wrap.innerHTML = '<p style="color:var(--muted);font-size:0.9rem;padding:2rem;text-align:center;">PDF will be available shortly. Check back soon.</p>';
+        wrap.innerHTML = '<p style="color:var(--muted);font-size:0.9rem;padding:2rem;text-align:center;">PDF unavailable. Please contact support.</p>';
       }
     }
 
@@ -424,7 +460,40 @@
             <p style="color:var(--muted);font-size:0.88rem;line-height:1.6;">${config.desc}</p>
           </div>`;
       }).join('');
-      lmsContentEl.innerHTML = `<h2 style="font-size:1.1rem;font-weight:800;margin-bottom:1.25rem;">My Courses</h2>${cards}`;
+      const TRADING_PATH = { 'Self-Study': '4', 'Guided Learning': '5', 'Mentorship Program': '6' };
+      const enrolledNames = cfpEnrollments.map(e => e.courses && e.courses.name).filter(Boolean);
+      const tiers = enrolledNames.map(n => TRADING_PATH[n]).filter(Boolean);
+      const highestTier = tiers.includes('6') ? '6' : tiers.includes('5') ? '5' : tiers.includes('4') ? '4' : null;
+
+      function upsellCard({ title, price, features, cta, href }) {
+        return `
+          <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(244,194,13,0.22);border-left:3px solid var(--accent,#F4C20D);border-radius:12px;padding:1.5rem 1.75rem;margin-bottom:1rem;">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-bottom:0.75rem;">
+              <h3 style="font-size:1rem;font-weight:800;">${title}</h3>
+              <span style="font-size:0.8rem;font-weight:700;color:var(--accent,#F4C20D);white-space:nowrap;">${price}</span>
+            </div>
+            <ul style="list-style:none;padding:0;margin:0 0 1.1rem;display:flex;flex-direction:column;gap:0.35rem;">
+              ${features.map(f => `<li style="font-size:0.84rem;color:rgba(255,255,255,0.55);display:flex;align-items:baseline;gap:0.5rem;"><span style="color:var(--accent,#F4C20D);font-size:0.7rem;">▸</span>${f}</li>`).join('')}
+            </ul>
+            <a href="${href}" class="btn btn-primary" style="font-size:0.8rem;display:inline-flex;">${cta}</a>
+          </div>`;
+      }
+
+      let upsellHtml = '';
+      if (highestTier === '4') {
+        upsellHtml = `
+          <div style="border-top:1px solid rgba(255,255,255,0.07);margin:1.5rem 0 1.25rem;"></div>
+          <h3 style="font-size:0.78rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:rgba(255,255,255,0.35);margin-bottom:1rem;">Take Your Trading Further</h3>
+          ${upsellCard({ title: 'Upgrade to Guided Learning', price: '₹6,500 + GST', features: ['Live & recorded trading sessions', '3-month backtest access', 'Guided video playlist', 'Step-up from self-paced to structured learning'], cta: 'Upgrade Now →', href: 'payment.html?course=5' })}
+          ${upsellCard({ title: 'Jump to Mentorship Program', price: '₹24,000 + GST', features: ['Everything in Guided Learning', '1-on-1 personal mentorship sessions', 'Both Guided & Framework video playlists', 'Private WhatsApp community access'], cta: 'Apply for Mentorship →', href: 'payment.html?course=6' })}`;
+      } else if (highestTier === '5') {
+        upsellHtml = `
+          <div style="border-top:1px solid rgba(255,255,255,0.07);margin:1.5rem 0 1.25rem;"></div>
+          <h3 style="font-size:0.78rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:rgba(255,255,255,0.35);margin-bottom:1rem;">Take Your Trading Further</h3>
+          ${upsellCard({ title: 'Upgrade to Mentorship Program', price: '₹24,000 + GST', features: ['Everything in Guided Learning, plus', '1-on-1 personal mentorship sessions', 'CFA Framework video playlist unlocked', 'Private WhatsApp community access'], cta: 'Apply for Mentorship →', href: 'payment.html?course=6' })}`;
+      }
+
+      lmsContentEl.innerHTML = `<h2 style="font-size:1.1rem;font-weight:800;margin-bottom:1.25rem;">My Courses</h2>${cards}${upsellHtml}`;
     }
 
     function cfpYtThumb(videoId) { return `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`; }
@@ -433,29 +502,49 @@
       const titles = { guided: 'Guided Course Videos', framework: 'CFA Framework Videos' };
       lmsContentEl.innerHTML = `<h2 style="font-size:1.1rem;font-weight:800;margin-bottom:1.25rem;">${titles[playlistKey]}</h2><p style="color:var(--muted);font-size:0.9rem;">Loading…</p>`;
       try {
-        const { data, error } = await window.cfpSupabase
-          .from('playlist_videos')
-          .select('*')
-          .eq('playlist_key', playlistKey)
-          .order('sort_order', { ascending: true });
-        if (error) throw error;
-        const videos = data || [];
+        const [videosRes, progressRes] = await Promise.all([
+          window.cfpSupabase.from('playlist_videos').select('*').eq('playlist_key', playlistKey).order('sort_order', { ascending: true }),
+          window.cfpSupabase.from('video_progress').select('video_id').eq('user_id', cfpCurrentUser.id)
+        ]);
+        if (videosRes.error) throw videosRes.error;
+        const videos = videosRes.data || [];
+        const watchedIds = new Set((progressRes.data || []).map(r => r.video_id));
+
         if (videos.length === 0) {
           lmsContentEl.innerHTML = `<h2 style="font-size:1.1rem;font-weight:800;margin-bottom:1.25rem;">${titles[playlistKey]}</h2><p style="color:var(--muted);font-size:0.9rem;">No videos available yet.</p>`;
           return;
         }
-        const grid = videos.map(v => `
-          <div class="video-card" data-video-id="${v.video_id}" data-video-title="${(v.title || '').replace(/"/g, '&quot;')}">
-            <div class="video-card-thumb">
+
+        const watchedCount = videos.filter(v => watchedIds.has(v.video_id)).length;
+        const pct = videos.length ? Math.round(watchedCount / videos.length * 100) : 0;
+        const progressBar = `
+          <div id="video-progress-bar-wrap" style="margin-bottom:1.25rem;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.4rem;">
+              <span style="font-size:0.78rem;color:var(--muted);" id="video-progress-label">${watchedCount} of ${videos.length} videos watched</span>
+              <span style="font-size:0.78rem;color:#F4C20D;font-weight:700;">${pct}%</span>
+            </div>
+            <div style="height:3px;background:rgba(255,255,255,0.08);border-radius:2px;overflow:hidden;">
+              <div id="video-progress-fill" style="height:100%;width:${pct}%;background:#F4C20D;border-radius:2px;transition:width 0.4s;"></div>
+            </div>
+          </div>`;
+
+        const grid = videos.map(v => {
+          const watched = watchedIds.has(v.video_id);
+          return `
+          <div class="video-card${watched ? ' video-watched' : ''}" data-video-id="${v.video_id}" data-video-title="${(v.title || '').replace(/"/g, '&quot;')}" data-playlist="${playlistKey}">
+            <div class="video-card-thumb" style="position:relative;">
               <img src="${cfpYtThumb(v.video_id)}" alt="${v.title || ''}" loading="lazy" />
               <div class="video-card-play"><span><svg viewBox="0 0 24 24" width="20" height="20" fill="#fff"><path d="M8 5v14l11-7z"/></svg></span></div>
+              ${watched ? `<div class="video-watched-badge">✓</div>` : ''}
             </div>
             <div class="video-card-body">
               <div class="video-card-title">${v.title || ''}</div>
               ${v.description ? `<div class="video-card-desc">${v.description}</div>` : ''}
             </div>
-          </div>`).join('');
-        lmsContentEl.innerHTML = `<h2 style="font-size:1.1rem;font-weight:800;margin-bottom:1.25rem;">${titles[playlistKey]}</h2><div class="video-grid">${grid}</div>`;
+          </div>`;
+        }).join('');
+
+        lmsContentEl.innerHTML = `<h2 style="font-size:1.1rem;font-weight:800;margin-bottom:1.25rem;">${titles[playlistKey]}</h2>${progressBar}<div class="video-grid">${grid}</div>`;
       } catch (e) {
         lmsContentEl.innerHTML = `<h2 style="font-size:1.1rem;font-weight:800;margin-bottom:1.25rem;">${titles[playlistKey]}</h2><p style="color:var(--muted);font-size:0.9rem;">Could not load videos right now.</p>`;
       }

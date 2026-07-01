@@ -188,7 +188,7 @@ function switchPanel(id) {
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
   document.getElementById('panel-' + id).classList.add('active');
   document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.panel === id));
-  const titles = { dashboard: 'Dashboard', hero: 'Hero Section', about: 'About / Founder', courses: 'Courses & Pricing', testimonials: 'Testimonials', 'blog-list': 'All Articles', 'blog-new': 'New Article', 'bt-list': 'All Backtests', 'bt-new': 'New Backtest', students: 'Students', transactions: 'Transactions', submissions: 'Form Submissions', 'contact-info': 'Contact & Integrations', 'page-content': 'Blog & Backtesting Pages', newsletter: 'Newsletter' };
+  const titles = { dashboard: 'Dashboard', hero: 'Hero Section', about: 'About / Founder', courses: 'Courses & Pricing', testimonials: 'Testimonials', 'blog-list': 'All Articles', 'blog-new': 'New Article', 'bt-list': 'All Backtests', 'bt-new': 'New Backtest', students: 'Students', transactions: 'Transactions', submissions: 'Form Submissions', 'contact-info': 'Contact & Integrations', 'page-content': 'Blog & Backtesting Pages', newsletter: 'Newsletter', coupons: 'Coupons', 'academy-pdf': 'Academy PDF' };
   document.getElementById('topbar-title').textContent = titles[id] || id;
   if (id === 'blog-list') renderBlogTable();
   if (id === 'testimonials') renderTestimonials();
@@ -197,6 +197,8 @@ function switchPanel(id) {
   if (id === 'transactions') renderTransactions();
   if (id === 'submissions') renderSubmissions();
   if (id === 'newsletter') renderNewsletter();
+  if (id === 'coupons') renderCoupons();
+  if (id === 'academy-pdf') initAcademyPdfPanel();
   if (id === 'blog-new' && !editingArticleId) resetEditor();
   if (id === 'bt-list') renderBtTable();
   if (id === 'bt-new' && !editingBtId) resetBtEditor();
@@ -918,6 +920,198 @@ async function cfpCycleSubmissionStatus(id, current) {
   const { error } = await window.cfpSupabase.from('form_submissions').update({ status: next }).eq('id', id);
   if (error) { showToast('⚠️ Could not update status'); return; }
   renderSubmissions();
+}
+
+/* ── COUPONS ── */
+async function renderCoupons() {
+  const tbody = document.getElementById('coupons-table-body');
+  tbody.innerHTML = '<tr><td colspan="7" class="empty-state">Loading…</td></tr>';
+
+  const { data: coupons, error: cErr } = await window.cfpSupabase
+    .from('coupons').select('*').order('created_at', { ascending: false });
+  if (cErr) {
+    tbody.innerHTML = '<tr><td colspan="7" class="empty-state">Could not load coupons.</td></tr>';
+    return;
+  }
+
+  const { data: uses } = await window.cfpSupabase.from('coupon_uses').select('coupon_id');
+  const useCounts = {};
+  (uses || []).forEach(u => { useCounts[u.coupon_id] = (useCounts[u.coupon_id] || 0) + 1; });
+
+  document.getElementById('nav-coupons-count').textContent = (coupons || []).length;
+
+  if (!coupons || coupons.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="7" class="empty-state">No coupons yet.</td></tr>';
+    return;
+  }
+
+  const fmtDt = v => v ? new Date(v).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
+
+  tbody.innerHTML = coupons.map(c => {
+    const count = useCounts[c.id] || 0;
+    const canDelete = count === 0;
+    const typeLabel = c.discount_type === 'percent' ? `${c.discount_value}%` : `₹${c.discount_value}`;
+    return `<tr>
+      <td><strong>${escHtml(c.code)}</strong></td>
+      <td>${c.discount_type === 'percent' ? 'Percentage' : 'Fixed ₹'}</td>
+      <td>${typeLabel}</td>
+      <td style="font-size:0.78rem;">${fmtDt(c.valid_from)}</td>
+      <td style="font-size:0.78rem;">${fmtDt(c.valid_until)}</td>
+      <td>${count}${c.max_uses !== null ? ' / ' + c.max_uses : ''}</td>
+      <td>
+        <button class="btn-outline" style="font-size:0.72rem;padding:0.25rem 0.6rem;${canDelete ? '' : 'opacity:0.35;cursor:not-allowed;'}"
+          ${canDelete ? `onclick="deleteCoupon('${c.id}')"` : 'disabled title="Has been used — cannot delete"'}>Delete</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+async function deleteCoupon(id) {
+  if (!confirm('Delete this coupon? This cannot be undone.')) return;
+  const { error } = await window.cfpSupabase.from('coupons').delete().eq('id', id);
+  if (error) { showToast('⚠️ Could not delete coupon'); return; }
+  showToast('✅ Coupon deleted');
+  renderCoupons();
+}
+
+(function initCouponForm() {
+  const fromEl = document.getElementById('coupon-new-valid-from');
+  if (fromEl && !fromEl.value) {
+    const now = new Date();
+    now.setSeconds(0, 0);
+    fromEl.value = now.toISOString().slice(0, 16);
+  }
+
+  document.getElementById('coupon-clear-until').addEventListener('click', () => {
+    document.getElementById('coupon-new-valid-until').value = '';
+  });
+
+  document.getElementById('coupon-new-code').addEventListener('input', function () {
+    this.value = this.value.toUpperCase();
+  });
+
+  document.getElementById('coupon-save-btn').addEventListener('click', async () => {
+    const msgEl = document.getElementById('coupon-save-msg');
+    msgEl.style.display = 'none';
+    const code = document.getElementById('coupon-new-code').value.trim().toUpperCase();
+    const type = document.getElementById('coupon-new-type').value;
+    const value = parseFloat(document.getElementById('coupon-new-value').value);
+    const maxUsesRaw = document.getElementById('coupon-new-max-uses').value.trim();
+    const validFrom = document.getElementById('coupon-new-valid-from').value;
+    const validUntil = document.getElementById('coupon-new-valid-until').value;
+
+    if (!code) { msgEl.textContent = 'Code is required.'; msgEl.style.color = '#fb7185'; msgEl.style.display = 'block'; return; }
+    if (!value || value <= 0) { msgEl.textContent = 'Discount value must be a positive number.'; msgEl.style.color = '#fb7185'; msgEl.style.display = 'block'; return; }
+
+    const row = {
+      code,
+      discount_type: type,
+      discount_value: value,
+      valid_from: validFrom ? new Date(validFrom).toISOString() : new Date().toISOString(),
+      valid_until: validUntil ? new Date(validUntil).toISOString() : null,
+      max_uses: maxUsesRaw ? parseInt(maxUsesRaw, 10) : null
+    };
+
+    const { error } = await window.cfpSupabase.from('coupons').insert(row);
+    if (error) {
+      msgEl.textContent = error.code === '23505' ? 'A coupon with that code already exists.' : 'Could not save coupon: ' + error.message;
+      msgEl.style.color = '#fb7185';
+      msgEl.style.display = 'block';
+      return;
+    }
+    msgEl.textContent = '✅ Coupon saved.';
+    msgEl.style.color = '#4ade80';
+    msgEl.style.display = 'block';
+    document.getElementById('coupon-new-code').value = '';
+    document.getElementById('coupon-new-value').value = '';
+    document.getElementById('coupon-new-max-uses').value = '';
+    document.getElementById('coupon-new-valid-until').value = '';
+    renderCoupons();
+  });
+})();
+
+/* ── ACADEMY PDF UPLOAD ── */
+function initAcademyPdfPanel() {
+  const statusEl  = document.getElementById('pdf-current-status');
+  const fileInput = document.getElementById('pdf-file-input');
+  const fileLabel = document.getElementById('pdf-file-name');
+  const uploadBtn = document.getElementById('pdf-upload-btn');
+  const progressWrap = document.getElementById('pdf-upload-progress');
+  const progressFill = document.getElementById('pdf-progress-fill');
+  const progressLabel = document.getElementById('pdf-progress-label');
+  const msgEl     = document.getElementById('pdf-upload-msg');
+
+  // Check whether a file already exists by trying to generate a signed URL
+  (async () => {
+    const { data } = await window.cfpSupabase.storage
+      .from('course-materials')
+      .createSignedUrl('pdfs/cfa-framework.pdf', 60);
+    statusEl.textContent = data && data.signedUrl
+      ? '✅ A PDF is currently live for students.'
+      : '⚠️ No PDF uploaded yet — students will see an unavailable message.';
+  })();
+
+  fileInput.addEventListener('change', () => {
+    const file = fileInput.files[0];
+    if (!file) return;
+    fileLabel.textContent = file.name + ' (' + (file.size / 1024 / 1024).toFixed(2) + ' MB)';
+    uploadBtn.disabled = false;
+    msgEl.style.display = 'none';
+  });
+
+  uploadBtn.addEventListener('click', async () => {
+    const file = fileInput.files[0];
+    if (!file) return;
+
+    uploadBtn.disabled = true;
+    progressWrap.style.display = 'block';
+    progressFill.style.width = '0%';
+    progressLabel.textContent = 'Reading file…';
+    msgEl.style.display = 'none';
+
+    try {
+      // Read file as base64
+      const base64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          progressFill.style.width = '30%';
+          progressLabel.textContent = 'Uploading…';
+          // strip the data URL prefix ("data:application/pdf;base64,")
+          resolve(reader.result.split(',')[1]);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      const res = await fetch('/api/upload-pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fileBase64: base64 })
+      });
+
+      progressFill.style.width = '100%';
+      const data = await res.json();
+
+      if (!res.ok || !data.ok) throw new Error(data.error || 'Upload failed');
+
+      progressLabel.textContent = 'Done';
+      msgEl.textContent = '✅ PDF uploaded successfully. Students will see the new version on their next session.';
+      msgEl.style.color = '#4ade80';
+      msgEl.style.display = 'block';
+      statusEl.textContent = '✅ A PDF is currently live for students.';
+      fileInput.value = '';
+      fileLabel.textContent = 'No file chosen';
+      uploadBtn.disabled = true;
+    } catch (err) {
+      progressFill.style.width = '0%';
+      progressLabel.textContent = '';
+      progressWrap.style.display = 'none';
+      msgEl.textContent = '⚠️ Upload failed: ' + (err.message || 'Unknown error');
+      msgEl.style.color = '#fb7185';
+      msgEl.style.display = 'block';
+      uploadBtn.disabled = false;
+    }
+  });
 }
 
 /* ── ESCAPING HELPERS ── */

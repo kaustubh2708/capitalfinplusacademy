@@ -559,6 +559,7 @@
       if (typeof cfpRecordSubmission === 'function') {
         cfpRecordSubmission({ type: 'masterclass', name, email, phone: '', experience: '', message: 'Free Masterclass — ' + sessionDate });
       }
+      fetch('/api/notify-form', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'masterclass', name, email, message: 'Free Masterclass — ' + sessionDate }) }).catch(() => {});
       localStorage.setItem('cfp_masterclass_submitted', '1');
       document.getElementById('mc-popup-pitch').style.display = 'none';
       document.getElementById('mc-popup-success').style.display = 'block';
@@ -598,13 +599,10 @@
      for script.js to use at submit time — it does NOT switch panels on
      page load anymore. */
   function renderBookingWidget() {
-    const calEl = document.getElementById('calendly-widget');
-    if (!calEl) return;
     const rawUrl = (DATA.contact.calendlyUrl || '').trim();
-    if (!rawUrl) { calEl.removeAttribute('data-url'); return; }
+    if (!rawUrl) { window.cfpCalendlyUrl = null; return; }
     const separator = rawUrl.includes('?') ? '&' : '?';
-    const themedUrl = rawUrl + separator + 'background_color=120e02&text_color=ffffff&primary_color=F4C20D';
-    calEl.setAttribute('data-url', themedUrl);
+    window.cfpCalendlyUrl = rawUrl + separator + 'background_color=120e02&text_color=ffffff&primary_color=F4C20D';
   }
 
   /* Blog/Backtesting standalone-page headers + the blog newsletter strip —

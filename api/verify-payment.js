@@ -25,6 +25,7 @@
 const crypto = require('crypto');
 const Razorpay = require('razorpay');
 const { createClient } = require('@supabase/supabase-js');
+const sendNotification = require('./send-notification');
 
 module.exports = async (req, res) => {
   if (req.method !== 'POST') {
@@ -207,6 +208,43 @@ module.exports = async (req, res) => {
       if (enrollErr) throw enrollErr;
 
       enrollmentId = enrollmentRow.id;
+
+      // Send admin notification (fire-and-forget, never fails the response)
+      const amountRupees = (payment.amount || 0) / 100;
+      const courseLabelForEmail = notes.courseName || COURSE_ID_TO_NAME[String(courseId)] || courseId || '—';
+      const rows = [
+        ['Name', notes.name || '—'],
+        ['Email', checkoutEmail || '—'],
+        ['Phone', notes.phone || '—'],
+        ['Course', courseLabelForEmail],
+        ['Amount', '₹' + amountRupees.toLocaleString('en-IN')],
+        ['Payment ID', razorpay_payment_id],
+        ['Time', new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) + ' IST']
+      ];
+      const emailHtml = `<table style="font-family:sans-serif;font-size:14px;border-collapse:collapse;min-width:400px;">${rows.map(([k, v]) => `<tr><td style="padding:8px 12px;font-weight:600;color:#555;background:#f9f9f9;border:1px solid #e0e0e0;white-space:nowrap;">${k}</td><td style="padding:8px 12px;border:1px solid #e0e0e0;">${String(v).replace(/</g, '&lt;').replace(/>/g, '&gt;')}</td></tr>`).join('')}</table>`;
+      sendNotification({ subject: `💰 New Payment — ${courseLabelForEmail} (${notes.name || checkoutEmail || '?'})`, html: emailHtml }).catch(() => {});
+
+      // Record coupon use if a code was applied — idempotent, never fails the payment
+      const couponCode = notes.couponCode ? String(notes.couponCode).trim().toUpperCase() : null;
+      if (couponCode && checkoutEmail) {
+        try {
+          const { data: couponRow } = await supabase
+            .from('coupons')
+            .select('id')
+            .eq('code', couponCode)
+            .maybeSingle();
+          if (couponRow) {
+            const { error: useErr } = await supabase
+              .from('coupon_uses')
+              .insert({ coupon_id: couponRow.id, email: checkoutEmail, course_id: String(courseId || '') });
+            if (useErr && useErr.code !== '23505') {
+              console.error('verify-payment: coupon_uses insert failed', useErr);
+            }
+          }
+        } catch (e) {
+          console.error('verify-payment: coupon recording failed', e);
+        }
+      }
     }
   } catch (err) {
     console.error('verify-payment: post-payment DB write failed', err);

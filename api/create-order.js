@@ -20,7 +20,7 @@ module.exports = async (req, res) => {
     return res.status(500).json({ error: 'Razorpay keys are not configured on the server yet.' });
   }
 
-  const { amount, courseId, courseName, name, email, phone, user_id } = req.body || {};
+  const { amount, courseId, courseName, name, email, phone, user_id, couponCode, discountType, discountValue } = req.body || {};
 
   if (!amount || typeof amount !== 'number' || amount <= 0) {
     return res.status(400).json({ error: 'A valid amount (in paise) is required.' });
@@ -32,16 +32,26 @@ module.exports = async (req, res) => {
   try {
     const razorpay = new Razorpay({ key_id: RAZORPAY_KEY_ID, key_secret: RAZORPAY_KEY_SECRET });
 
+    // Apply coupon discount if present (amount is in paise)
+    let finalAmount = amount;
+    if (couponCode && discountType && discountValue) {
+      if (discountType === 'percent') {
+        finalAmount = Math.round(amount * (1 - Number(discountValue) / 100));
+      } else {
+        finalAmount = Math.max(100, amount - Math.round(Number(discountValue) * 100));
+      }
+    }
+
     /* user_id rides along in Razorpay's own order notes so verify-payment
        can fetch it straight from Razorpay (trusted, since it was set here
        server-side) instead of trusting whatever the client claims at
        verification time. Optional — guest checkout (no logged-in user)
        still works, it just won't produce an enrollment row. */
     const order = await razorpay.orders.create({
-      amount, // paise — e.g. 599900 for ₹5,999
+      amount: finalAmount,
       currency: 'INR',
       receipt: 'cfa_' + Date.now(),
-      notes: { courseId: String(courseId || ''), courseName: courseName || '', name, email, phone, user_id: user_id || '' }
+      notes: { courseId: String(courseId || ''), courseName: courseName || '', name, email, phone, user_id: user_id || '', couponCode: couponCode || '' }
     });
 
     return res.status(200).json({

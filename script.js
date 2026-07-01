@@ -346,7 +346,7 @@ const modalSuccess  = document.getElementById('modal-success');
 const modalFormBody = document.getElementById('modal-form-body');
 
 function openModal() {
-  if (!modalOverlay) return;
+  if (!modalOverlay) { window.location.href = 'index.html#book'; return; }
   modalOverlay.classList.add('active');
   document.body.style.overflow = 'hidden';
 }
@@ -355,12 +355,7 @@ function closeModal() {
   modalOverlay.classList.remove('active');
   document.body.style.overflow = '';
   setTimeout(() => {
-    // Always reset back to Step 1 (our form) for next time
-    const calBody = document.getElementById('modal-calendly-body');
-    const modalEl = document.querySelector('#modal-overlay .modal');
     if (modalFormBody) modalFormBody.style.display = 'block';
-    if (calBody) calBody.style.display = 'none';
-    if (modalEl) modalEl.classList.remove('modal-calendly');
     if (modalSuccess)  modalSuccess.classList.remove('show');
     if (bookingForm)   bookingForm.reset();
     const goalOtherWrap = document.getElementById('f-goal-other-wrap');
@@ -399,33 +394,22 @@ if (bookingForm) {
         message: goalMessage
       });
     }
-    if (modalFormBody) modalFormBody.style.display = 'none';
-
-    // Step 2: if Calendly is connected, swap to the (recolored,
-    // pre-filled) calendar for picking a time. Otherwise, show the plain
-    // success message as before.
-    const calEl = document.getElementById('calendly-widget');
-    const calBody = document.getElementById('modal-calendly-body');
-    const calUrl = calEl && calEl.getAttribute('data-url');
-    if (calUrl && calBody) {
-      const modalEl = document.querySelector('#modal-overlay .modal');
-      if (modalEl) modalEl.classList.add('modal-calendly');
-      calBody.style.display = 'block';
-      calEl.innerHTML = '';
+    fetch('/api/notify-form', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'booking', name, phone, email, experience: document.getElementById('f-exp')?.value || '', message: goalMessage }) }).catch(() => {});
+    const calUrl = window.cfpCalendlyUrl;
+    if (calUrl) {
+      // Close our modal first, then open Calendly's own popup overlay
+      closeModal();
       let attempts = 0;
-      (function initWhenReady() {
-        if (window.Calendly && typeof window.Calendly.initInlineWidget === 'function') {
-          window.Calendly.initInlineWidget({
-            url: calUrl,
-            parentElement: calEl,
-            prefill: { name, email }
-          });
+      (function tryPopup() {
+        if (window.Calendly && typeof window.Calendly.initPopupWidget === 'function') {
+          window.Calendly.initPopupWidget({ url: calUrl, prefill: { name, email } });
         } else if (attempts++ < 25) {
-          setTimeout(initWhenReady, 200); // Calendly's widget.js loads async — poll briefly until it's ready
+          setTimeout(tryPopup, 200);
         }
       })();
-    } else if (modalSuccess) {
-      modalSuccess.classList.add('show');
+    } else {
+      if (modalFormBody) modalFormBody.style.display = 'none';
+      if (modalSuccess) modalSuccess.classList.add('show');
     }
   });
 }
@@ -471,6 +455,7 @@ const counterIO = new IntersectionObserver(entries => {
       const dur     = 2000;
       const start   = performance.now();
       function tick(now) {
+        entry.target.classList.remove('stats-pre-animate'); // remove skeleton on first tick
         const p = Math.min((now - start) / dur, 1);
         const eased = 1 - Math.pow(1 - p, 3);
         el.textContent = prefix + (isFloat ? (eased*target).toFixed(1) : Math.floor(eased*target).toLocaleString('en-IN')) + suffix;
@@ -482,7 +467,10 @@ const counterIO = new IntersectionObserver(entries => {
   });
 }, { threshold: 0.4 });
 const statsSection = document.getElementById('stats');
-if (statsSection) counterIO.observe(statsSection);
+if (statsSection) {
+  statsSection.classList.add('stats-pre-animate');
+  counterIO.observe(statsSection);
+}
 
 /* ─── CONTACT FORM ───────────────────────────── */
 const contactForm    = document.getElementById('contact-form');
@@ -500,16 +488,14 @@ if (contactForm) {
       if (bad) valid = false;
     });
     if (!valid) return;
+    const _cName = document.getElementById('c-name')?.value.trim() || '';
+    const _cEmail = document.getElementById('c-email')?.value.trim() || '';
+    const _cPhone = document.getElementById('c-phone')?.value.trim() || '';
+    const _cMsg = document.getElementById('c-message')?.value.trim() || '';
     if (typeof cfpRecordSubmission === 'function') {
-      cfpRecordSubmission({
-        type: 'contact',
-        name: document.getElementById('c-name')?.value.trim() || '',
-        email: document.getElementById('c-email')?.value.trim() || '',
-        phone: document.getElementById('c-phone')?.value.trim() || '',
-        experience: '',
-        message: document.getElementById('c-message')?.value.trim() || ''
-      });
+      cfpRecordSubmission({ type: 'contact', name: _cName, email: _cEmail, phone: _cPhone, experience: '', message: _cMsg });
     }
+    fetch('/api/notify-form', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'contact', name: _cName, email: _cEmail, phone: _cPhone, message: _cMsg }) }).catch(() => {});
     contactForm.style.display = 'none';
     if (contactSuccess) contactSuccess.classList.add('show');
   });

@@ -37,7 +37,9 @@
     #login-screen { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 9999; }
     .login-card { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 2.5rem; width: min(420px, 90vw); box-shadow: 0 0 60px rgba(244,194,13,0.08); }
     .login-logo { display: flex; align-items: center; gap: 10px; margin-bottom: 2rem; }
-    .login-logo-mark { width: 36px; height: 36px; border-radius: 8px; background: var(--accent); display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 1rem; color: #fff; box-shadow: 0 0 20px rgba(244,194,13,0.4); }
+    .login-logo a { display: flex; align-items: center; gap: 10px; text-decoration: none; color: inherit; }
+    .login-logo-mark { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; }
+    .login-logo-mark svg { width: 36px; height: 36px; }
     .login-logo span { font-size: 1.15rem; font-weight: 800; }
     .login-card h2 { font-size: 1.35rem; font-weight: 800; margin-bottom: 0.4rem; }
     .login-card p { font-size: 0.85rem; color: var(--text-sec); margin-bottom: 2rem; }
@@ -54,7 +56,9 @@
     #app { display: none; width: 100%; }
     .sidebar { width: var(--sidebar-w); height: 100vh; background: var(--surface); border-right: 1px solid var(--border); position: fixed; left: 0; top: 0; display: flex; flex-direction: column; z-index: 100; overflow-y: auto; }
     .sidebar-logo { padding: 1.5rem 1.25rem; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--border); }
-    .sidebar-logo-mark { width: 30px; height: 30px; border-radius: 6px; background: var(--accent); display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 0.85rem; color: #fff; box-shadow: 0 0 14px rgba(244,194,13,0.4); }
+    .sidebar-logo a { display: flex; align-items: center; gap: 10px; text-decoration: none; color: inherit; flex: 1; min-width: 0; }
+    .sidebar-logo-mark { width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .sidebar-logo-mark svg { width: 30px; height: 30px; }
     .sidebar-logo span { font-size: 0.98rem; font-weight: 800; }
     .sidebar-badge { font-size: 0.6rem; font-weight: 700; background: var(--accent-dim); color: var(--accent-bright); padding: 2px 6px; border-radius: 4px; margin-left: auto; }
     nav.sidebar-nav { padding: 1rem 0; flex: 1; }
@@ -164,8 +168,14 @@
 <div id="login-screen">
   <div class="login-card">
     <div class="login-logo">
-      <div class="login-logo-mark">C</div>
-      <span>Capital Finplus <span style="color:var(--accent-bright)">Admin</span></span>
+      <a href="../index.html" aria-label="Back to Capital Finplus home">
+        <div class="login-logo-mark">
+          <svg viewBox="0 0 40 42" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <polygon points="20,39 3.8,27.2 10,7.5 30,7.5 36.2,27.2" fill="rgba(244,194,13,0.07)" stroke="#F4C20D" stroke-width="3.2" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <span>Capital Finplus <span style="color:var(--accent-bright)">Admin</span></span>
+      </a>
     </div>
     <h2>Sign in to Dashboard</h2>
     <p>Manage your website content, blog posts, pricing, transactions and form leads.</p>
@@ -189,8 +199,14 @@
   <!-- SIDEBAR -->
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-logo">
-      <div class="sidebar-logo-mark">C</div>
-      <span>Capital Finplus</span>
+      <a href="../index.html" aria-label="Back to Capital Finplus home">
+        <div class="sidebar-logo-mark">
+          <svg viewBox="0 0 40 42" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <polygon points="20,39 3.8,27.2 10,7.5 30,7.5 36.2,27.2" fill="rgba(244,194,13,0.07)" stroke="#F4C20D" stroke-width="3.2" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <span>Capital Finplus</span>
+      </a>
       <span class="sidebar-badge">Admin</span>
     </div>
     <nav class="sidebar-nav">
@@ -212,9 +228,11 @@
       <div class="nav-item" data-panel="transactions"><span class="icon">💳</span> Transactions <span class="count-pill" id="nav-tx-count">0</span></div>
       <div class="nav-item" data-panel="submissions"><span class="icon">📥</span> Form Submissions <span class="count-pill" id="nav-sub-count">0</span></div>
       <div class="nav-item" data-panel="newsletter"><span class="icon">📧</span> Newsletter <span class="count-pill" id="nav-nl-count">0</span></div>
+      <div class="nav-item" data-panel="coupons"><span class="icon">🏷️</span> Coupons <span class="count-pill" id="nav-coupons-count">0</span></div>
       <div class="nav-section-label">Settings</div>
       <div class="nav-item" data-panel="contact-info"><span class="icon">📞</span> Contact &amp; Integrations</div>
       <div class="nav-item" data-panel="page-content"><span class="icon">🖋️</span> Blog &amp; Backtesting Pages</div>
+      <div class="nav-item" data-panel="academy-pdf"><span class="icon">📄</span> Academy PDF</div>
     </nav>
     <div class="sidebar-footer">
       <button id="logout-btn">↩ Sign Out</button>
@@ -627,6 +645,60 @@
       </div>
     </div>
 
+    <!-- ── COUPONS ── -->
+    <div class="panel" id="panel-coupons">
+      <div class="card" style="margin-bottom:1.5rem;">
+        <h3>🏷️ Create Coupon</h3>
+        <div class="form-row" style="margin-bottom:1rem;">
+          <div class="form-group">
+            <label class="field-label">Code</label>
+            <input type="text" id="coupon-new-code" class="field-input" placeholder="e.g. LAUNCH20" style="text-transform:uppercase;" />
+          </div>
+          <div class="form-group">
+            <label class="field-label">Discount Value</label>
+            <input type="number" id="coupon-new-value" class="field-input" placeholder="e.g. 20" min="1" />
+          </div>
+        </div>
+        <div class="form-row" style="margin-bottom:1rem;">
+          <div class="form-group">
+            <label class="field-label">Discount Type</label>
+            <select id="coupon-new-type" class="field-input">
+              <option value="percent">Percentage (%)</option>
+              <option value="fixed">Fixed Amount (₹)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="field-label">Max Total Uses (blank = unlimited)</label>
+            <input type="number" id="coupon-new-max-uses" class="field-input" placeholder="Leave blank for unlimited" min="1" />
+          </div>
+        </div>
+        <div class="form-row" style="margin-bottom:1.25rem;">
+          <div class="form-group">
+            <label class="field-label">Valid From</label>
+            <input type="datetime-local" id="coupon-new-valid-from" class="field-input" />
+          </div>
+          <div class="form-group">
+            <label class="field-label">Valid Until (optional)</label>
+            <div style="display:flex;gap:0.5rem;align-items:center;">
+              <input type="datetime-local" id="coupon-new-valid-until" class="field-input" style="flex:1;" />
+              <button type="button" id="coupon-clear-until" style="background:none;border:1px solid var(--border);border-radius:6px;color:var(--text-sec);padding:0.4rem 0.7rem;cursor:pointer;font-size:0.78rem;white-space:nowrap;">No expiry</button>
+            </div>
+          </div>
+        </div>
+        <button class="btn-accent" id="coupon-save-btn">Save Coupon</button>
+        <div id="coupon-save-msg" style="display:none;font-size:0.8rem;margin-top:0.75rem;"></div>
+      </div>
+      <div class="card">
+        <h3>Active Coupons</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Code</th><th>Type</th><th>Value</th><th>Valid From</th><th>Valid Until</th><th>Uses</th><th>Actions</th></tr></thead>
+            <tbody id="coupons-table-body"><tr><td colspan="7" class="empty-state">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
     <!-- ── CONTACT INFO ── -->
     <div class="panel" id="panel-contact-info">
       <div class="card">
@@ -698,6 +770,33 @@
           <div class="form-group"><label class="form-label">Subtext</label><input class="form-input" id="pc-nl-sub" /></div>
           <div class="form-group"><label class="form-label">Button Label</label><input class="form-input" id="pc-nl-btn" /></div>
         </div>
+      </div>
+    </div>
+
+    <!-- ── ACADEMY PDF ── -->
+    <div class="panel" id="panel-academy-pdf">
+      <div class="card">
+        <h3>📄 Academy Framework PDF</h3>
+        <p style="font-size:0.82rem;color:var(--text-sec);margin-bottom:1.5rem;">
+          Upload a new PDF to replace the one students see in their dashboard Course PDF tab.
+          The file is stored privately in Supabase Storage; students access it via a short-lived signed URL.
+        </p>
+        <div id="pdf-current-status" style="font-size:0.82rem;color:var(--text-sec);margin-bottom:1.25rem;">Checking current file…</div>
+        <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;margin-bottom:1.25rem;">
+          <label for="pdf-file-input" class="btn-outline" style="cursor:pointer;display:inline-flex;align-items:center;gap:0.5rem;">
+            📂 Choose PDF file
+          </label>
+          <input type="file" id="pdf-file-input" accept="application/pdf" style="display:none;" />
+          <span id="pdf-file-name" style="font-size:0.82rem;color:var(--text-sec);">No file chosen</span>
+        </div>
+        <button class="btn-accent" id="pdf-upload-btn" disabled>Upload PDF</button>
+        <div id="pdf-upload-progress" style="display:none;margin-top:1rem;">
+          <div style="height:4px;background:rgba(255,255,255,0.08);border-radius:2px;overflow:hidden;margin-bottom:0.5rem;">
+            <div id="pdf-progress-fill" style="height:100%;width:0%;background:#F4C20D;border-radius:2px;transition:width 0.3s;"></div>
+          </div>
+          <span id="pdf-progress-label" style="font-size:0.78rem;color:var(--text-sec);">Uploading…</span>
+        </div>
+        <div id="pdf-upload-msg" style="display:none;font-size:0.82rem;margin-top:0.75rem;"></div>
       </div>
     </div>
 
