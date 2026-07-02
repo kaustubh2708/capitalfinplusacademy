@@ -1,4 +1,5 @@
 {
+  "cleanUrls": true,
   "routes": [
     { "src": "/account.html(.*)", "headers": { "Location": "/pages/account.html$1" }, "status": 301 },
     { "src": "/blog.html(.*)", "headers": { "Location": "/pages/blog.html$1" }, "status": 301 },
