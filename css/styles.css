@@ -1460,6 +1460,8 @@ footer {
   nav#navbar .btn.nav-keep { display: inline-flex; }
   .nav-hamburger { display: flex; }
   nav#navbar { padding: 0 4vw; }
+  /* Group account icon + hamburger on the right — prevents icon floating to center */
+  .nav-right { margin-left: auto; margin-right: 12px; }
   /* Logo shrinks so the wordmark never overruns the navbar */
   .nav-logo { font-size: 0.9rem; letter-spacing: 0.04em; gap: 8px; }
   .nav-logo span { letter-spacing: 0.04em; }
@@ -1506,6 +1508,11 @@ footer {
 @media (max-width: 640px) {
   #wa-float-btn { bottom: 16px; right: 16px; width: 52px; height: 52px; }
   .container { padding: 0 5vw; }
+  /* Testimonials: narrow the edge fades so first/last card content isn't hidden */
+  .marquee-wrap::before, .marquee-wrap::after { width: 36px; }
+  .marquee-track { padding-left: 4vw; padding-right: 4vw; }
+  /* Filter bar: pad right so chips don't hide behind floating action buttons */
+  .filter-bar { padding-right: 72px; }
   .modal { margin: 0 1rem; }
   .modal-header { padding: 1.5rem 1.5rem 1.25rem; }
   .modal-body { padding: 1.5rem; }
