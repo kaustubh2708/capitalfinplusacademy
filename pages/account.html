@@ -21,9 +21,10 @@
     .lms-panel { flex: 1; min-width: 0; padding: 2rem; overflow-x: hidden; }
     @media (max-width: 768px) {
       .lms-layout { flex-direction: column; }
-      .lms-sidebar { width: 100%; border-right: none; border-bottom: 1px solid var(--border); display: flex; overflow-x: auto; gap: 0.4rem; padding: 1rem; }
+      .lms-sidebar { width: 100%; border-right: none; border-bottom: 1px solid var(--border); padding: 0.75rem 1rem; overflow-x: auto; }
       .lms-sidebar-heading { display: none; }
-      .lms-tab { width: auto; white-space: nowrap; border-left: none; border-bottom: 3px solid transparent; margin-bottom: 0; }
+      #lms-tabs { display: flex; flex-direction: row; gap: 0.4rem; width: max-content; }
+      .lms-tab { width: auto; white-space: nowrap; border-left: none; border-bottom: 3px solid transparent; margin-bottom: 0; padding: 0.6rem 0.85rem; }
       .lms-tab.active { border-left-color: transparent; border-bottom-color: var(--purple); }
       .lms-panel { padding: 1.25rem; }
     }
