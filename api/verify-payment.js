@@ -27,6 +27,120 @@ const Razorpay = require('razorpay');
 const { createClient } = require('@supabase/supabase-js');
 const sendNotification = require('./send-notification');
 
+/* Course-specific welcome email. courseId is the data.js id string ("3","4","5","6"). */
+function buildCourseWelcomeEmail(firstName, courseLabel, courseId) {
+  const LOGO = `<svg width="34" height="36" viewBox="0 0 40 42" fill="none" xmlns="http://www.w3.org/2000/svg"><polygon points="20,39 3.8,27.2 10,7.5 30,7.5 36.2,27.2" fill="rgba(244,194,13,0.1)" stroke="#F4C20D" stroke-width="3" stroke-linejoin="round"/></svg>`;
+
+  const COURSE_DETAIL = {
+    '4': {
+      tagline: 'Start building your edge — one concept at a time.',
+      intro: 'The Self-Study track is designed for independent learners who want to move at their own pace. You now have lifetime access to structured materials, real backtest data, and premium research.',
+      access: [
+        'CFA Academy Framework PDF — your core study reference',
+        'Premium blog articles &amp; in-depth market research',
+        'Rolling backtest data (last 30 days — increases as you progress)',
+        'Weekly market intelligence in your inbox'
+      ],
+      next: 'Head to your <a href="https://capitalfinplusadvizors.com/pages/account.html#pdf" style="color:#F4C20D;text-decoration:none;font-weight:600;">dashboard</a> to download your course PDF and start reading. The blog\'s premium articles are unlocked — filter by topic and dive in.'
+    },
+    '5': {
+      tagline: 'Structured curriculum. Real-world application.',
+      intro: 'Guided Learning gives you a full video curriculum led by Pravesh — covering everything from reading price action to building a repeatable system. You now have access to all course materials and the video library.',
+      access: [
+        'CFA Academy Framework PDF — your study companion',
+        'Complete guided video lesson library (self-paced)',
+        'Premium blog articles &amp; market breakdowns',
+        'Extended backtest data access (90-day rolling window)',
+        'Weekly market intelligence in your inbox'
+      ],
+      next: 'Start with the <a href="https://capitalfinplusadvizors.com/pages/account.html#guided" style="color:#F4C20D;text-decoration:none;font-weight:600;">video library</a> — watch Module 1 today. Each video is short, focused, and follows a logical sequence.'
+    },
+    '3': {
+      tagline: 'The framework behind every decision we make.',
+      intro: 'The CFA Academy Framework is our core methodology — the structured lens through which we analyse every market, stock, and trade. You\'re getting the full framework video series alongside the PDF that accompanies it.',
+      access: [
+        'CFA Academy Framework PDF — the definitive reference',
+        'Framework video series — the methodology explained step by step',
+        'Premium blog articles &amp; research',
+        'Extended backtest data access',
+        'Weekly market intelligence in your inbox'
+      ],
+      next: 'Go to your <a href="https://capitalfinplusadvizors.com/pages/account.html#framework" style="color:#F4C20D;text-decoration:none;font-weight:600;">Framework Videos</a> tab and start with Part 1 — it sets up the mental model for everything else.'
+    },
+    '6': {
+      tagline: 'You\'re not learning alone anymore.',
+      intro: 'Mentorship is our most hands-on programme — direct access to Pravesh, live sessions, and personalised feedback on your trades and analysis. Everything in every other tier is included.',
+      access: [
+        'Everything in Self-Study, Guided Learning &amp; the Framework',
+        'Live 1:1 mentorship sessions with Pravesh',
+        'Trade review &amp; personalised strategy feedback',
+        'Unlimited backtest data access (full history)',
+        'Priority response on all queries',
+        'Weekly market intelligence in your inbox'
+      ],
+      next: 'Reply to this email or message us on WhatsApp to <strong style="color:#ffffff;">schedule your first session</strong>. We\'ll start with understanding where you are and where you want to get to.'
+    }
+  };
+
+  const detail = COURSE_DETAIL[courseId] || {
+    tagline: 'Your journey starts now.',
+    intro: `Your enrolment in <strong style="color:#F4C20D;">${courseLabel}</strong> is confirmed. We're genuinely excited to have you — this is the start of something great.`,
+    access: [
+      'Course PDF &amp; study materials',
+      'Premium blog articles &amp; research',
+      'Backtest data &amp; market analysis'
+    ],
+    next: 'Head to your <a href="https://capitalfinplusadvizors.com/pages/account.html" style="color:#F4C20D;text-decoration:none;font-weight:600;">dashboard</a> to get started.'
+  };
+
+  const accessItems = detail.access.map(a =>
+    `<li style="padding:6px 0;font-size:14px;color:rgba(240,234,214,0.8);"><span style="color:#F4C20D;font-weight:700;margin-right:10px;">→</span>${a}</li>`
+  ).join('');
+
+  return `
+<div style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;max-width:600px;margin:0 auto;background:#0d0a02;color:#f0ead6;border-radius:12px;overflow:hidden;border:1px solid rgba(244,194,13,0.2);">
+  <div style="height:4px;background:linear-gradient(90deg,#F4C20D,rgba(244,194,13,0.15));"></div>
+  <div style="padding:40px 40px 32px;">
+    <div style="margin-bottom:24px;">${LOGO}</div>
+    <p style="font-size:12px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:#F4C20D;margin:0 0 10px;">Welcome to CFA Academy</p>
+    <h1 style="font-size:24px;font-weight:800;line-height:1.25;margin:0 0 6px;color:#ffffff;">Hi ${firstName}, you're officially enrolled! 🎉</h1>
+    <p style="font-size:14px;color:rgba(244,194,13,0.8);margin:0 0 20px;font-style:italic;">${detail.tagline}</p>
+    <p style="font-size:15px;line-height:1.75;color:rgba(240,234,214,0.75);margin:0 0 6px;">
+      You've joined: <strong style="color:#F4C20D;">${courseLabel}</strong>
+    </p>
+    <p style="font-size:14px;line-height:1.75;color:rgba(240,234,214,0.65);margin:0 0 26px;">${detail.intro}</p>
+
+    <div style="background:rgba(244,194,13,0.06);border:1px solid rgba(244,194,13,0.15);border-radius:10px;padding:22px 26px;margin-bottom:24px;">
+      <p style="font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:rgba(244,194,13,0.7);margin:0 0 12px;">What you now have access to</p>
+      <ul style="margin:0;padding:0;list-style:none;">${accessItems}</ul>
+    </div>
+
+    <div style="background:rgba(255,255,255,0.03);border-left:3px solid #F4C20D;padding:16px 20px;border-radius:0 8px 8px 0;margin-bottom:24px;">
+      <p style="font-size:13px;font-weight:700;color:#ffffff;margin:0 0 6px;">Your next step</p>
+      <p style="font-size:14px;line-height:1.65;color:rgba(240,234,214,0.7);margin:0;">${detail.next}</p>
+    </div>
+
+    <div style="background:rgba(244,194,13,0.04);border:1px solid rgba(244,194,13,0.1);border-radius:8px;padding:14px 18px;margin-bottom:26px;">
+      <p style="font-size:13px;line-height:1.6;color:rgba(240,234,214,0.6);margin:0;">
+        <strong style="color:rgba(240,234,214,0.85);">Setting your password:</strong> You'll receive a separate email with a one-time login link to set your password. It comes from Supabase (our auth provider) — check your spam folder if it doesn't arrive within a few minutes.
+      </p>
+    </div>
+
+    <p style="font-size:14px;line-height:1.65;color:rgba(240,234,214,0.55);margin:0 0 28px;">
+      Questions? Reply to this email or write to <a href="mailto:connect@capitalfinplusadvizors.com" style="color:#F4C20D;text-decoration:none;">connect@capitalfinplusadvizors.com</a> — we respond within a few hours.
+    </p>
+    <p style="font-size:14px;color:rgba(240,234,214,0.75);margin:0;">
+      Warm regards,<br/>
+      <strong style="color:#ffffff;">Pravesh Kumar</strong><br/>
+      <span style="font-size:12px;color:rgba(240,234,214,0.45);">Founder, CFA Academy</span>
+    </p>
+  </div>
+  <div style="padding:20px 40px;border-top:1px solid rgba(244,194,13,0.08);text-align:center;">
+    <p style="font-size:11px;color:rgba(240,234,214,0.3);margin:0;">Capital Finplus Academy · Educational platform only · Not SEBI investment advice.</p>
+  </div>
+</div>`.trim();
+}
+
 module.exports = async (req, res) => {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
@@ -210,54 +324,18 @@ module.exports = async (req, res) => {
       try {
         const resendKey = process.env.RESEND_API_KEY;
         if (resendKey && checkoutEmail) {
-          const studentName = notes.name ? String(notes.name).split(' ')[0] : 'there';
-          const courseLabel = notes.courseName || COURSE_ID_TO_NAME[String(courseId)] || 'your course';
-          const hasPdf = true;
-          const hasVideos = ['Guided Learning', 'The CFA Academy Framework for Stock Investing', 'Mentorship Program'].includes(courseLabel);
-          const welcomeHtml = `
-<div style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;max-width:600px;margin:0 auto;background:#0d0a02;color:#f0ead6;border-radius:12px;overflow:hidden;border:1px solid rgba(244,194,13,0.2);">
-  <div style="height:4px;background:linear-gradient(90deg,#F4C20D,rgba(244,194,13,0.2));"></div>
-  <div style="padding:40px 40px 32px;">
-    <div style="margin-bottom:28px;">
-      <svg width="36" height="38" viewBox="0 0 40 42" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <polygon points="20,39 3.8,27.2 10,7.5 30,7.5 36.2,27.2" fill="rgba(244,194,13,0.1)" stroke="#F4C20D" stroke-width="3" stroke-linejoin="round"/>
-      </svg>
-    </div>
-    <p style="font-size:13px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:#F4C20D;margin:0 0 10px;">Welcome to CFA Academy</p>
-    <h1 style="font-size:26px;font-weight:800;line-height:1.2;margin:0 0 20px;color:#ffffff;">Hi ${studentName}, you're officially enrolled! 🎉</h1>
-    <p style="font-size:15px;line-height:1.7;color:rgba(240,234,214,0.75);margin:0 0 24px;">
-      Your enrolment in <strong style="color:#F4C20D;">${courseLabel}</strong> is confirmed. We're genuinely excited to have you — this is the start of something great.
-    </p>
-    <div style="background:rgba(244,194,13,0.06);border:1px solid rgba(244,194,13,0.18);border-radius:10px;padding:24px 28px;margin-bottom:28px;">
-      <p style="font-size:12px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:rgba(244,194,13,0.7);margin:0 0 14px;">What you now have access to</p>
-      <ul style="margin:0;padding:0;list-style:none;">
-        ${hasPdf ? `<li style="padding:6px 0;font-size:14px;color:rgba(240,234,214,0.8);display:flex;align-items:center;gap:10px;"><span style="color:#F4C20D;font-weight:700;">→</span> Course PDF &amp; study materials</li>` : ''}
-        ${hasVideos ? `<li style="padding:6px 0;font-size:14px;color:rgba(240,234,214,0.8);display:flex;align-items:center;gap:10px;"><span style="color:#F4C20D;font-weight:700;">→</span> Full video lesson library</li>` : ''}
-        <li style="padding:6px 0;font-size:14px;color:rgba(240,234,214,0.8);display:flex;align-items:center;gap:10px;"><span style="color:#F4C20D;font-weight:700;">→</span> Premium backtest data &amp; analysis</li>
-        <li style="padding:6px 0;font-size:14px;color:rgba(240,234,214,0.8);display:flex;align-items:center;gap:10px;"><span style="color:#F4C20D;font-weight:700;">→</span> Blog articles &amp; research</li>
-      </ul>
-    </div>
-    <div style="background:rgba(255,255,255,0.03);border-left:3px solid #F4C20D;border-radius:0 8px 8px 0;padding:16px 20px;margin-bottom:28px;">
-      <p style="font-size:14px;line-height:1.65;color:rgba(240,234,214,0.7);margin:0;">
-        <strong style="color:#ffffff;">Next step:</strong> You'll receive a separate email from Supabase with a one-time link to set your password and log in to your dashboard. Check your spam folder if it doesn't arrive within a few minutes.
-      </p>
-    </div>
-    <p style="font-size:14px;line-height:1.65;color:rgba(240,234,214,0.6);margin:0 0 32px;">
-      Have a question? Just reply to this email or reach us at <a href="mailto:connect@capitalfinplusadvizors.com" style="color:#F4C20D;text-decoration:none;">connect@capitalfinplusadvizors.com</a> — we typically respond within a few hours.
-    </p>
-    <p style="font-size:14px;color:rgba(240,234,214,0.75);margin:0;">Warm regards,<br/><strong style="color:#ffffff;">Pravesh Kumar</strong><br/><span style="font-size:12px;color:rgba(240,234,214,0.45);">Founder, CFA Academy</span></p>
-  </div>
-  <div style="padding:20px 40px;border-top:1px solid rgba(244,194,13,0.1);text-align:center;">
-    <p style="font-size:11px;color:rgba(240,234,214,0.3);margin:0;">Capital Finplus Academy · Educational platform only · Not SEBI investment advice</p>
-  </div>
-</div>`.trim();
+          const welcomeHtml = buildCourseWelcomeEmail(
+            notes.name ? String(notes.name).split(' ')[0] : 'there',
+            notes.courseName || COURSE_ID_TO_NAME[String(courseId)] || 'your course',
+            String(courseId || '')
+          );
           await fetch('https://api.resend.com/emails', {
             method: 'POST',
             headers: { 'Authorization': 'Bearer ' + resendKey, 'Content-Type': 'application/json' },
             body: JSON.stringify({
               from: 'CFA Academy <hello@capitalfinplusadvizors.com>',
               to: [checkoutEmail],
-              subject: 'Welcome to CFA Academy — you\'re officially enrolled 🎉',
+              subject: 'You\'re in — welcome to CFA Academy 🎉',
               html: welcomeHtml
             })
           });

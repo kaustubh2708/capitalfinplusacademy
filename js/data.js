@@ -534,18 +534,17 @@ function cfpRecordSubmission(sub) {
    manual signup form, source:'signup'. Returns a promise so the caller can
    show success/duplicate feedback; resolves to { ok, duplicate }. */
 function cfpRecordNewsletterSignup(email, name) {
-  if (typeof window === 'undefined' || !window.cfpSupabase) return Promise.resolve({ ok: false });
-  return window.cfpSupabase.from('newsletter_subscribers')
-    .insert({ email: (email || '').trim().toLowerCase(), name: name || '', source: 'signup' })
-    .then(function (res) {
-      if (res.error) {
-        // unique(email, source) violation -> already subscribed, not a real failure
-        const duplicate = res.error.code === '23505';
-        if (!duplicate) console.error('cfpRecordNewsletterSignup: Supabase insert failed', res.error);
-        return { ok: duplicate, duplicate };
-      }
-      return { ok: true, duplicate: false };
-    });
+  return fetch('/api/newsletter-signup', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: (email || '').trim().toLowerCase(), name: name || '' })
+  }).then(function (r) {
+    return r.json();
+  }).then(function (data) {
+    return { ok: data.ok || data.duplicate, duplicate: !!data.duplicate };
+  }).catch(function () {
+    return { ok: false, duplicate: false };
+  });
 }
 
 /* Content access: an item is free if EITHER its manual `access` flag is

@@ -7,10 +7,31 @@
 
 const { createClient } = require('@supabase/supabase-js');
 
+// In-memory rate limiter — 10 attempts per IP per 60 s.
+// Vercel may spin up multiple instances so this isn't global, but it
+// stops a single-instance brute-force burst effectively.
+const _rl = new Map();
+const RL_MAX = 10;
+const RL_WINDOW = 60_000;
+
+function rateLimit(ip) {
+  const now = Date.now();
+  const e = _rl.get(ip);
+  if (!e || now > e.r) { _rl.set(ip, { c: 1, r: now + RL_WINDOW }); return true; }
+  if (e.c >= RL_MAX) return false;
+  e.c++;
+  return true;
+}
+
 module.exports = async (req, res) => {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
     return res.status(405).json({ valid: false, reason: 'Method not allowed' });
+  }
+
+  const ip = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket?.remoteAddress || 'unknown';
+  if (!rateLimit(ip)) {
+    return res.status(429).json({ valid: false, reason: 'Too many attempts. Please wait a minute and try again.' });
   }
 
   const { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY } = process.env;
