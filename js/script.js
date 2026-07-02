@@ -5,6 +5,14 @@
 
 /* ─── CUSTOM CURSOR ──────────────────────────── */
 (function initCursor() {
+  /* Hide on touch-only devices — no mouse means no custom cursor needed */
+  if (!window.matchMedia('(pointer: fine)').matches) {
+    const c = document.getElementById('cursor');
+    const r = document.getElementById('cursor-ring');
+    if (c) c.style.display = 'none';
+    if (r) r.style.display = 'none';
+    return;
+  }
   const cursor = document.getElementById('cursor');
   const ring   = document.getElementById('cursor-ring');
   if (!cursor || !ring) return;
