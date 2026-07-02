@@ -196,7 +196,16 @@ function subscribeNewsletter() {
       cfpCurrentUser = null;
       cfpUserHasPremiumAccess = false;
     }
+    renderBlogAccessLabel();
     renderBlogGrid();
     if (cfpCurrentArticleId !== null) openArticle(cfpCurrentArticleId);
   }
 })();
+
+function renderBlogAccessLabel() {
+  const el = document.getElementById('blog-access-tier');
+  if (!el) return;
+  if (!cfpUserHasPremiumAccess) { el.style.display = 'none'; return; }
+  el.textContent = '🔓 All articles unlocked';
+  el.style.display = 'inline-block';
+}

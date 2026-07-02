@@ -410,18 +410,18 @@ A practical, market-tested framework designed to help traders move from confusio
      without touching code. */
   pages: {
     blog: {
-      tag: 'Market Insights',
+      tag: 'Market Intelligence',
       title: 'The Trading Desk',
-      sub: 'The last month is always free. <strong>Older articles</strong> are premium — unlocked with any course purchase.',
-      freeLabel: 'Free — no signup needed',
-      premiumLabel: 'Premium — course students only'
+      sub: 'Market breakdowns, trade psychology, strategy deep-dives, and real framework application. New articles are always free. <strong>Older articles</strong> move to the premium archive — unlocked with any course purchase.',
+      freeLabel: 'Free — newest articles',
+      premiumLabel: 'Premium — archive, course students only'
     },
     backtesting: {
-      tag: 'Daily Chart Trends',
+      tag: 'Daily Chart Analysis',
       title: 'The Backtesting Log',
-      sub: 'Real setups, entries, stops and results — posted daily, including the losses. The last 30 days are always free. <strong>Older entries</strong> move to the premium archive — unlocked with any course purchase.',
-      freeLabel: 'Free — last 30 days',
-      premiumLabel: 'Premium — archive, course students only'
+      sub: 'Real setups, entries, stops and results — posted daily, including the losses. The most recent entries are always free. <strong>Older entries</strong> move to the premium archive. Access window depends on your course — Self-Study gets 30 days, Guided Learning gets 90 days, Mentorship gets the full history.',
+      freeLabel: 'Free — most recent entries',
+      premiumLabel: 'Premium archive — unlocks with any course'
     },
     newsletter: {
       tag: 'Stay in the Loop',
@@ -558,15 +558,19 @@ const CFP_FREE_WINDOW_DAYS = 30;
 
 function cfpEffectiveAccess(item) {
   if (!item) return 'premium';
-  if (item.access === 'free') return 'free';
+  // Time window takes priority: all items (free or premium) within the
+  // rolling window are freely readable. Outside the window, the item's own
+  // access flag decides — defaulting to 'premium' so untagged old content locks.
   if (item._useTimeWindow) {
     const parsed = new Date(item.date);
-    if (isNaN(parsed.getTime())) return item.access || 'free';
-    const freeDays = (typeof window !== 'undefined' && window.CFP_FREE_WINDOW_DAYS) || CFP_FREE_WINDOW_DAYS;
-    const ageDays = (Date.now() - parsed.getTime()) / 86400000;
-    return ageDays <= freeDays ? 'free' : 'premium';
+    if (!isNaN(parsed.getTime())) {
+      const freeDays = (typeof window !== 'undefined' && window.CFP_FREE_WINDOW_DAYS) || CFP_FREE_WINDOW_DAYS;
+      const ageDays = (Date.now() - parsed.getTime()) / 86400000;
+      if (ageDays <= freeDays) return 'free';
+      return item.access || 'premium';
+    }
   }
-  return item.access || 'free';
+  return item.access === 'free' ? 'free' : (item.access || 'free');
 }
 
 /* Flags articles + backtests for the rolling free-preview window and syncs

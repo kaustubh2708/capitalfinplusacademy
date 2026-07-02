@@ -52,12 +52,26 @@ function renderBtGrid() {
     const badgeClass = isFree ? 'badge-free' : (isUnlocked ? 'badge-free' : 'badge-premium');
     const badgeLabel = isFree ? '🔓 Free' : (isUnlocked ? '🔓 Unlocked' : '🔒 Premium');
     const resultBadge = b.result ? `<span class="post-tag-mostread" style="background:${b.result === 'Win' ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.12)'};color:${b.result === 'Win' ? '#4ade80' : '#fb7185'};">${b.result === 'Win' ? '✅' : '❌'} ${b.result}</span>` : '';
-    const thumbContent = b.chartImage
-      ? `<img src="${b.chartImage}" alt="${b.title}" style="width:100%;height:100%;object-fit:cover;" />`
-      : `<span class="thumb-icon" style="color:${b.color};">${icon}</span>`;
+    const accessible = isFree || isUnlocked;
+    let thumbContent;
+    if (b.chartImage) {
+      if (accessible) {
+        thumbContent = `<img src="${b.chartImage}" alt="${b.title}" style="width:100%;height:100%;object-fit:cover;" draggable="false" />`;
+      } else {
+        // Locked: blur via background-image so the URL isn't in a plain <img>
+        // and can't be right-clicked or dragged. An overlay lock icon sits on top.
+        thumbContent = `<div style="position:absolute;inset:0;background:url('${b.chartImage}') center/cover;filter:blur(14px) brightness(0.35);pointer-events:none;" oncontextmenu="return false;"></div>`
+          + `<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;pointer-events:none;">`
+          + `<span style="font-size:1.6rem;line-height:1;filter:drop-shadow(0 2px 6px rgba(0,0,0,0.9));">🔒</span>`
+          + `<span style="font-size:0.65rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:rgba(255,255,255,0.55);">Premium</span>`
+          + `</div>`;
+      }
+    } else {
+      thumbContent = `<span class="thumb-icon" style="color:${b.color};">${icon}</span>`;
+    }
     return `
       <div class="post-card" data-category="${b.instrument}" data-post="${b.id}" onclick="openBacktest('${b.id}')">
-        <div class="post-card-thumb" style="background:${b.bg}">
+        <div class="post-card-thumb" style="background:${b.bg};position:relative;overflow:hidden;">
           ${thumbContent}
         </div>
         <div class="post-card-body">
@@ -120,14 +134,22 @@ function openBacktest(id) {
 
   const thumbEl = document.getElementById('article-thumb-area');
   thumbEl.style.background = b.bg;
+  thumbEl.style.position = 'relative';
+  thumbEl.style.overflow = 'hidden';
   if (b.chartImage) {
-    /* Full reader: show the whole chart, uncropped. The grid card thumbnail
-       (renderBtGrid) intentionally still crops via object-fit:cover — this
-       is just the full-article view, where height:auto + object-fit:contain
-       means the image's own aspect ratio decides the box size instead of
-       being forced into the fixed 220px crop window. */
-    thumbEl.style.height = 'auto';
-    thumbEl.innerHTML = `<img src="${b.chartImage}" alt="${b.title}" style="width:100%;height:auto;display:block;object-fit:contain;" />`;
+    if (unlocked) {
+      // Full reader: uncropped chart at its own aspect ratio
+      thumbEl.style.height = 'auto';
+      thumbEl.innerHTML = `<img src="${b.chartImage}" alt="${b.title}" style="width:100%;height:auto;display:block;object-fit:contain;" draggable="false" />`;
+    } else {
+      // Locked: heavy blur so the chart is not readable, lock overlay on top
+      thumbEl.style.height = '220px';
+      thumbEl.innerHTML = `<div style="position:absolute;inset:0;background:url('${b.chartImage}') center/cover;filter:blur(20px) brightness(0.3);pointer-events:none;" oncontextmenu="return false;"></div>`
+        + `<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;">`
+        + `<span style="font-size:2.2rem;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.9));">🔒</span>`
+        + `<span style="font-size:0.7rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:rgba(255,255,255,0.5);">Purchase a course to view this chart</span>`
+        + `</div>`;
+    }
   } else {
     thumbEl.style.height = '';
     thumbEl.innerHTML = `<span style="color:${b.color};opacity:0.55;">${icon}</span>`;
