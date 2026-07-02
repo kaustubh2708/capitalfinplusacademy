@@ -6,6 +6,12 @@
   <title>My Account — Capital Finplus Academy</title>
   <meta name="robots" content="noindex" />
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="CFA Academy" />
+  <link rel="apple-touch-icon" href="/icons/icon-192.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800;900&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
@@ -162,6 +168,18 @@
           <div class="lms-panel">
             <div id="lms-content"><p style="color:var(--muted);font-size:0.9rem;">Loading…</p></div>
           </div>
+        </div>
+
+        <!-- PWA install banner — shown only when Chrome fires beforeinstallprompt -->
+        <div id="pwa-install-banner" style="display:none;margin-top:1.5rem;padding:1rem 1.25rem;background:rgba(244,194,13,0.07);border:1px solid rgba(244,194,13,0.22);border-radius:12px;display:none;align-items:center;gap:1rem;flex-wrap:wrap;">
+          <div style="flex:1;min-width:0;">
+            <div style="font-weight:700;font-size:0.88rem;color:#fff;margin-bottom:0.2rem;">Add to your home screen</div>
+            <div style="font-size:0.78rem;color:rgba(255,255,255,0.45);line-height:1.4;">Open your dashboard instantly — no browser needed.</div>
+          </div>
+          <button type="button" id="pwa-install-btn" style="flex-shrink:0;padding:0.55rem 1.1rem;background:linear-gradient(135deg,#F4C20D,#d4a80a);border:none;border-radius:8px;color:#0a0701;font-weight:800;font-size:0.8rem;cursor:pointer;font-family:inherit;letter-spacing:0.02em;white-space:nowrap;">
+            Install App
+          </button>
+          <button type="button" id="pwa-install-dismiss" aria-label="Dismiss" style="flex-shrink:0;background:none;border:none;color:rgba(255,255,255,0.3);cursor:pointer;font-size:1.1rem;padding:2px 4px;line-height:1;">✕</button>
         </div>
 
         <button type="button" class="btn btn-secondary" id="account-logout-btn" style="margin-top:1.5rem;">Log Out</button>
@@ -611,6 +629,7 @@
       loggedInEl.style.display = 'block';
       accountContainerEl.style.maxWidth = '1100px';
       cfpCurrentUser = user;
+      if (typeof window._cfpMaybeShowPwaBanner === 'function') window._cfpMaybeShowPwaBanner();
 
       document.getElementById('account-logout-btn').addEventListener('click', async () => {
         await window.cfpAuth.logout();
@@ -698,5 +717,51 @@
   })();
 </script>
 
+<script>
+  /* ── PWA: register service worker ── */
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
+    });
+  }
+
+  /* ── PWA: capture install prompt, show banner when user is logged in ── */
+  let _pwaPrompt = null;
+  window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    _pwaPrompt = e;
+    /* Only show banner if the logged-in dashboard is visible */
+    const loggedIn = document.getElementById('account-logged-in');
+    if (loggedIn && loggedIn.style.display !== 'none') _showPwaBanner();
+  });
+
+  function _showPwaBanner() {
+    const banner = document.getElementById('pwa-install-banner');
+    if (!banner || sessionStorage.getItem('pwa-dismissed')) return;
+    banner.style.display = 'flex';
+  }
+
+  /* Called from the dashboard render so the banner also shows if the prompt
+     already fired before the dashboard was revealed */
+  window._cfpMaybeShowPwaBanner = function() {
+    if (_pwaPrompt) _showPwaBanner();
+  };
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const btn = document.getElementById('pwa-install-btn');
+    const dismiss = document.getElementById('pwa-install-dismiss');
+    if (btn) btn.addEventListener('click', async () => {
+      if (!_pwaPrompt) return;
+      _pwaPrompt.prompt();
+      const { outcome } = await _pwaPrompt.userChoice;
+      _pwaPrompt = null;
+      document.getElementById('pwa-install-banner').style.display = 'none';
+    });
+    if (dismiss) dismiss.addEventListener('click', () => {
+      document.getElementById('pwa-install-banner').style.display = 'none';
+      sessionStorage.setItem('pwa-dismissed', '1');
+    });
+  });
+</script>
 </body>
 </html>
