@@ -68,7 +68,7 @@
 
         <div id="cfp-auth-view-signup" style="display:none;">
           <input id="cfp-signup-name" type="text" placeholder="Full name" autocomplete="name" style="${FIELD}" />
-          <input id="cfp-signup-phone" type="tel" placeholder="Phone (optional)" autocomplete="tel" style="${FIELD}" />
+          <input id="cfp-signup-phone" type="tel" placeholder="Phone number" autocomplete="tel" style="${FIELD}" />
           <input id="cfp-signup-email" type="email" placeholder="Email address" autocomplete="email" style="${FIELD}" />
           <input id="cfp-signup-password" type="password" placeholder="Password (min 6 characters)" autocomplete="new-password" style="${FIELD}margin-bottom:0.9rem;" />
           <button type="button" id="cfp-signup-submit" style="${BTN}">Create Account</button>
@@ -198,7 +198,7 @@
       const phone    = dialogEl.querySelector('#cfp-signup-phone').value.trim();
       const email    = dialogEl.querySelector('#cfp-signup-email').value.trim();
       const password = dialogEl.querySelector('#cfp-signup-password').value;
-      if (!email || !password) return showError('Email and password are required.');
+      if (!email || !password || !phone) return showError('Name, phone, email and password are all required.');
       if (password.length < 6)  return showError('Password must be at least 6 characters.');
       clearMessages();
       setLoading(signupBtn, true, 'Create Account');
