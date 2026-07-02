@@ -182,6 +182,30 @@
           <button type="button" id="pwa-install-dismiss" aria-label="Dismiss" style="flex-shrink:0;background:none;border:none;color:rgba(255,255,255,0.3);cursor:pointer;font-size:1.1rem;padding:2px 4px;line-height:1;">✕</button>
         </div>
 
+        <!-- iOS install hint — shown on iPhone/iPad Safari when not already installed -->
+        <div id="ios-install-banner" style="display:none;margin-top:1.5rem;padding:1rem 1.25rem;background:rgba(244,194,13,0.07);border:1px solid rgba(244,194,13,0.22);border-radius:12px;">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:0.5rem;margin-bottom:0.75rem;">
+            <div style="font-weight:700;font-size:0.88rem;color:#fff;">Add to your home screen</div>
+            <button type="button" id="ios-install-dismiss" aria-label="Dismiss" style="flex-shrink:0;background:none;border:none;color:rgba(255,255,255,0.3);cursor:pointer;font-size:1.1rem;padding:0;line-height:1;margin-top:-2px;">✕</button>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:0.6rem;">
+            <div style="display:flex;align-items:center;gap:0.75rem;font-size:0.81rem;color:rgba(255,255,255,0.6);line-height:1.4;">
+              <span style="flex-shrink:0;width:28px;height:28px;border-radius:6px;background:rgba(244,194,13,0.12);border:1px solid rgba(244,194,13,0.2);display:flex;align-items:center;justify-content:center;font-size:0.9rem;">1</span>
+              Tap the <strong style="color:#F4C20D;margin:0 3px;">Share</strong> button
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F4C20D" stroke-width="2.2" stroke-linecap="round" style="flex-shrink:0;"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+              at the bottom of Safari
+            </div>
+            <div style="display:flex;align-items:center;gap:0.75rem;font-size:0.81rem;color:rgba(255,255,255,0.6);line-height:1.4;">
+              <span style="flex-shrink:0;width:28px;height:28px;border-radius:6px;background:rgba(244,194,13,0.12);border:1px solid rgba(244,194,13,0.2);display:flex;align-items:center;justify-content:center;font-size:0.9rem;">2</span>
+              Scroll down and tap <strong style="color:#F4C20D;margin-left:3px;">Add to Home Screen</strong>
+            </div>
+            <div style="display:flex;align-items:center;gap:0.75rem;font-size:0.81rem;color:rgba(255,255,255,0.6);line-height:1.4;">
+              <span style="flex-shrink:0;width:28px;height:28px;border-radius:6px;background:rgba(244,194,13,0.12);border:1px solid rgba(244,194,13,0.2);display:flex;align-items:center;justify-content:center;font-size:0.9rem;">3</span>
+              Tap <strong style="color:#F4C20D;margin-left:3px;">Add</strong> — your dashboard opens like an app from now on
+            </div>
+          </div>
+        </div>
+
         <button type="button" class="btn btn-secondary" id="account-logout-btn" style="margin-top:1.5rem;">Log Out</button>
       </div>
 
@@ -741,10 +765,23 @@
     banner.style.display = 'flex';
   }
 
+  /* iOS Safari: no beforeinstallprompt — detect manually and show instructions */
+  const _isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const _isInStandalone = window.navigator.standalone === true;
+  const _isSafari = /safari/i.test(navigator.userAgent) && !/chrome|crios|fxios|edgios/i.test(navigator.userAgent);
+  const _showIOSHint = _isIOS && _isSafari && !_isInStandalone;
+
+  function _showIOSBanner() {
+    const banner = document.getElementById('ios-install-banner');
+    if (!banner || sessionStorage.getItem('ios-dismissed')) return;
+    banner.style.display = 'block';
+  }
+
   /* Called from the dashboard render so the banner also shows if the prompt
      already fired before the dashboard was revealed */
   window._cfpMaybeShowPwaBanner = function() {
     if (_pwaPrompt) _showPwaBanner();
+    if (_showIOSHint) _showIOSBanner();
   };
 
   document.addEventListener('DOMContentLoaded', () => {
@@ -756,6 +793,11 @@
       const { outcome } = await _pwaPrompt.userChoice;
       _pwaPrompt = null;
       document.getElementById('pwa-install-banner').style.display = 'none';
+    });
+    const iosDismiss = document.getElementById('ios-install-dismiss');
+    if (iosDismiss) iosDismiss.addEventListener('click', () => {
+      document.getElementById('ios-install-banner').style.display = 'none';
+      sessionStorage.setItem('ios-dismissed', '1');
     });
     if (dismiss) dismiss.addEventListener('click', () => {
       document.getElementById('pwa-install-banner').style.display = 'none';
