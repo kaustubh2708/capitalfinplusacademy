@@ -1,7 +1,8 @@
 User-agent: *
 Allow: /
-Disallow: /admin/
-Disallow: /account.html
-Disallow: /payment.html
+Disallow: /cfa-mgmt/
+Disallow: /pages/account.html
+Disallow: /pages/payment.html
+Disallow: /api/
 
 Sitemap: https://capitalfinplusadvizors.com/sitemap.xml
