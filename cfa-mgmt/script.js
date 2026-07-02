@@ -1688,7 +1688,7 @@ async function init() {
   document.getElementById('contact-calendly').value = state.contact.calendlyUrl || '';
   document.getElementById('contact-razorpay').value = state.contact.razorpayKeyId || '';
   document.getElementById('legal-disclaimer-input').value = state.legal.disclaimer || '';
-  document.getElementById('premium-free-days').value = (state.premium && state.premium.freeDays != null ? state.premium.freeDays : 7);
+  document.getElementById('premium-free-days').value = (state.premium && state.premium.freeDays != null ? state.premium.freeDays : 30);
   document.getElementById('premium-self-study-days').value = (state.premium && state.premium.selfStudyDays) || 30;
   document.getElementById('premium-guided-days').value = (state.premium && state.premium.guidedDays) || 90;
 
