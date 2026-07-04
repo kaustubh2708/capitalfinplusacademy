@@ -158,6 +158,10 @@ module.exports = async (req, res) => {
     });
   } catch (err) {
     console.error('create-order failed', err);
-    return res.status(500).json({ error: 'Could not create Razorpay order.' });
+    /* Razorpay SDK errors carry the useful message in err.error.description
+       (e.g. key/account issues, amount limits) — surface it so checkout
+       failures are diagnosable from the browser network tab. */
+    const detail = (err && err.error && err.error.description) || (err && err.message) || null;
+    return res.status(500).json({ error: 'Could not create Razorpay order.', detail });
   }
 };
