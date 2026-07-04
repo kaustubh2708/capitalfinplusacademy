@@ -7,10 +7,30 @@
 
 const { createClient } = require('@supabase/supabase-js');
 
+// In-memory rate limiter — 5 signups per IP per 10 minutes.
+// Not global across Vercel instances, but stops single-instance bursts
+// (junk-row flooding + welcome-email spam via arbitrary addresses).
+const _rl = new Map();
+const RL_MAX = 5;
+const RL_WINDOW = 600_000;
+function rateLimit(ip) {
+  const now = Date.now();
+  const e = _rl.get(ip);
+  if (!e || now > e.r) { _rl.set(ip, { c: 1, r: now + RL_WINDOW }); return true; }
+  if (e.c >= RL_MAX) return false;
+  e.c++;
+  return true;
+}
+
 module.exports = async (req, res) => {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
     return res.status(405).end();
+  }
+
+  const ip = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket?.remoteAddress || 'unknown';
+  if (!rateLimit(ip)) {
+    return res.status(429).json({ ok: false, reason: 'Too many attempts. Please wait a few minutes and try again.' });
   }
 
   const { email, name } = req.body || {};

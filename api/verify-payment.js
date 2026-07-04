@@ -162,7 +162,11 @@ module.exports = async (req, res) => {
     .update(razorpay_order_id + '|' + razorpay_payment_id)
     .digest('hex');
 
-  const verified = expectedSignature === razorpay_signature;
+  /* timingSafeEqual prevents timing side-channel attacks on the compare;
+     requires equal-length buffers, so length is checked first. */
+  const sigBuf = Buffer.from(String(razorpay_signature));
+  const expBuf = Buffer.from(expectedSignature);
+  const verified = sigBuf.length === expBuf.length && crypto.timingSafeEqual(sigBuf, expBuf);
 
   if (!verified) {
     return res.status(400).json({ verified: false, error: 'Signature mismatch.' });

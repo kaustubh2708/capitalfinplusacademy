@@ -168,7 +168,11 @@ module.exports = async (req, res) => {
     .update(rawBody)
     .digest('hex');
 
-  if (!signature || signature !== expectedSignature) {
+  /* timingSafeEqual prevents timing side-channel attacks on the compare;
+     requires equal-length buffers, so length is checked first. */
+  const sigBuf = Buffer.from(String(signature || ''));
+  const expBuf = Buffer.from(expectedSignature);
+  if (!signature || sigBuf.length !== expBuf.length || !crypto.timingSafeEqual(sigBuf, expBuf)) {
     return res.status(400).json({ error: 'Invalid webhook signature.' });
   }
 
