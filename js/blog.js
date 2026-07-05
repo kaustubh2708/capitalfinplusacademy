@@ -20,6 +20,18 @@ function cfpIconSvg(iconName) {
    fine that it starts empty. */
 let CFP_ARTICLES = [];
 
+/* Slug for the article's crawlable URL (/blog/<slug>, server-rendered by
+   api/article.js). Must stay in sync with slugify() there. */
+function cfpArticleSlug(title) {
+  return String(title)
+    .toLowerCase()
+    .replace(/&/g, ' and ')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 80)
+    .replace(/-+$/, '');
+}
+
 function renderFilterBar() {
   const bar = document.getElementById('filter-bar');
   if (!bar) return;
@@ -63,7 +75,7 @@ function renderBlogGrid() {
             <span class="post-card-category">${a.category}</span>
             ${mostReadBadge}
           </div>
-          <p class="post-title">${a.title}</p>
+          <p class="post-title"><a href="/blog/${cfpArticleSlug(a.title)}" style="color:inherit;text-decoration:none;" onclick="event.preventDefault();">${a.title}</a></p>
           <p class="post-excerpt">${a.excerpt}</p>
           <div class="post-footer">
             <span class="post-date">${a.date}</span>
