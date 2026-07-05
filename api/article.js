@@ -163,17 +163,14 @@ function pageHtml(a, free, slug) {
 }
 
 module.exports = async (req, res) => {
-  const debug = req.query && req.query.debug === '1';
   const slug = String((req.query && req.query.slug) || '').replace(/\/+$/, '').toLowerCase();
   if (!slug) {
-    if (debug) return res.status(200).json({ step: 'no-slug', query: req.query || null });
     res.setHeader('Location', '/pages/blog');
     return res.status(302).end();
   }
 
   const { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY } = process.env;
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-    if (debug) return res.status(200).json({ step: 'no-env', hasUrl: !!SUPABASE_URL, hasKey: !!SUPABASE_SERVICE_ROLE_KEY });
     res.setHeader('Location', '/pages/blog');
     return res.status(302).end();
   }
@@ -204,7 +201,6 @@ module.exports = async (req, res) => {
     return res.status(200).send(pageHtml(article, free, slug));
   } catch (err) {
     console.error('article render failed', err);
-    if (debug) return res.status(200).json({ step: 'catch', error: (err && err.message) || String(err) });
     res.setHeader('Location', '/pages/blog');
     return res.status(302).end();
   }
