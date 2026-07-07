@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Algozone — Algorithmic Structure Scanner | Capital Finplus Academy</title>
+  <meta name="description" content="Algozone scans the entire NSE universe daily and delivers algorithmically shortlisted setups filtered through the CFA Framework — coming soon." />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="canonical" href="https://capitalfinplusadvizors.com/pages/algozone" />
+  <meta name="robots" content="index,follow" />
+  <meta property="og:title" content="Algozone — Algorithmic Structure Scanner" />
+  <meta property="og:description" content="Every setup filtered through the CFA Framework. Coming soon to Capital Finplus Academy." />
+  <meta property="og:image" content="https://capitalfinplusadvizors.com/assets/og-image.png" />
+  <meta property="og:url" content="https://capitalfinplusadvizors.com/pages/algozone" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800;900&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/styles.css" />
+  <script src="/js/data.js"></script>
+  <script src="/js/config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/js/supabase-client.js"></script>
+  <style>
+    /* ── Algozone page-specific styles ── */
+    .az-hero {
+      padding: 6rem 5vw 4rem;
+      text-align: center;
+      position: relative;
+    }
+    .az-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(244,194,13,0.1);
+      border: 1px solid rgba(244,194,13,0.3);
+      color: var(--purple);
+      font-family: 'Manrope', sans-serif;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 6px 16px;
+      border-radius: 100px;
+      margin-bottom: 1.5rem;
+    }
+    .az-badge-dot {
+      width: 7px;
+      height: 7px;
+      background: #F4C20D;
+      border-radius: 50%;
+      animation: az-pulse 2s ease-in-out infinite;
+    }
+    @keyframes az-pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.8); }
+    }
+    .az-title {
+      font-family: 'Manrope', sans-serif;
+      font-weight: 900;
+      font-size: clamp(3.5rem, 9vw, 7rem);
+      letter-spacing: -0.04em;
+      line-height: 1;
+      background: linear-gradient(135deg, #fff 30%, #F4C20D 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 0.6rem;
+    }
+    .az-subtitle {
+      font-family: 'Manrope', sans-serif;
+      font-size: clamp(1rem, 2.5vw, 1.3rem);
+      font-weight: 500;
+      color: rgba(240,234,214,0.65);
+      max-width: 560px;
+      margin: 0 auto 1.5rem;
+      line-height: 1.6;
+    }
+    .az-sub-body {
+      max-width: 560px;
+      margin: 0 auto 2.5rem;
+      font-size: 1rem;
+      color: rgba(240,234,214,0.45);
+      line-height: 1.7;
+    }
+    /* Features grid */
+    .az-features {
+      padding: 0 5vw 5rem;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    .az-features-label {
+      text-align: center;
+      font-family: 'Manrope', sans-serif;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--purple);
+      margin-bottom: 0.75rem;
+    }
+    .az-features-heading {
+      text-align: center;
+      font-family: 'Manrope', sans-serif;
+      font-weight: 800;
+      font-size: clamp(1.5rem, 3vw, 2rem);
+      color: #fff;
+      margin-bottom: 3rem;
+      letter-spacing: -0.02em;
+    }
+    .az-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1.5rem;
+    }
+    .az-card {
+      background: rgba(244,194,13,0.04);
+      border: 1px solid rgba(244,194,13,0.12);
+      border-radius: 16px;
+      padding: 1.75rem 1.5rem;
+      transition: border-color 0.3s, background 0.3s;
+    }
+    .az-card:hover {
+      border-color: rgba(244,194,13,0.28);
+      background: rgba(244,194,13,0.07);
+    }
+    .az-card-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: rgba(244,194,13,0.12);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 1rem;
+      font-size: 1.3rem;
+    }
+    .az-card-title {
+      font-family: 'Manrope', sans-serif;
+      font-weight: 800;
+      font-size: 1rem;
+      color: #fff;
+      margin-bottom: 0.5rem;
+    }
+    .az-card-body {
+      font-size: 0.88rem;
+      color: rgba(240,234,214,0.55);
+      line-height: 1.65;
+    }
+    /* How it works */
+    .az-how {
+      padding: 4rem 5vw;
+      max-width: 760px;
+      margin: 0 auto;
+      text-align: center;
+    }
+    .az-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      margin-top: 2.5rem;
+      position: relative;
+    }
+    .az-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 1.25rem;
+      text-align: left;
+      padding: 1.25rem 0;
+      position: relative;
+    }
+    .az-step:not(:last-child)::after {
+      content: '';
+      position: absolute;
+      left: 18px;
+      top: 56px;
+      bottom: -8px;
+      width: 1px;
+      background: linear-gradient(to bottom, rgba(244,194,13,0.35), rgba(244,194,13,0.05));
+    }
+    .az-step-num {
+      flex-shrink: 0;
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: rgba(244,194,13,0.12);
+      border: 1.5px solid rgba(244,194,13,0.35);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Manrope', sans-serif;
+      font-weight: 800;
+      font-size: 0.9rem;
+      color: #F4C20D;
+      margin-top: 2px;
+    }
+    .az-step-title {
+      font-family: 'Manrope', sans-serif;
+      font-weight: 800;
+      font-size: 1rem;
+      color: #fff;
+      margin-bottom: 0.3rem;
+    }
+    .az-step-body {
+      font-size: 0.88rem;
+      color: rgba(240,234,214,0.5);
+      line-height: 1.6;
+    }
+    /* Notify */
+    .az-notify {
+      padding: 4rem 5vw 5rem;
+      text-align: center;
+    }
+    .az-notify-box {
+      max-width: 520px;
+      margin: 0 auto;
+      background: rgba(244,194,13,0.04);
+      border: 1px solid rgba(244,194,13,0.18);
+      border-radius: 20px;
+      padding: 2.5rem 2rem;
+    }
+    .az-notify-title {
+      font-family: 'Manrope', sans-serif;
+      font-weight: 800;
+      font-size: 1.4rem;
+      color: #fff;
+      margin-bottom: 0.5rem;
+      letter-spacing: -0.02em;
+    }
+    .az-notify-sub {
+      font-size: 0.88rem;
+      color: rgba(240,234,214,0.5);
+      margin-bottom: 1.5rem;
+      line-height: 1.6;
+    }
+    .az-form {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .az-input {
+      flex: 1;
+      min-width: 200px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 8px;
+      color: #f0ead6;
+      font-family: 'Manrope', sans-serif;
+      font-size: 0.9rem;
+      padding: 0.7rem 1rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .az-input:focus { border-color: rgba(244,194,13,0.5); }
+    .az-input::placeholder { color: rgba(240,234,214,0.3); }
+    .az-btn {
+      background: linear-gradient(135deg, #F4C20D, #d4a80a);
+      color: #0a0701;
+      font-family: 'Manrope', sans-serif;
+      font-weight: 800;
+      font-size: 0.9rem;
+      padding: 0.7rem 1.4rem;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: opacity 0.2s;
+      white-space: nowrap;
+    }
+    .az-btn:hover { opacity: 0.88; }
+    .az-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .az-success {
+      display: none;
+      margin-top: 0.75rem;
+      font-size: 0.85rem;
+      color: #22c55e;
+      font-weight: 600;
+    }
+    /* Divider */
+    .az-divider {
+      border: none;
+      border-top: 1px solid rgba(244,194,13,0.1);
+      margin: 0 5vw;
+    }
+    /* Who it's for */
+    .az-for {
+      padding: 4rem 5vw;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    .az-for-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      justify-content: center;
+      margin-top: 1.5rem;
+    }
+    .az-for-chip {
+      background: rgba(244,194,13,0.08);
+      border: 1px solid rgba(244,194,13,0.2);
+      color: rgba(240,234,214,0.75);
+      font-family: 'Manrope', sans-serif;
+      font-size: 0.85rem;
+      font-weight: 600;
+      padding: 8px 18px;
+      border-radius: 100px;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Galaxy canvas — always behind everything -->
+<canvas id="galaxy-canvas" aria-hidden="true"></canvas>
+<div class="noise-overlay" aria-hidden="true"></div>
+
+<!-- Custom cursor -->
+<div class="cursor" id="cursor" aria-hidden="true"></div>
+<div class="cursor-ring" id="cursor-ring" aria-hidden="true"></div>
+
+<div class="content-wrapper">
+
+  <!-- ===== NAVBAR ===== -->
+  <nav id="navbar" role="navigation" aria-label="Main navigation">
+    <a href="/" class="nav-logo" aria-label="Capital Finplus Home">
+      <svg class="nav-logo-dot" aria-hidden="true" viewBox="0 0 40 42" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <filter id="cfa-glow" x="-40%" y="-40%" width="180%" height="180%">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="0.8" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
+        <polygon points="20,39 3.8,27.2 10,7.5 30,7.5 36.2,27.2" fill="rgba(244,194,13,0.07)" stroke="#F4C20D" stroke-width="3.2" stroke-linejoin="round"/>
+      </svg>
+      CΛPITΛL FINPLUS<span> ΛCΛDEMY</span>
+    </a>
+    <div class="nav-right">
+      <ul class="nav-links" role="list">
+        <li><a href="/#about">About</a></li>
+        <li><a href="/#services">Services</a></li>
+        <li><a href="/#courses">Learning</a></li>
+        <li class="nav-dropdown" id="nav-knowledge-dropdown">
+          <button type="button" class="nav-dropdown-toggle">Knowledge <span class="caret">▾</span></button>
+          <ul class="nav-dropdown-menu">
+            <li><a href="/pages/blog.html">Blog</a></li>
+            <li><a href="/pages/backtesting.html">Backtesting</a></li>
+            <li><a href="/pages/algozone.html" class="active">Algozone</a></li>
+          </ul>
+        </li>
+        <li><a href="/#contact-section">Contact</a></li>
+      </ul>
+      <a href="/pages/account.html" class="nav-account-btn" aria-label="My Account">
+        <svg viewBox="0 0 24 24" stroke="currentColor" fill="currentColor"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>
+      </a>
+      <a href="/" class="btn btn-primary" id="nav-cta">Back to Home</a>
+    </div>
+    <button class="nav-hamburger" id="hamburger" aria-label="Toggle menu" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </nav>
+
+  <!-- Mobile nav -->
+  <div class="mobile-nav" id="mobile-nav">
+    <a href="/#about">About</a>
+    <a href="/#services">Services</a>
+    <a href="/#courses">Learning</a>
+    <a href="/pages/blog.html">Blog</a>
+    <a href="/pages/backtesting.html">Backtesting</a>
+    <a href="/pages/algozone.html" style="color:var(--purple);">Algozone</a>
+    <a href="/#contact-section">Contact</a>
+    <a href="/pages/account.html" class="nav-account-btn-mobile"><svg viewBox="0 0 24 24" stroke="currentColor" fill="currentColor"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg> My Account</a>
+  </div>
+
+  <!-- ===== HERO ===== -->
+  <section class="az-hero">
+    <div class="az-badge">
+      <span class="az-badge-dot"></span>
+      In Development · Launching Soon
+    </div>
+    <h1 class="az-title">Algozone</h1>
+    <p class="az-subtitle">Algorithmically shortlisted opportunities.<br>Every setup filtered through the CFA Framework.</p>
+    <p class="az-sub-body">
+      We scan 2,000+ NSE stocks daily so you don't have to. Algozone surfaces only the setups that match
+      Pravesh's complete trading checklist — trend, structure, volume, and risk/reward — and delivers them
+      to your dashboard every morning before the open.
+    </p>
+  </section>
+
+  <!-- ===== FEATURES ===== -->
+  <section class="az-features">
+    <p class="az-features-label">What Algozone does</p>
+    <h2 class="az-features-heading">Built on the same framework you're learning</h2>
+    <div class="az-grid">
+      <div class="az-card">
+        <div class="az-card-icon">📡</div>
+        <div class="az-card-title">Structure Scanner</div>
+        <div class="az-card-body">Scans the full NSE/BSE universe overnight for Higher-High / Higher-Low structures, tight volume consolidations, and clean range formations — the exact building blocks taught in the CFA Framework.</div>
+      </div>
+      <div class="az-card">
+        <div class="az-card-icon">🔬</div>
+        <div class="az-card-title">Framework-Validated</div>
+        <div class="az-card-body">Every shortlisted setup is cross-checked against Pravesh's complete checklist: trend alignment, structural integrity, volume behaviour, and entry/stop placement. Only what passes the full filter makes the daily list.</div>
+      </div>
+      <div class="az-card">
+        <div class="az-card-icon">⚖️</div>
+        <div class="az-card-title">Pre-screened Risk/Reward</div>
+        <div class="az-card-body">Only setups with a minimum 2:1 R:R are included. Entry zone, initial stop, and two targets are defined for every pick. You evaluate the trade — the math is already done.</div>
+      </div>
+      <div class="az-card">
+        <div class="az-card-icon">⏰</div>
+        <div class="az-card-title">Daily Delivery</div>
+        <div class="az-card-body">The scan runs every market day before 9:15 AM IST. Results land directly in your dashboard. Premium members receive an email digest with the morning shortlist — no chart-scrolling required.</div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="az-divider" />
+
+  <!-- ===== HOW IT WORKS ===== -->
+  <section class="az-how">
+    <p class="az-features-label">How it works</p>
+    <h2 class="az-features-heading">From raw data to actionable setups</h2>
+    <div class="az-steps">
+      <div class="az-step">
+        <div class="az-step-num">1</div>
+        <div>
+          <div class="az-step-title">Scan</div>
+          <div class="az-step-body">The CFA Structure Engine runs an overnight scan across 2,000+ NSE-listed equities, identifying stocks that exhibit the structural patterns covered in the academy — Higher Highs, demand consolidations, and range contractions with volume signatures.</div>
+        </div>
+      </div>
+      <div class="az-step">
+        <div class="az-step-num">2</div>
+        <div>
+          <div class="az-step-title">Filter</div>
+          <div class="az-step-body">The raw scan output is passed through the complete CFA Framework checklist: is the stock in a defined trend? Is the structure clean? Is volume confirming the move? Is the entry point offering at least 2:1 risk/reward? Anything that fails a single criterion is dropped.</div>
+        </div>
+      </div>
+      <div class="az-step">
+        <div class="az-step-num">3</div>
+        <div>
+          <div class="az-step-title">Deliver</div>
+          <div class="az-step-body">The final shortlist — typically 5–15 setups — is published to your Algozone dashboard tab and emailed to your inbox before the market opens. Each entry includes the stock, setup type, entry zone, stop, and targets.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="az-divider" />
+
+  <!-- ===== WHO IT'S FOR ===== -->
+  <section class="az-for">
+    <p class="az-features-label" style="text-align:center;">Who it's for</p>
+    <h2 class="az-features-heading">For every level of the CFA Framework</h2>
+    <div class="az-for-chips">
+      <span class="az-for-chip">✓ Self-Study members</span>
+      <span class="az-for-chip">✓ Guided Learning students</span>
+      <span class="az-for-chip">✓ CFA Framework course holders</span>
+      <span class="az-for-chip">✓ Mentorship program members</span>
+      <span class="az-for-chip">✓ Anyone who wants to stop searching, and start trading</span>
+    </div>
+  </section>
+
+  <!-- ===== GET NOTIFIED ===== -->
+  <section class="az-notify">
+    <div class="az-notify-box">
+      <div style="font-size:2rem;margin-bottom:0.75rem;">🚀</div>
+      <div class="az-notify-title">Be first in line</div>
+      <div class="az-notify-sub">
+        Drop your email and we'll notify you the moment Algozone goes live. Early access members get the first 30 days free.
+      </div>
+      <div class="az-form">
+        <input type="email" id="az-email" class="az-input" placeholder="your@email.com" autocomplete="email" />
+        <button class="az-btn" id="az-btn" onclick="azNotify()">Notify Me →</button>
+      </div>
+      <p class="az-success" id="az-success">✓ You're on the list! We'll reach out when Algozone launches.</p>
+    </div>
+  </section>
+
+  <!-- ===== FOOTER ===== -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-col footer-brand">
+          <a href="/" class="footer-logo" aria-label="Capital Finplus Academy Home">
+            <svg class="nav-logo-dot" viewBox="0 0 40 42" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <polygon points="20,39 3.8,27.2 10,7.5 30,7.5 36.2,27.2" fill="rgba(244,194,13,0.07)" stroke="#F4C20D" stroke-width="3.2" stroke-linejoin="round"/>
+            </svg>
+            CΛPITΛL FINPLUS <span style="color:var(--purple)">ΛCΛDEMY</span>
+          </a>
+          <p class="footer-tagline">Professional-grade trading education and mentorship. Built for those who demand real results from the markets.</p>
+        </div>
+        <div class="footer-col">
+          <h4>Company</h4>
+          <ul class="footer-links">
+            <li><a href="/#about">About Us</a></li>
+            <li><a href="/#services">Services</a></li>
+            <li><a href="/pages/blog.html">Blog</a></li>
+            <li><a href="/pages/backtesting.html">Backtesting</a></li>
+            <li><a href="/pages/algozone.html">Algozone</a></li>
+            <li><a href="/#contact-section">Contact</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>Courses</h4>
+          <ul class="footer-links">
+            <li><a href="/pages/payment.html?course=4">Self-Study</a></li>
+            <li><a href="/pages/payment.html?course=5">Guided Learning</a></li>
+            <li><a href="/pages/payment.html?course=6">Mentorship Program</a></li>
+            <li><a href="/pages/payment.html?course=3">CFA Investing Framework</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>Contact</h4>
+          <ul class="footer-links">
+            <li><a href="mailto:connect@capitalfinplusadvizors.com" id="footer-email">connect@capitalfinplusadvizors.com</a></li>
+            <li><a href="#" id="footer-whatsapp" target="_blank" rel="noopener">WhatsApp Us</a></li>
+            <li><a href="#" id="footer-telegram" target="_blank" rel="noopener">Telegram Channel</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p class="footer-copy">© 2026 Capital Finplus Academy. All rights reserved.</p>
+        <p class="footer-disclaimer" id="footer-disclaimer" data-nosnippet>*Capital Finplus Academy is an educational platform. Trading in securities involves risk of loss. All course content is for educational purposes only and does not constitute investment advice. Please consult a SEBI-registered advisor before making investment decisions. Past performance is not indicative of future results.</p>
+        <div class="footer-legal-links" style="margin-top: 16px; display: flex; gap: 24px; justify-content: center; flex-wrap: wrap;">
+          <a href="/pages/privacy-policy.html" style="color: #F4C20D; font-size: 0.82rem; text-decoration: none;">Privacy Policy</a>
+          <a href="/pages/terms-and-conditions.html" style="color: #F4C20D; font-size: 0.82rem; text-decoration: none;">Terms &amp; Conditions</a>
+          <a href="/pages/refund-policy.html" style="color: #F4C20D; font-size: 0.82rem; text-decoration: none;">Refund &amp; Cancellation Policy</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+</div><!-- /content-wrapper -->
+
+<script src="/js/script.js"></script>
+<script src="/js/render.js"></script>
+<script>
+function azNotify() {
+  const emailEl = document.getElementById('az-email');
+  const btn = document.getElementById('az-btn');
+  const success = document.getElementById('az-success');
+  const email = (emailEl.value || '').trim();
+  if (!email || !email.includes('@')) {
+    emailEl.style.borderColor = '#ef4444';
+    emailEl.focus();
+    return;
+  }
+  emailEl.style.borderColor = '';
+  btn.disabled = true;
+  btn.textContent = 'Saving…';
+  fetch('/api/newsletter-signup', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, name: '', source: 'algozone' })
+  }).finally(() => {
+    btn.style.display = 'none';
+    emailEl.style.display = 'none';
+    success.style.display = 'block';
+  });
+}
+document.getElementById('az-email').addEventListener('keydown', e => {
+  if (e.key === 'Enter') azNotify();
+});
+</script>
+</body>
+</html>
