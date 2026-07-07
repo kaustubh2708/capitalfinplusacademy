@@ -629,6 +629,13 @@
     setText('nl-title', nl.title);
     setText('nl-sub', nl.sub);
     setText('nl-btn-label', nl.buttonLabel);
+
+    /* Fade in hero content now that data is ready — heroes start at
+       opacity:0 so there's no flash of stale hardcoded text. */
+    const blogHero = document.getElementById('blog-hero-content');
+    if (blogHero) blogHero.style.opacity = '1';
+    const btHero = document.getElementById('bt-hero-content');
+    if (btHero) btHero.style.opacity = '1';
   }
 
   (async function initRender() {
