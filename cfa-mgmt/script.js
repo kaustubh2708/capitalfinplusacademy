@@ -103,7 +103,7 @@ async function cfpAdminLoadData() {
     stats: siteMap.stats || defaults.stats || {},
     contact: siteMap.contact || defaults.contact || {},
     legal: siteMap.legal || defaults.legal || {},
-    premium: siteMap.premium || defaults.premium || { freeDays: 30, selfStudyDays: 30, guidedDays: 90 },
+    premium: siteMap.premium || defaults.premium || { anonDays: 7, freeDays: 30, selfStudyDays: 30, guidedDays: 90 },
     pages: siteMap.pages || defaults.pages || {},
     courses: (coursesRes.data || []).map(cfpRowToCourse),
     testimonials: (testRes.data || []).map(cfpRowToTestimonial),
@@ -225,7 +225,7 @@ function collectFormData() {
   state.contact.calendlyUrl = val('contact-calendly');
   state.contact.razorpayKeyId = val('contact-razorpay');
   state.legal.disclaimer = val('legal-disclaimer-input');
-  state.premium.freeDays = Number(val('premium-free-days')) || 0;
+  state.premium.anonDays = Number(val('premium-free-days')) || 7;
   state.premium.selfStudyDays = Number(val('premium-self-study-days')) || 30;
   state.premium.guidedDays = Number(val('premium-guided-days')) || 90;
 
@@ -1688,7 +1688,7 @@ async function init() {
   document.getElementById('contact-calendly').value = state.contact.calendlyUrl || '';
   document.getElementById('contact-razorpay').value = state.contact.razorpayKeyId || '';
   document.getElementById('legal-disclaimer-input').value = state.legal.disclaimer || '';
-  document.getElementById('premium-free-days').value = (state.premium && state.premium.freeDays != null ? state.premium.freeDays : 30);
+  document.getElementById('premium-free-days').value = (state.premium && state.premium.anonDays != null ? state.premium.anonDays : 7);
   document.getElementById('premium-self-study-days').value = (state.premium && state.premium.selfStudyDays) || 30;
   document.getElementById('premium-guided-days').value = (state.premium && state.premium.guidedDays) || 90;
 

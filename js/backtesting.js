@@ -201,8 +201,13 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeArticle
     ? (await cfpLoadPublicData()).backtests || []
     : [];
 
-  /* cfpLoadPublicData() → cfpApplyFreeWindow() already set window.CFP_FREE_WINDOW_DAYS
-     from the admin's "Free Preview" setting in Supabase. No override needed here. */
+  /* cfpLoadPublicData() → cfpApplyFreeWindow() set window.CFP_FREE_WINDOW_DAYS from
+     the admin's "Signed-in free window" (default 30 days). Save it, then show
+     anonymous visitors a smaller 7-day teaser to encourage sign-up. */
+  const cfpSignedInFreeDays = window.CFP_FREE_WINDOW_DAYS || 30;
+  window.CFP_FREE_WINDOW_DAYS = (window.CFP_PREMIUM_SETTINGS && window.CFP_PREMIUM_SETTINGS.anonDays != null)
+    ? Number(window.CFP_PREMIUM_SETTINGS.anonDays)
+    : 7;
 
   renderBtFilterBar();
   renderBtGrid();
@@ -226,6 +231,8 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeArticle
       cfpBacktestCutoffDate = (user && typeof window.getBacktestCutoffDate === 'function')
         ? await window.getBacktestCutoffDate(user.id)
         : null;
+      /* Signed-in users (even unenrolled) get the full free window. */
+      if (cfpCurrentUser) window.CFP_FREE_WINDOW_DAYS = cfpSignedInFreeDays;
     } catch (e) {
       cfpCurrentUser = null;
       cfpUserHasPremiumAccess = false;
