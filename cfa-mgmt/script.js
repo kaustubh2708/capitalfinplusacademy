@@ -103,7 +103,7 @@ async function cfpAdminLoadData() {
     stats: siteMap.stats || defaults.stats || {},
     contact: siteMap.contact || defaults.contact || {},
     legal: siteMap.legal || defaults.legal || {},
-    premium: siteMap.premium || defaults.premium || { freeDays: 30 },
+    premium: siteMap.premium || defaults.premium || { freeDays: 30, selfStudyDays: 30, guidedDays: 90 },
     pages: siteMap.pages || defaults.pages || {},
     courses: (coursesRes.data || []).map(cfpRowToCourse),
     testimonials: (testRes.data || []).map(cfpRowToTestimonial),
