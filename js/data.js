@@ -404,7 +404,7 @@ A practical, market-tested framework designed to help traders move from confusio
   /* Admin-configurable rolling free-preview window: articles/backtests dated
      within the last `freeDays` days are free regardless of their manual
      access flag; older items fall back to that flag (see cfpEffectiveAccess). */
-  premium: { anonDays: 7, freeDays: 30, selfStudyDays: 30, guidedDays: 90 },
+  premium: { anonDays: 7, selfStudyDays: 30, guidedDays: 90 },
   /* Editable copy for the Blog and Backtesting standalone pages' hero
      header + the blog newsletter strip — lets the admin change this text
      without touching code. */
