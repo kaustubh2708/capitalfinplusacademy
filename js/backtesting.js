@@ -201,9 +201,8 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeArticle
     ? (await cfpLoadPublicData()).backtests || []
     : [];
 
-  /* Anonymous visitors get a 7-day free window; signed-in users get the
-     full configured window (default 30 days, or their plan's tier). */
-  window.CFP_FREE_WINDOW_DAYS = 7;
+  /* cfpLoadPublicData() → cfpApplyFreeWindow() already set window.CFP_FREE_WINDOW_DAYS
+     from the admin's "Free Preview" setting in Supabase. No override needed here. */
 
   renderBtFilterBar();
   renderBtGrid();
@@ -227,11 +226,6 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeArticle
       cfpBacktestCutoffDate = (user && typeof window.getBacktestCutoffDate === 'function')
         ? await window.getBacktestCutoffDate(user.id)
         : null;
-      /* Restore the full free window for signed-in users (data.js sets this
-         from Supabase config when it loads; fall back to the module default). */
-      if (cfpCurrentUser) {
-        window.CFP_FREE_WINDOW_DAYS = CFP_FREE_WINDOW_DAYS;
-      }
     } catch (e) {
       cfpCurrentUser = null;
       cfpUserHasPremiumAccess = false;
