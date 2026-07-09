@@ -334,7 +334,9 @@
       ? await cfpLoadPublicData().catch(() => null)
       : null;
     const courses = (data && data.courses) || (typeof cfpLoadData === 'function' ? cfpLoadData().courses : []);
-    SELECTED_COURSE = courses.find(c => String(c.id) === String(COURSE_ID)) || courses[1] || null;
+    SELECTED_COURSE = courses.find(c => String(c.id) === String(COURSE_ID))
+      || courses.find(c => c.ctaLink && c.ctaLink.includes('course=' + COURSE_ID))
+      || null;
     BASE_FEE_RUPEES = SELECTED_COURSE ? parsePriceToRupees(SELECTED_COURSE.price) : 5999;
     AFTER_CREDIT_FEE = BASE_FEE_RUPEES;
     EFFECTIVE_FEE_RUPEES = BASE_FEE_RUPEES;
