@@ -17,14 +17,28 @@
 const Razorpay = require('razorpay');
 const { createClient } = require('@supabase/supabase-js');
 
-/* Course prices in rupees — single source of truth for checkout.
-   MUST match data.js course cards. GST (18%) is added on top. */
+/* Fallback prices (rupees) used only when Supabase is unavailable.
+   The live price is always read from the courses table first. */
 const COURSE_PRICE_RUPEES = {
-  '3': 4999,  // The CFA Academy Framework for Stock Investing
-  '4': 860,   // Self-Study
-  '5': 6500,  // Guided Learning
-  '6': 24000  // Mentorship Program
+  '3': 4999,
+  '4': 860,
+  '5': 6500,
+  '6': 24000
 };
+
+/* Fetch the admin-set price for a course from Supabase by matching the
+   cta_link pattern (e.g. 'course=5'). Returns rupees as a number, or
+   null if the row/price is not found. */
+async function getCoursePriceFromSupabase(supabase, courseId) {
+  const { data: course } = await supabase
+    .from('courses')
+    .select('price')
+    .ilike('cta_link', `%course=${courseId}%`)
+    .maybeSingle();
+  if (!course || !course.price) return null;
+  const n = parseFloat(String(course.price).replace(/[^\d.]/g, ''));
+  return isNaN(n) || n <= 0 ? null : n;
+}
 
 /* Upgrade credit rules — mirror payment.html applyUpgradeCredit() */
 const COURSE_CREDIT_MAP = {
@@ -107,19 +121,23 @@ module.exports = async (req, res) => {
     return res.status(400).json({ error: 'Name, email, and phone are required.' });
   }
 
-  const basePrice = COURSE_PRICE_RUPEES[String(courseId)];
-  if (!basePrice) {
+  const fallbackPrice = COURSE_PRICE_RUPEES[String(courseId)];
+  if (!fallbackPrice) {
     return res.status(400).json({ error: 'Unknown course.' });
   }
 
   try {
     /* Recompute the checkout amount from scratch, server-side:
-       base price -> minus upgrade credit -> minus coupon -> plus 18% GST.
-       Mirrors payment.html's display math exactly. */
+       live Supabase price (or hardcoded fallback) -> minus upgrade credit
+       -> minus coupon -> plus 18% GST. */
+    let basePrice = fallbackPrice;
     let effectiveFee = basePrice;
 
     if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
       const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+      const livePrice = await getCoursePriceFromSupabase(supabase, courseId);
+      if (livePrice !== null) basePrice = livePrice;
+      effectiveFee = basePrice;
       const credit = await computeUpgradeCredit(supabase, user_id || null, courseId);
       effectiveFee = Math.max(1, basePrice - credit);
       if (couponCode) {
