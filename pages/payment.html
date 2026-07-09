@@ -80,6 +80,14 @@
       .checkout-summary { position: static; }
     }
   </style>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-XGWVGC4N1G"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-XGWVGC4N1G');
+  </script>
 </head>
 <body>
 <canvas id="galaxy-canvas" aria-hidden="true"></canvas>
@@ -229,13 +237,12 @@
     return isNaN(n) ? 0 : n;
   }
 
-  const ALL_COURSES = (typeof cfpLoadData === 'function') ? cfpLoadData().courses : [];
-  const SELECTED_COURSE = ALL_COURSES.find(c => String(c.id) === String(COURSE_ID)) || ALL_COURSES[1] || null;
-  const BASE_FEE_RUPEES = SELECTED_COURSE ? parsePriceToRupees(SELECTED_COURSE.price) : 5999;
-  let UPGRADE_CREDIT = 0;       // set by applyUpgradeCredit() after auth check
-  let AFTER_CREDIT_FEE = BASE_FEE_RUPEES; // BASE minus upgrade credit
-  let EFFECTIVE_FEE_RUPEES = BASE_FEE_RUPEES; // further reduced by coupon
-  let appliedCoupon = null; // { code, discountType, discountValue }
+  let SELECTED_COURSE = null;
+  let BASE_FEE_RUPEES = 0;
+  let UPGRADE_CREDIT = 0;
+  let AFTER_CREDIT_FEE = 0;
+  let EFFECTIVE_FEE_RUPEES = 0;
+  let appliedCoupon = null;
 
   function getGst(feeRupees) { return Math.round(feeRupees * 0.18); }
   function getTotal(feeRupees) { return feeRupees + getGst(feeRupees); }
@@ -285,6 +292,14 @@
     if (!enrollments || !enrollments.length) return;
     const enrolledNames = enrollments.map(e => e.courses && e.courses.name).filter(Boolean);
 
+    if (SELECTED_COURSE && enrolledNames.includes(SELECTED_COURSE.name)) {
+      const payBtn = document.getElementById('pay-btn');
+      if (payBtn) { payBtn.disabled = true; payBtn.textContent = 'Already Enrolled'; }
+      const statusEl = document.getElementById('pay-status');
+      if (statusEl) { statusEl.innerHTML = '✅ You already have access to this course. <a href="/pages/account.html" style="color:#F4C20D;font-weight:600;">Go to My Account →</a>'; statusEl.style.color = '#4ade80'; statusEl.style.display = 'block'; }
+      return;
+    }
+
     let credit = 0;
     if (COURSE_ID === '5') {
       // Guided Learning: only Self-Study qualifies
@@ -301,7 +316,7 @@
     refreshOrderSummary();
   }
 
-  (function renderOrderSummary() {
+  function renderOrderSummary() {
     if (!SELECTED_COURSE) return;
     const nameEl = document.getElementById('course-name');
     const subEl = document.getElementById('course-subtitle');
@@ -312,10 +327,20 @@
       includesEl.innerHTML = SELECTED_COURSE.features.map(f => `<li>${f}</li>`).join('');
     }
     refreshOrderSummary();
-  })();
+  }
 
-  // Run upgrade credit check asynchronously after page renders
-  applyUpgradeCredit();
+  (async function initPaymentPage() {
+    const data = typeof cfpLoadPublicData === 'function'
+      ? await cfpLoadPublicData().catch(() => null)
+      : null;
+    const courses = (data && data.courses) || (typeof cfpLoadData === 'function' ? cfpLoadData().courses : []);
+    SELECTED_COURSE = courses.find(c => String(c.id) === String(COURSE_ID)) || courses[1] || null;
+    BASE_FEE_RUPEES = SELECTED_COURSE ? parsePriceToRupees(SELECTED_COURSE.price) : 5999;
+    AFTER_CREDIT_FEE = BASE_FEE_RUPEES;
+    EFFECTIVE_FEE_RUPEES = BASE_FEE_RUPEES;
+    renderOrderSummary();
+    await applyUpgradeCredit();
+  })();
 
   /* ── COUPON LOGIC ── */
   document.getElementById('coupon-code').addEventListener('input', function () {
