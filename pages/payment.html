@@ -160,7 +160,7 @@
           </div>
           <div id="coupon-error" style="display:none;font-size:0.78rem;color:#fb7185;margin-bottom:0.75rem;margin-top:-0.75rem;"></div>
 
-          <button type="button" id="pay-btn" class="razorpay-btn">Proceed to Payment →</button>
+          <button type="button" id="pay-btn" class="razorpay-btn" disabled style="opacity:0.5;cursor:not-allowed;">Loading…</button>
           <p class="secure-note">🔒 Secured by Razorpay · 256-bit SSL Encryption</p>
           <p id="pay-status" style="display:none;font-size:0.8rem;text-align:center;margin-top:0.75rem;"></p>
         </form>
@@ -172,20 +172,13 @@
         <div class="checkout-course-name" id="course-name">Loading…</div>
         <div style="font-size:0.8rem;color:rgba(255,255,255,0.4);" id="course-subtitle"></div>
         <div class="checkout-divider"></div>
-        <ul class="checkout-includes" id="course-includes">
-          <li>Complete CFA Trading System</li>
-          <li>Entry, Target &amp; Stop Loss methodology</li>
-          <li>Option premium chart mastery</li>
-          <li>Strike price selection &amp; position sizing</li>
-          <li>Lifetime access</li>
-          <li>1 private Q&amp;A session included</li>
-        </ul>
+        <ul class="checkout-includes" id="course-includes"></ul>
         <div class="checkout-divider"></div>
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;">
           <span style="font-size:0.78rem;color:rgba(255,255,255,0.5);">Course Fee</span>
           <div style="text-align:right;">
             <span style="font-size:0.78rem;color:rgba(255,255,255,0.3);text-decoration:line-through;text-decoration-color:rgba(255,60,60,0.6);display:none;" id="checkout-fee-original"></span>
-            <span style="font-size:0.85rem;display:block;" id="checkout-fee">₹5,999</span>
+            <span style="font-size:0.85rem;display:block;" id="checkout-fee">—</span>
           </div>
         </div>
         <div id="checkout-credit-row" style="display:none;justify-content:space-between;align-items:center;margin-bottom:0.5rem;">
@@ -194,12 +187,12 @@
         </div>
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
           <span style="font-size:0.78rem;color:rgba(255,255,255,0.5);">GST (18%)</span>
-          <span style="font-size:0.85rem;" id="checkout-gst">₹1,080</span>
+          <span style="font-size:0.85rem;" id="checkout-gst">—</span>
         </div>
         <div class="checkout-divider"></div>
         <div style="display:flex;justify-content:space-between;align-items:center;">
           <span style="font-size:0.85rem;font-weight:700;">Total</span>
-          <div class="checkout-price" id="checkout-total">₹7,079</div>
+          <div class="checkout-price" id="checkout-total">—</div>
         </div>
       </div>
 
@@ -342,6 +335,13 @@
     EFFECTIVE_FEE_RUPEES = BASE_FEE_RUPEES;
     renderOrderSummary();
     await applyUpgradeCredit();
+    const payBtn = document.getElementById('pay-btn');
+    if (payBtn && payBtn.textContent !== 'Already Enrolled') {
+      payBtn.disabled = false;
+      payBtn.textContent = 'Proceed to Payment →';
+      payBtn.style.opacity = '';
+      payBtn.style.cursor = '';
+    }
   })();
 
   /* ── COUPON LOGIC ── */
