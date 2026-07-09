@@ -1133,4 +1133,14 @@
 
 <script src="/js/render.js"></script>
 <script src="/js/script.js"></script>
+<script>
+  // Supabase auth emails (invite / password-reset) redirect here.
+  // Forward them straight to account.html which handles the token.
+  (function () {
+    var h = window.location.hash;
+    if (h && (h.includes('type=invite') || h.includes('type=recovery') || h.includes('type=signup'))) {
+      window.location.replace('/pages/account.html' + h);
+    }
+  })();
+</script>
 

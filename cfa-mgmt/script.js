@@ -1507,6 +1507,29 @@ async function cfpRenderManualEnrollHistory() {
 /* ── SEND NEWSLETTER ── */
 async function renderSendNewsletter() {
   await Promise.all([cfpUpdateRecipientCount(), cfpRenderSendHistory()]);
+  const btn = document.getElementById('welcome-batch-btn');
+  const resultEl = document.getElementById('welcome-batch-result');
+  if (!btn) return;
+  btn.addEventListener('click', async () => {
+    const hours = Number(document.getElementById('welcome-hours').value) || 24;
+    btn.disabled = true; btn.textContent = 'Sending…';
+    resultEl.style.display = 'none';
+    try {
+      const r = await fetch('/api/send-welcome-batch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ hours })
+      });
+      const json = await r.json();
+      resultEl.textContent = r.ok
+        ? `✅ Sent ${json.sent} of ${json.total} welcome emails.`
+        : `❌ ${json.error || 'Failed'}`;
+    } catch (e) {
+      resultEl.textContent = '❌ Network error — check console.';
+    }
+    resultEl.style.display = 'block';
+    btn.disabled = false; btn.textContent = 'Send Welcome Emails';
+  });
 }
 
 async function cfpUpdateRecipientCount() {

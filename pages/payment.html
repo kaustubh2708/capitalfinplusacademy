@@ -162,7 +162,7 @@
 
           <button type="button" id="pay-btn" class="razorpay-btn" disabled style="opacity:0.5;cursor:not-allowed;">Loading…</button>
           <p class="secure-note">🔒 Secured by Razorpay · 256-bit SSL Encryption</p>
-          <p id="pay-status" style="display:none;font-size:0.8rem;text-align:center;margin-top:0.75rem;"></p>
+          <p id="pay-status" style="display:none;font-size:0.8rem;text-align:center;margin-top:0.75rem;color:rgba(255,255,255,0.6);"></p>
         </form>
       </div>
 
@@ -213,6 +213,16 @@
     </div>
   </footer>
 
+<!-- ── PAYMENT SUCCESS MODAL ── -->
+<div id="pay-success-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.75);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;padding:1.5rem;">
+  <div style="background:linear-gradient(160deg,#1a1306 0%,#0d0b04 100%);border:1px solid rgba(244,194,13,0.35);border-radius:20px;padding:2.75rem 2.25rem;max-width:440px;width:100%;text-align:center;box-shadow:0 0 80px rgba(244,194,13,0.12);position:relative;">
+    <div style="width:72px;height:72px;border-radius:50%;background:rgba(74,222,128,0.1);border:2px solid rgba(74,222,128,0.4);display:flex;align-items:center;justify-content:center;margin:0 auto 1.25rem;font-size:2rem;">✅</div>
+    <h2 style="font-family:'Manrope',sans-serif;font-weight:800;font-size:1.5rem;color:#fff;margin-bottom:0.6rem;letter-spacing:-0.02em;">Payment Successful!</h2>
+    <p id="pay-success-msg" style="font-size:0.88rem;color:rgba(255,255,255,0.6);line-height:1.65;margin-bottom:1.75rem;"></p>
+    <a id="pay-success-cta" href="/pages/account.html" class="btn btn-primary" style="display:inline-flex;font-size:0.85rem;">Go to My Account →</a>
+    <p style="font-size:0.72rem;color:rgba(255,255,255,0.25);margin-top:1rem;">For any issues, email <strong style="color:rgba(255,255,255,0.4);">connect@capitalfinplusadvizors.com</strong></p>
+  </div>
+</div>
 </div>
 <script src="/js/render.js"></script>
 <script src="/js/script.js"></script>
@@ -404,6 +414,14 @@
     el.style.display = 'block';
   }
 
+  function showSuccessModal(msg, ctaHref) {
+    document.getElementById('pay-success-msg').textContent = msg;
+    const cta = document.getElementById('pay-success-cta');
+    if (ctaHref) cta.href = ctaHref;
+    const modal = document.getElementById('pay-success-modal');
+    modal.style.display = 'flex';
+  }
+
   async function realRazorpayCheckout(name, email, phone) {
     const courseName = document.getElementById('course-name')?.textContent.trim() || 'Course';
 
@@ -459,10 +477,9 @@
               });
             }
             if (verify.success && currentUser) {
-              setStatus('✅ Payment successful! Taking you to your account…', '#4ade80');
-              setTimeout(() => { window.location.href = 'account.html'; }, 1500);
+              showSuccessModal('Your enrollment is confirmed. Head to My Account to access your course.', '/pages/account.html');
             } else {
-              setStatus('✅ Payment successful! A confirmation has been sent to ' + email + '. Our team will share your course access shortly.', '#4ade80');
+              showSuccessModal('A confirmation has been sent to ' + email + '. Our team will share your course access within 2 hours.');
             }
             resolve(response);
           } catch (err) {

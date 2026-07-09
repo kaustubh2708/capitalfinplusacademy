@@ -955,6 +955,15 @@
         </div>
       </div>
       <div class="card">
+        <h3>👋 Send Welcome Email to Recent Sign-ups</h3>
+        <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:1rem;">Sends the "how to get started" onboarding email from <strong>hello@capitalfinplusadvizors.com</strong> to every account created in the last N hours.</p>
+        <div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;margin-bottom:1rem;">
+          <label style="font-size:0.84rem;">Last <input type="number" id="welcome-hours" value="24" min="1" max="720" style="width:70px;background:var(--input-bg);border:1px solid var(--border);border-radius:6px;padding:4px 8px;color:var(--text);font-size:0.84rem;margin:0 4px;"> hours</label>
+          <button class="btn-save" id="welcome-batch-btn">Send Welcome Emails</button>
+        </div>
+        <p id="welcome-batch-result" style="font-size:0.82rem;color:var(--accent-bright);display:none;"></p>
+      </div>
+      <div class="card">
         <h3>📋 Send History</h3>
         <div class="table-wrap">
           <table>

@@ -40,28 +40,23 @@ async function getCoursePriceFromSupabase(supabase, courseId) {
   return isNaN(n) || n <= 0 ? null : n;
 }
 
-/* Upgrade credit rules — mirror payment.html applyUpgradeCredit() */
-const COURSE_CREDIT_MAP = {
-  'Self-Study': 860,
-  'Guided Learning': 6500,
-  'The CFA Academy Framework for Stock Investing': 4999
-};
-
 async function computeUpgradeCredit(supabase, userId, courseId) {
   if (!userId) return 0;
-  const { data: enrollments, error } = await supabase
-    .from('enrollments')
-    .select('courses(name)')
-    .eq('user_id', userId)
-    .eq('status', 'active');
-  if (error || !enrollments || !enrollments.length) return 0;
-  const names = enrollments.map(e => e.courses && e.courses.name).filter(Boolean);
-  if (String(courseId) === '5') {
-    return names.includes('Self-Study') ? 860 : 0;
-  }
-  if (String(courseId) === '6') {
-    return names.reduce((max, n) => Math.max(max, COURSE_CREDIT_MAP[n] || 0), 0);
-  }
+  const [enrollRes, priceRes] = await Promise.all([
+    supabase.from('enrollments').select('courses(name)').eq('user_id', userId).eq('status', 'active'),
+    supabase.from('courses').select('name, price')
+  ]);
+  if (enrollRes.error || !enrollRes.data || !enrollRes.data.length) return 0;
+  const names = enrollRes.data.map(e => e.courses && e.courses.name).filter(Boolean);
+  const priceMap = {};
+  (priceRes.data || []).forEach(r => {
+    const n = parseFloat(String(r.price || '').replace(/[^\d.]/g, ''));
+    if (!isNaN(n) && n > 0) priceMap[r.name] = n;
+  });
+  const fallback = { 'Self-Study': 860, 'Guided Learning': 6500, 'The CFA Academy Framework for Stock Investing': 4999 };
+  const creditOf = name => priceMap[name] || fallback[name] || 0;
+  if (String(courseId) === '5') return names.includes('Self-Study') ? creditOf('Self-Study') : 0;
+  if (String(courseId) === '6') return names.reduce((max, n) => Math.max(max, creditOf(n)), 0);
   return 0;
 }
 

@@ -398,6 +398,7 @@
     const accountContainerEl = document.getElementById('account-container');
     const lmsContentEl = document.getElementById('lms-content');
     let cfpEnrollments = [];
+    let cfpCoursePrices = { 'Self-Study': 860, 'Guided Learning': 6500, 'The CFA Academy Framework for Stock Investing': 4999, 'Mentorship Program': 24000 };
     let cfpAccess = { hasAny: false, guided: false, framework: false };
     let cfpAcademyPdfUrl = '';
     let cfpCurrentUser = null;
@@ -533,12 +534,9 @@
       }).join('');
       const enrolledNames = cfpEnrollments.map(e => e.courses && e.courses.name).filter(Boolean);
 
-      // Course prices for upgrade credit calculation
-      const COURSE_PRICE = { 'Self-Study': 860, 'Guided Learning': 6500, 'The CFA Academy Framework for Stock Investing': 4999 };
+      const P = cfpCoursePrices; // live prices from Supabase (or fallback defaults)
       const fmt = n => '₹' + Number(n).toLocaleString('en-IN');
-
-      // Highest credit the user can apply (biggest enrolled course price)
-      const creditAmount = enrolledNames.reduce((max, n) => Math.max(max, COURSE_PRICE[n] || 0), 0);
+      const creditAmount = enrolledNames.reduce((max, n) => Math.max(max, P[n] || 0), 0);
 
       const hasSelfstudy  = enrolledNames.includes('Self-Study');
       const hasGuided     = enrolledNames.includes('Guided Learning');
@@ -572,24 +570,25 @@
         <div style="border-top:1px solid rgba(255,255,255,0.07);margin:1.5rem 0 1.25rem;"></div>
         <h3 style="font-size:0.78rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:rgba(255,255,255,0.35);margin-bottom:1rem;">Take Your Trading Further</h3>`;
 
+      const priceGuided     = P['Guided Learning'];
+      const priceMentorship = P['Mentorship Program'];
+      const priceSS         = P['Self-Study'];
+      const priceFramework  = P['The CFA Academy Framework for Stock Investing'];
+
       if (hasSelfstudy && !hasGuided && !hasMentorship) {
-        // Self-Study only: offer Guided Learning (with ₹860 credit) + Mentorship (with ₹860 credit)
         upsellHtml = upsellHeader +
-          upsellCard({ title: 'Upgrade to Guided Learning', fullPrice: 6500, credit: 860, features: ['Live & recorded trading sessions', '3-month backtest access', 'Guided video playlist', 'Step-up from self-paced to structured learning'], cta: 'Upgrade Now →', href: '/pages/payment.html?course=5' }) +
-          upsellCard({ title: 'Jump to Mentorship Program', fullPrice: 24000, credit: 860, features: ['Everything in Guided Learning', '1-on-1 personal mentorship sessions', 'Both Guided & Framework video playlists', 'Private WhatsApp community access'], cta: 'Apply for Mentorship →', href: '/pages/payment.html?course=6' });
+          upsellCard({ title: 'Upgrade to Guided Learning', fullPrice: priceGuided, credit: priceSS, features: ['Live & recorded trading sessions', '3-month backtest access', 'Guided video playlist', 'Step-up from self-paced to structured learning'], cta: 'Upgrade Now →', href: '/pages/payment.html?course=5' }) +
+          upsellCard({ title: 'Jump to Mentorship Program', fullPrice: priceMentorship, credit: priceSS, features: ['Everything in Guided Learning', '1-on-1 personal mentorship sessions', 'Both Guided & Framework video playlists', 'Private WhatsApp community access'], cta: 'Apply for Mentorship →', href: '/pages/payment.html?course=6' });
       } else if (hasFramework && !hasGuided && !hasMentorship) {
-        // CFA Framework only: offer Mentorship (with ₹4,999 credit)
         upsellHtml = upsellHeader +
-          upsellCard({ title: 'Upgrade to Mentorship Program', fullPrice: 24000, credit: 4999, features: ['1-on-1 personal mentorship sessions', 'Guided + Framework video playlists', 'Live & recorded trading sessions', 'Private WhatsApp community access'], cta: 'Apply for Mentorship →', href: '/pages/payment.html?course=6' });
+          upsellCard({ title: 'Upgrade to Mentorship Program', fullPrice: priceMentorship, credit: priceFramework, features: ['1-on-1 personal mentorship sessions', 'Guided + Framework video playlists', 'Live & recorded trading sessions', 'Private WhatsApp community access'], cta: 'Apply for Mentorship →', href: '/pages/payment.html?course=6' });
       } else if (hasGuided && !hasMentorship) {
-        // Guided Learning (possibly + others): offer Mentorship (credit = highest paid, which is ₹6,500)
         upsellHtml = upsellHeader +
-          upsellCard({ title: 'Upgrade to Mentorship Program', fullPrice: 24000, credit: 6500, features: ['Everything in Guided Learning, plus', '1-on-1 personal mentorship sessions', 'CFA Framework video playlist unlocked', 'Private WhatsApp community access'], cta: 'Apply for Mentorship →', href: '/pages/payment.html?course=6' });
+          upsellCard({ title: 'Upgrade to Mentorship Program', fullPrice: priceMentorship, credit: priceGuided, features: ['Everything in Guided Learning, plus', '1-on-1 personal mentorship sessions', 'CFA Framework video playlist unlocked', 'Private WhatsApp community access'], cta: 'Apply for Mentorship →', href: '/pages/payment.html?course=6' });
       } else if (hasSelfstudy && hasFramework && !hasGuided && !hasMentorship) {
-        // Both Self-Study + CFA Framework: offer Guided (₹860 credit) + Mentorship (₹4,999 credit — highest)
         upsellHtml = upsellHeader +
-          upsellCard({ title: 'Upgrade to Guided Learning', fullPrice: 6500, credit: 860, features: ['Live & recorded trading sessions', '3-month backtest access', 'Guided video playlist', 'Step-up from self-paced to structured learning'], cta: 'Upgrade Now →', href: '/pages/payment.html?course=5' }) +
-          upsellCard({ title: 'Jump to Mentorship Program', fullPrice: 24000, credit: 4999, features: ['Everything in Guided Learning', '1-on-1 personal mentorship sessions', 'Both Guided & Framework video playlists', 'Private WhatsApp community access'], cta: 'Apply for Mentorship →', href: '/pages/payment.html?course=6' });
+          upsellCard({ title: 'Upgrade to Guided Learning', fullPrice: priceGuided, credit: priceSS, features: ['Live & recorded trading sessions', '3-month backtest access', 'Guided video playlist', 'Step-up from self-paced to structured learning'], cta: 'Upgrade Now →', href: '/pages/payment.html?course=5' }) +
+          upsellCard({ title: 'Jump to Mentorship Program', fullPrice: priceMentorship, credit: priceFramework, features: ['Everything in Guided Learning', '1-on-1 personal mentorship sessions', 'Both Guided & Framework video playlists', 'Private WhatsApp community access'], cta: 'Apply for Mentorship →', href: '/pages/payment.html?course=6' });
       }
 
       lmsContentEl.innerHTML = `<h2 style="font-size:1.1rem;font-weight:800;margin-bottom:1.25rem;">My Courses</h2>${cards}${upsellHtml}`;
@@ -681,6 +680,14 @@
       } catch (e) {
         cfpEnrollments = [];
       }
+
+      try {
+        const { data: priceRows } = await window.cfpSupabase.from('courses').select('name, price');
+        (priceRows || []).forEach(r => {
+          const n = parseFloat(String(r.price || '').replace(/[^\d.]/g, ''));
+          if (!isNaN(n) && n > 0) cfpCoursePrices[r.name] = n;
+        });
+      } catch (e) { /* keep fallback values */ }
 
       const names = cfpEnrollments.map(e => e.courses && e.courses.name).filter(Boolean);
       cfpAccess = {
