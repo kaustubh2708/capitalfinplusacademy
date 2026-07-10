@@ -723,7 +723,15 @@
       try {
         await window.cfpAuth.setNewPassword(pass);
         const user = await window.cfpAuth.getCurrentUser();
-        if (user) showLoggedIn(user);
+        if (user) {
+          showLoggedIn(user);
+          // Fire-and-forget welcome email on first password set
+          fetch('/api/send-welcome-batch', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ targetEmail: user.email, targetName: user.user_metadata?.full_name || '' })
+          }).catch(() => {});
+        }
       } catch (err) {
         errEl.textContent = err.message || 'Could not set your password — try the link again.';
         errEl.style.display = 'block';

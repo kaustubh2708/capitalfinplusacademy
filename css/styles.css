@@ -1256,7 +1256,7 @@ a.contact-info-item .contact-info-text strong { color: var(--purple); text-decor
   border-color: var(--purple);
   box-shadow: 0 0 16px rgba(244,194,13,0.15);
 }
-.form-input select option { background: #0d0a02; }
+.form-input select option { background: #0d0a02; color: #f0ead6; }
 textarea.form-input { resize: vertical; min-height: 100px; }
 .contact-success { display: none; text-align: center; padding: 2.5rem 0; }
 .contact-success.show { display: block; }

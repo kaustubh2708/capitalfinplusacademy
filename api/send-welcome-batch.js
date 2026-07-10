@@ -79,8 +79,31 @@ module.exports = async (req, res) => {
   }
   // If no ADMIN_SECRET env var is set, endpoint is open (low-risk write-only op)
 
-  const hours = Number(req.body?.hours) || 24;
-  const since = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
+  const { targetEmail, targetName, hours } = req.body || {};
+
+  // Single-user mode (auto-triggered on first password set)
+  if (targetEmail) {
+    const firstName = (targetName || targetEmail.split('@')[0] || 'there').split(' ')[0];
+    try {
+      const r = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + RESEND_API_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          from: 'CFA Academy <hello@capitalfinplusadvizors.com>',
+          to: [targetEmail],
+          subject: 'Welcome to Capital Finplus Academy — here\'s how to get started',
+          html: buildHowToEmail(firstName, targetEmail)
+        })
+      });
+      const json = await r.json();
+      return res.status(r.ok ? 200 : 500).json({ sent: r.ok ? 1 : 0, total: 1, results: [{ email: targetEmail, status: r.ok ? 'sent' : 'failed', detail: json }] });
+    } catch (e) {
+      return res.status(500).json({ error: e.message });
+    }
+  }
+
+  const windowHours = Number(hours) || 24;
+  const since = new Date(Date.now() - windowHours * 60 * 60 * 1000).toISOString();
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 

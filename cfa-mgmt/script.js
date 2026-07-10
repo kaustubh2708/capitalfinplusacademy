@@ -1509,7 +1509,8 @@ async function renderSendNewsletter() {
   await Promise.all([cfpUpdateRecipientCount(), cfpRenderSendHistory()]);
   const btn = document.getElementById('welcome-batch-btn');
   const resultEl = document.getElementById('welcome-batch-result');
-  if (!btn) return;
+  if (!btn || btn._cfpWelcomeListenerAttached) return;
+  btn._cfpWelcomeListenerAttached = true;
   btn.addEventListener('click', async () => {
     const hours = Number(document.getElementById('welcome-hours').value) || 24;
     btn.disabled = true; btn.textContent = 'Sending…';
