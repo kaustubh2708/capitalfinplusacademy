@@ -828,7 +828,7 @@ async function renderStudents() {
   // Refresh live course list for the add-course dropdown in manage panels
   if (!cfpLiveCourses.length) {
     const { data: courses } = await window.cfpSupabase
-      .from('courses').select('id, name').eq('plan_only', false).order('sort_order', { ascending: true });
+      .from('courses').select('id, name').neq('plan_only', true).order('sort_order', { ascending: true });
     cfpLiveCourses = courses || [];
   }
   const { data, error } = await window.cfpSupabase
@@ -1424,7 +1424,7 @@ async function renderManualEnroll() {
   const courseSelect = document.getElementById('me-course');
   courseSelect.innerHTML = '<option value="">Loading courses…</option>';
   const { data: courses } = await window.cfpSupabase
-    .from('courses').select('id, name, price').eq('plan_only', false).order('sort_order', { ascending: true });
+    .from('courses').select('id, name, price').neq('plan_only', true).order('sort_order', { ascending: true });
   cfpLiveCourses = courses || [];
   courseSelect.innerHTML = cfpLiveCourses.map(c =>
     `<option value="${escAttr(c.id)}">${escHtml(c.name)}${c.price ? ' — ' + escHtml(c.price) : ''}</option>`
