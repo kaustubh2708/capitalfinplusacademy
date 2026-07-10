@@ -276,9 +276,12 @@ module.exports = async (req, res) => {
         if (!inviteErr && inviteData && inviteData.user) {
           userId = inviteData.user.id;
         } else if (inviteErr && /already (registered|exists)/i.test(inviteErr.message || '')) {
-          const { data: existingUser, error: lookupErr } = await supabase.auth.admin.getUserByEmail(checkoutEmail);
-          if (existingUser && existingUser.user) userId = existingUser.user.id;
-          else console.error('verify-payment: could not resolve existing user id for', checkoutEmail, lookupErr);
+          const { data: listData, error: listErr } = await supabase.auth.admin.listUsers({ page: 1, perPage: 1000 });
+          const match = !listErr && listData && listData.users
+            ? listData.users.find(u => (u.email || '').toLowerCase() === checkoutEmail)
+            : null;
+          if (match) userId = match.id;
+          else console.error('verify-payment: could not resolve existing user id for', checkoutEmail, listErr);
         } else if (inviteErr) {
           console.error('verify-payment: inviteUserByEmail failed', inviteErr);
         }
