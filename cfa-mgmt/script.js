@@ -1509,10 +1509,11 @@ async function renderSendNewsletter() {
     btn.disabled = true; btn.textContent = 'Sending…';
     resultEl.style.display = 'none';
     try {
-      const r = await fetch('/api/send-welcome-batch', {
+      const { data: { session: wbSession } } = await window.cfpSupabase.auth.getSession();
+      const r = await fetch('/api/send-newsletter', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ hours })
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (wbSession?.access_token || '') },
+        body: JSON.stringify({ action: 'welcome-batch', hours })
       });
       const json = await r.json();
       resultEl.textContent = r.ok

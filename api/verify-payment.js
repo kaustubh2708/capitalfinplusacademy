@@ -25,7 +25,7 @@
 const crypto = require('crypto');
 const Razorpay = require('razorpay');
 const { createClient } = require('@supabase/supabase-js');
-const sendNotification = require('./send-notification');
+const sendNotification = require('./_send-notification');
 
 /* Course-specific welcome email. courseId is the data.js id string ("3","4","5","6"). */
 function buildCourseWelcomeEmail(firstName, courseLabel, courseId) {

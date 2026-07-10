@@ -8,7 +8,7 @@
    Env vars: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, RESEND_API_KEY */
 
 const { createClient } = require('@supabase/supabase-js');
-const sendNotification = require('./send-notification');
+const sendNotification = require('./_send-notification');
 
 /* Inline — same as verify-payment.js, kept in sync manually. */
 const COURSE_ID_TO_NAME = {

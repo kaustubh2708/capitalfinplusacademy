@@ -6,7 +6,7 @@
    Always returns 200.
    ============================================== */
 
-const sendNotification = require('./send-notification');
+const sendNotification = require('./_send-notification');
 
 // In-memory rate limiter — 5 form submissions per IP per 10 minutes.
 // Not global across Vercel instances, but stops single-instance bursts
