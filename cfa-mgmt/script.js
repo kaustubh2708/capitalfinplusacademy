@@ -1460,6 +1460,7 @@ async function cfpRenderManualEnrollHistory() {
     const enrollType = document.querySelector('input[name="me-type"]:checked')?.value || 'paid';
     const notes = document.getElementById('me-notes').value.trim();
     const msgEl = document.getElementById('me-msg');
+    const btn = document.getElementById('me-enroll-btn');
     msgEl.style.display = 'none';
 
     if (!email || !courseId) {
@@ -1467,40 +1468,32 @@ async function cfpRenderManualEnrollHistory() {
       msgEl.style.color = '#fb7185'; msgEl.style.display = 'block'; return;
     }
 
-    const { data: profile, error: profErr } = await window.cfpSupabase
-      .from('profiles').select('id').eq('email', email).single();
-
-    if (profErr || !profile) {
-      msgEl.innerHTML = 'No account found for this email. The student must complete account setup first (they receive a set-password link when they make a purchase). For a complimentary seat, ask them to sign up on <a href="/pages/account.html" target="_blank" style="color:var(--accent)">account.html</a> first, then enroll here.';
-      msgEl.style.color = '#fbbf24'; msgEl.style.display = 'block'; return;
+    btn.disabled = true; btn.textContent = 'Enrolling…';
+    try {
+      const { data: { session } } = await window.cfpSupabase.auth.getSession();
+      const res = await fetch('/api/manual-enroll', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, courseId, enrollType, notes, adminToken: session?.access_token || '' })
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        msgEl.textContent = '❌ ' + (json.error || 'Enroll failed.');
+        msgEl.style.color = '#fb7185';
+      } else {
+        msgEl.textContent = '✅ ' + json.message;
+        msgEl.style.color = '#4ade80';
+        document.getElementById('me-email').value = '';
+        document.getElementById('me-notes').value = '';
+        cfpRenderManualEnrollHistory();
+      }
+    } catch (e) {
+      msgEl.textContent = '❌ Network error — check console.';
+      msgEl.style.color = '#fb7185';
+    } finally {
+      btn.disabled = false; btn.textContent = 'Enroll Student';
+      msgEl.style.display = 'block';
     }
-
-    // Check for existing active enrollment
-    const { data: existing } = await window.cfpSupabase
-      .from('enrollments').select('id').eq('user_id', profile.id).eq('course_id', courseId).eq('status', 'active').maybeSingle();
-    if (existing) {
-      msgEl.textContent = 'This student already has an active enrollment for this course.';
-      msgEl.style.color = '#fbbf24'; msgEl.style.display = 'block'; return;
-    }
-
-    const paymentId = 'MANUAL-' + Date.now();
-    const amount = enrollType === 'complimentary' ? 0 : 0;
-
-    const [enrollRes, payRes] = await Promise.all([
-      window.cfpSupabase.from('enrollments').insert({ user_id: profile.id, course_id: courseId, status: 'active' }),
-      window.cfpSupabase.from('payments').insert({ user_id: profile.id, course_id: courseId, amount, status: 'captured', notes: notes || null, razorpay_payment_id: paymentId })
-    ]);
-
-    if (enrollRes.error || payRes.error) {
-      msgEl.textContent = 'Error: ' + ((enrollRes.error || payRes.error).message);
-      msgEl.style.color = '#fb7185'; msgEl.style.display = 'block'; return;
-    }
-
-    msgEl.textContent = 'Enrolled successfully. Student can now access content on their dashboard.';
-    msgEl.style.color = '#4ade80'; msgEl.style.display = 'block';
-    document.getElementById('me-email').value = '';
-    document.getElementById('me-notes').value = '';
-    cfpRenderManualEnrollHistory();
   });
 })();
 
