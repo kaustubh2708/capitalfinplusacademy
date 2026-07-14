@@ -118,12 +118,16 @@ module.exports = async (req, res) => {
 
   if (!inviteeEmail) return res.status(400).json({ error: 'No invitee email in payload' });
 
-  const sendEmail = (to, subject, html) =>
-    fetch('https://api.resend.com/emails', {
+  const sendEmail = async (to, subject, html) => {
+    const r = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { 'Authorization': 'Bearer ' + RESEND_API_KEY, 'Content-Type': 'application/json' },
       body: JSON.stringify({ from: 'CFA Academy <hello@capitalfinplusadvizors.com>', to: [to], subject, html })
-    }).then(r => r.json());
+    });
+    const json = await r.json();
+    if (!r.ok) console.error('calendly-webhook: Resend error to', to, r.status, JSON.stringify(json));
+    return { ok: r.ok, status: r.status, body: json };
+  };
 
   const [inviteeResult, adminResult] = await Promise.allSettled([
     sendEmail(
@@ -140,7 +144,7 @@ module.exports = async (req, res) => {
 
   return res.status(200).json({
     ok: true,
-    invitee: inviteeResult.status,
-    admin: adminResult.status
+    invitee: inviteeResult.status === 'fulfilled' ? inviteeResult.value : { error: inviteeResult.reason?.message },
+    admin: adminResult.status === 'fulfilled' ? adminResult.value : { error: adminResult.reason?.message }
   });
 };
