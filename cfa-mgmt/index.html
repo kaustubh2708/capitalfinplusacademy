@@ -168,7 +168,8 @@
       <div class="nav-section-label">Website Content</div>
       <div class="nav-item" data-panel="hero"><span class="icon">🏠</span> Hero Section</div>
       <div class="nav-item" data-panel="about"><span class="icon">👤</span> About / Founder</div>
-      <div class="nav-item" data-panel="courses"><span class="icon">📚</span> Courses &amp; Pricing</div>
+      <div class="nav-item" data-panel="courses"><span class="icon">📚</span> Learning &amp; Pricing</div>
+      <div class="nav-item" data-panel="comparison"><span class="icon">📊</span> Comparison Table</div>
       <div class="nav-item" data-panel="testimonials"><span class="icon">💬</span> Testimonials</div>
       <div class="nav-section-label">Blog</div>
       <div class="nav-item" data-panel="blog-list"><span class="icon">📝</span> All Articles <span class="count-pill" id="nav-article-count">0</span></div>
@@ -214,7 +215,7 @@
           <div class="stat-change" id="stat-articles-sub">— free · — premium</div>
         </div>
         <div class="stat-card">
-          <div class="stat-label">Courses Listed</div>
+          <div class="stat-label">Learning Tiers</div>
           <div class="stat-value" id="stat-courses">0</div>
           <div class="stat-change neutral">All active</div>
         </div>
@@ -286,8 +287,8 @@
       <div class="card">
         <h3>📋 How This Works <span class="tag" id="last-updated-tag">—</span></h3>
         <div style="font-size:0.85rem;color:var(--text-sec);line-height:2">
-          <p>Every change you make here is saved to this browser and <strong style="color:var(--accent-bright)">read live by the public site</strong> (index.html / blog.html) the next time it loads — hero copy, pricing, testimonials, and blog posts are all driven from this single dashboard.</p>
-          <p style="margin-top:0.75rem">The <strong style="color:var(--accent-bright)">Transactions</strong> and <strong style="color:var(--accent-bright)">Form Submissions</strong> panels currently show sample data structured to match a real Razorpay payment / lead-capture feed. Once Razorpay and Calendly are wired to a backend, swap <span class="mono">cfpLoadData()</span> for a real API call and these panels will show live data with no other changes needed.</p>
+          <p>Every change you make here is saved to the <strong style="color:var(--accent-bright)">database</strong> and <strong style="color:var(--accent-bright)">read live by the public site</strong> (index.html / blog.html) the next time it loads — hero copy, pricing, testimonials, and blog posts are all driven from this single dashboard.</p>
+          <p style="margin-top:0.75rem">The <strong style="color:var(--accent-bright)">Transactions</strong> and <strong style="color:var(--accent-bright)">Form Submissions</strong> panels show <strong style="color:var(--accent-bright)">live data</strong> — real Razorpay payments and website/Calendly leads appear here automatically as they happen.</p>
         </div>
       </div>
     </div>
@@ -399,6 +400,15 @@
         <div id="courses-edit"></div>
         <button class="btn-outline" style="margin-top:0.5rem;font-size:0.82rem" id="add-course">+ Add Course</button>
       </div>
+    </div>
+
+    <!-- ── COMPARISON TABLE ── -->
+    <div class="panel" id="panel-comparison">
+      <div class="card">
+        <h3>📊 Plan Comparison Table</h3>
+        <p style="font-size:0.82rem;color:var(--text-sec);margin-bottom:0.5rem">This is the "Designed for Every Stage" feature-comparison grid on the home &amp; Courses pages. Edit the column headings, the feature (row) headings, and every cell here — changes save to the database and render live.</p>
+      </div>
+      <div id="comparison-edit"></div>
     </div>
 
     <!-- ── TESTIMONIALS ── -->
@@ -522,6 +532,8 @@
             <select class="form-select" id="bt-result">
               <option value="Win">Win</option>
               <option value="Loss">Loss</option>
+              <option value="No setup no trade">No setup no trade</option>
+              <option value="Target/SL pending">Target/SL pending</option>
               <option value="">No result yet</option>
             </select>
           </div>
@@ -593,9 +605,9 @@
 
     <div class="panel" id="panel-transactions">
       <div class="card">
-        <h3>💳 Razorpay Transactions <span class="tag">Sample data</span></h3>
+        <h3>💳 Razorpay Transactions <span class="tag">Live</span></h3>
         <p style="font-size:0.82rem;color:var(--text-sec);margin-bottom:1.25rem">
-          Showing sample transactions structured exactly like a real Razorpay payment feed (payment ID, order ID, amount, method, status). Once your live Razorpay key + webhook are connected, this table will show real captured payments automatically — no UI changes needed.
+          Live captured payments from Razorpay (payment ID, customer, course, amount, method, status). Every successful checkout is recorded automatically via the payment webhook.
         </p>
         <div class="table-wrap">
           <table>
@@ -609,9 +621,9 @@
     <!-- ── FORM SUBMISSIONS ── -->
     <div class="panel" id="panel-submissions">
       <div class="card">
-        <h3>📥 Booking &amp; Contact Form Leads <span class="tag">Sample data</span></h3>
+        <h3>📥 Booking &amp; Contact Form Leads <span class="tag">Live</span></h3>
         <p style="font-size:0.82rem;color:var(--text-sec);margin-bottom:1.25rem">
-          Every "Book a Discovery Call" and "Send Message" submission on the live site is recorded here automatically (currently to this browser's storage). Once Calendly + a backend are wired up, swap this feed for the real one.
+          Every "Book a Discovery Call" and "Send Message" submission on the live site is recorded here automatically, live from the database.
         </p>
         <div class="table-wrap">
           <table>

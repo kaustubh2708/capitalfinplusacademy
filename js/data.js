@@ -41,7 +41,7 @@ const CFP_SVG_ICONS = {
    for live editing yet, so "freshest copy wins" is the right default —
    collections like articles/testimonials still merge by id either way, and
    transactions/submissions are always preserved). */
-const CFP_CONTENT_VERSION = 13;
+const CFP_CONTENT_VERSION = 14;
 
 const CFP_DEFAULT_DATA = {
   _contentVersion: CFP_CONTENT_VERSION,
@@ -430,6 +430,26 @@ A practical, market-tested framework designed to help traders move from confusio
       buttonLabel: 'Subscribe Free →'
     }
   },
+  /* Plan feature-comparison table (the "Designed for Every Stage" grid on the
+     home + courses pages). Fully admin-editable — see the Comparison Table
+     panel. columns[0] is the row-header column; columns[1..3] are the plans.
+     A cell value of "✓" renders a check, "—" or "" renders a muted dash. */
+  comparison: {
+    columns: ['Features', 'Self-Study', 'Guided Learning', 'Mentorship Program'],
+    rows: [
+      { feature: 'Get a Working Trading Setup', sub: '', cells: ['Complete PDF framework', 'PDF + Live/Recorded sessions', 'PDF + Live sessions + personal guidance'] },
+      { feature: 'Understanding the Setup and Tools', sub: '', cells: ['Detailed documentation', 'Video explanations and live sessions', 'Personalized implementation support'] },
+      { feature: 'Access to Backtest Documents on Charts', sub: '(where was the setup on a particular day)', cells: ['Last 1 month access', 'Last 3 months access', 'Complete website access'] },
+      { feature: 'Historical Backtesting Sessions', sub: '(live/recorded session)', cells: ['—', '3 months of recorded/live backtesting sessions', 'Up to 6 months of detailed backtesting sessions'] },
+      { feature: 'Daily Post-Market Analysis', sub: '', cells: ['✓', '✓', '✓'] },
+      { feature: 'Weekly Setup Performance Review Live Session', sub: '', cells: ['✓', '✓', '✓'] },
+      { feature: 'Forward Testing & Live Structure Updates', sub: '', cells: ['—', '—', '✓'] },
+      { feature: 'WhatsApp CFA Inner Circle Community Access', sub: '', cells: ['—', '—', '✓'] },
+      { feature: 'Investment Module Access', sub: '', cells: ['—', '—', '✓'] },
+      { feature: 'One-to-One Mentorship', sub: '', cells: ['—', 'Limited interaction during sessions', 'Dedicated mentorship support'] },
+      { feature: 'Implementation Support', sub: '', cells: ['Self-paced', 'Guided learning', 'Live market thought process'] }
+    ]
+  },
   /* Local-only write cache for payment.html's simulated-payment fallback
      and the booking/contact forms — the admin dashboard reads live from
      Supabase instead, never from this. Starts empty; no seed data here
@@ -730,6 +750,7 @@ async function cfpLoadPublicData() {
       legal: siteMap.legal || defaults.legal,
       premium: siteMap.premium || defaults.premium,
       pages: siteMap.pages || defaults.pages,
+      comparison: siteMap.comparison || defaults.comparison,
       courses, testimonials, articles, backtests
     });
   } catch (e) {

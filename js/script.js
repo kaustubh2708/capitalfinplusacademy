@@ -39,6 +39,8 @@
 
 /* ─── MILKY WAY GALAXY CANVAS ────────────────── */
 (function initGalaxy() {
+  // chart-bg.js (loaded first) takes over the shared canvas when present.
+  if (window.CFP_CHART_BG) return;
   const canvas = document.getElementById('galaxy-canvas');
   if (!canvas) return;
   const ctx = canvas.getContext('2d');

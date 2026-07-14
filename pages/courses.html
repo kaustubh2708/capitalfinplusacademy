@@ -312,7 +312,7 @@
 
       <h3 class="courses-subheading">Designed for Every Stage of a Trader's Journey</h3>
 
-      <div class="plans-grid" id="plans-grid">
+      <div class="plans-grid" id="plans-grid" style="opacity:0;transition:opacity 0.45s ease;">
         <!-- Plan-tier cards (static fallback, overwritten by render.js from data.js / Supabase) -->
         <div class="course-card reveal">
           <div class="course-top-border"></div>
@@ -369,7 +369,7 @@
         </div>
       </div>
 
-      <div style="overflow-x:auto;border:1px solid var(--border);border-radius:16px;margin-top:4.5rem;">
+      <div id="course-compare-wrap" style="overflow-x:auto;border:1px solid var(--border);border-radius:16px;margin-top:4.5rem;opacity:0;transition:opacity 0.45s ease;">
         <table style="width:100%;border-collapse:collapse;min-width:760px;font-size:0.88rem;">
           <thead>
             <tr style="border-bottom:1px solid var(--border);">
@@ -450,7 +450,7 @@
         </table>
       </div>
 
-      <div class="courses-grid" id="courses-grid" style="margin-top:4.5rem;">
+      <div class="courses-grid" id="courses-grid" style="margin-top:4.5rem;opacity:0;transition:opacity 0.45s ease;">
 
         <!-- Course 3 — COMING SOON (static fallback, overwritten by render.js from data.js) -->
         <div class="course-card reveal reveal-delay-2">
@@ -552,7 +552,7 @@
           </ul>
         </div>
         <div class="footer-col">
-          <h4>Courses</h4>
+          <h4>Learning</h4>
           <ul class="footer-links">
             <li><a href="/pages/payment.html?course=4">Self-Study</a></li>
             <li><a href="/pages/payment.html?course=5">Guided Learning</a></li>

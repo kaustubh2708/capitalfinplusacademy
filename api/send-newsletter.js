@@ -52,7 +52,11 @@ module.exports = async (req, res) => {
   const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
   if (authErr || !user) return res.status(401).json({ error: 'Unauthorized' });
   const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', user.id).single();
-  if (!profile?.is_admin) return res.status(403).json({ error: 'Forbidden' });
+  // Non-admins may trigger only their own welcome email (not newsletters or batch sends)
+  const _b = req.body || {};
+  const isSelfWelcome = _b.action === 'welcome-batch' && _b.targetEmail
+    && _b.targetEmail.toLowerCase() === (user.email || '').toLowerCase();
+  if (!profile?.is_admin && !isSelfWelcome) return res.status(403).json({ error: 'Forbidden' });
 
   if (!process.env.RESEND_API_KEY) return res.status(500).json({ error: 'RESEND_API_KEY not configured' });
 

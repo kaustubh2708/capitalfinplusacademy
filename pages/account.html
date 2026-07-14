@@ -135,7 +135,7 @@
       <!-- Shown while logged out -->
       <div id="account-logged-out" style="display:none;text-align:center;padding:3rem 0;">
         <span class="section-tag">My Account</span>
-        <h1 id="account-heading" style="font-size:clamp(1.8rem,3.5vw,2.4rem);font-weight:800;margin-top:0.75rem;margin-bottom:0.75rem;">Log in to see your courses</h1>
+        <h1 id="account-heading" style="font-size:clamp(1.8rem,3.5vw,2.4rem);font-weight:800;margin-top:0.75rem;margin-bottom:0.75rem;">Log in to see your learning</h1>
         <p style="color:var(--muted);max-width:440px;margin:0 auto 1.5rem;">Sign in with the email you used at checkout to view your enrolled courses and unlock premium articles.</p>
         <button type="button" class="btn btn-primary" onclick="cfpOpenAuthModal('login')">Log In / Sign Up</button>
       </div>
@@ -170,7 +170,7 @@
             <nav id="lms-tabs">
               <button type="button" class="lms-tab" data-tab="profile">👤 Profile</button>
               <button type="button" class="lms-tab" data-tab="pdf" id="lms-tab-pdf">📄 Course PDF</button>
-              <button type="button" class="lms-tab" data-tab="courses">📚 My Courses</button>
+              <button type="button" class="lms-tab" data-tab="courses">📚 My Learning</button>
               <button type="button" class="lms-tab" data-tab="guided" id="lms-tab-guided" style="display:none;">🎬 Guided Videos</button>
               <button type="button" class="lms-tab" data-tab="framework" id="lms-tab-framework" style="display:none;">🎬 Framework Videos</button>
             </nav>
@@ -273,7 +273,7 @@
           </ul>
         </div>
         <div class="footer-col">
-          <h4>Courses</h4>
+          <h4>Learning</h4>
           <ul class="footer-links">
             <li><a href="/pages/payment.html?course=4">Self-Study</a></li>
             <li><a href="/pages/payment.html?course=5">Guided Learning</a></li>
@@ -510,10 +510,10 @@
     function renderCoursesTab() {
       if (cfpEnrollments.length === 0) {
         lmsContentEl.innerHTML = `
-          <h2 style="font-size:1.1rem;font-weight:800;margin-bottom:1.25rem;">My Courses</h2>
+          <h2 style="font-size:1.1rem;font-weight:800;margin-bottom:1.25rem;">My Learning</h2>
           <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:12px;padding:3rem 2rem;text-align:center;">
             <p style="color:var(--muted);font-size:0.95rem;margin-bottom:1.25rem;">No active courses.</p>
-            <a href="/pages/courses.html" class="btn btn-primary">Browse our courses →</a>
+            <a href="/pages/courses.html" class="btn btn-primary">Browse our learning →</a>
           </div>`;
         return;
       }
@@ -591,7 +591,7 @@
           upsellCard({ title: 'Jump to Mentorship Program', fullPrice: priceMentorship, credit: priceFramework, features: ['Everything in Guided Learning', '1-on-1 personal mentorship sessions', 'Both Guided & Framework video playlists', 'Private WhatsApp community access'], cta: 'Apply for Mentorship →', href: '/pages/payment.html?course=6' });
       }
 
-      lmsContentEl.innerHTML = `<h2 style="font-size:1.1rem;font-weight:800;margin-bottom:1.25rem;">My Courses</h2>${cards}${upsellHtml}`;
+      lmsContentEl.innerHTML = `<h2 style="font-size:1.1rem;font-weight:800;margin-bottom:1.25rem;">My Learning</h2>${cards}${upsellHtml}`;
     }
 
     function cfpYtThumb(videoId) { return `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`; }
@@ -704,6 +704,33 @@
       activateTab(initialTab);
     }
 
+    // Shared across the set-password submit handler and initAccountPage.
+    // Populated when the visitor arrives via a Supabase invite / signup /
+    // recovery email link.
+    let recoveryUser = null;
+    let recoveryToken = null;
+    let isInvite = false;   // invite/signup = first-time set → send welcome email
+
+    function applySetPasswordLabels(isReset) {
+      const el = document.querySelector('#account-set-password');
+      if (!el) return;
+      const tag = el.querySelector('.section-tag');
+      const h1 = el.querySelector('h1');
+      const p = el.querySelector('p');
+      const btn = el.querySelector('button[type="submit"]');
+      if (isReset) {
+        if (tag) tag.textContent = 'Password Reset';
+        if (h1) h1.textContent = 'Reset your password';
+        if (p) p.innerHTML = 'Enter a new password for <strong id="set-password-email" style="color:#fff;">your account</strong>.';
+        if (btn) btn.textContent = 'Reset Password →';
+      } else {
+        if (tag) tag.textContent = 'Welcome to Capital Finplus';
+        if (h1) h1.textContent = 'Set your password';
+        if (p) p.innerHTML = 'One last step — choose a password for <strong id="set-password-email" style="color:#fff;">your account</strong> to access your learning.';
+        if (btn) btn.innerHTML = 'Set Password &amp; Continue →';
+      }
+    }
+
     function showSetPassword(user) {
       accountContainerEl.style.maxWidth = '680px';
       loggedOutEl.style.display = 'none';
@@ -724,13 +751,26 @@
         await window.cfpAuth.setNewPassword(pass);
         const user = await window.cfpAuth.getCurrentUser();
         if (user) {
+          // Drop the access_token/type hash so the dashboard tab logic and any
+          // reload don't re-trigger the set-password flow.
+          history.replaceState(null, '', location.pathname);
           showLoggedIn(user);
-          // Fire-and-forget welcome email on first password set
-          fetch('/api/send-welcome-batch', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ targetEmail: user.email, targetName: user.user_metadata?.full_name || '' })
-          }).catch(() => {});
+          // Send welcome how-to email only on first-time invite (not password resets)
+          if (isInvite) {
+            try {
+              const sess = window.cfpSupabase
+                ? (await window.cfpSupabase.auth.getSession()).data?.session
+                : null;
+              const tok = (sess && sess.access_token) || recoveryToken || '';
+              if (tok) {
+                fetch('/api/send-newsletter', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok },
+                  body: JSON.stringify({ action: 'welcome-batch', targetEmail: user.email, targetName: user.user_metadata?.full_name || '' })
+                }).catch(() => {});
+              }
+            } catch (_) {}
+          }
         }
       } catch (err) {
         errEl.textContent = err.message || 'Could not set your password — try the link again.';
@@ -741,21 +781,45 @@
     (async function initAccountPage() {
       if (typeof window.cfpAuth === 'undefined') return;
 
-      let recoveryUser = null;
+      // Invite & signup email links establish a session and fire SIGNED_IN
+      // (NOT PASSWORD_RECOVERY), so we key off the URL hash to know whether a
+      // first-time password set is needed. Recovery links fire PASSWORD_RECOVERY.
+      const linkType = new URLSearchParams(window.location.hash.slice(1)).get('type');
+      const isFirstTimeSet = linkType === 'invite' || linkType === 'signup';
+      const isReset = linkType === 'recovery';
+      isInvite = isFirstTimeSet;
+
+      let shown = false;
+      function enterSetPassword(session) {
+        if (shown || !session) return;
+        shown = true;
+        recoveryUser = session.user;
+        recoveryToken = session.access_token;
+        applySetPasswordLabels(isReset);
+        showSetPassword(session.user);
+      }
+
       window.cfpAuth.onAuthStateChange((event, session) => {
-        if (event === 'PASSWORD_RECOVERY') {
-          recoveryUser = session && session.user;
-          showSetPassword(recoveryUser);
+        if (event === 'PASSWORD_RECOVERY' ||
+            ((isFirstTimeSet || isReset) && event === 'SIGNED_IN')) {
+          enterSetPassword(session);
         }
       });
 
-      // Give the auth client a moment to parse the link's URL hash and
-      // fire PASSWORD_RECOVERY before falling back to the normal
-      // logged-in/logged-out check below.
-      await new Promise(r => setTimeout(r, 250));
-      if (recoveryUser) return;
+      // Let the auth client parse the link hash and fire its event.
+      await new Promise(r => setTimeout(r, 300));
+      if (shown) return;
 
       const user = await window.cfpAuth.getCurrentUser();
+
+      // Fallback: arrived via an invite/recovery link but the event was
+      // already consumed before our listener attached — still show set-password.
+      if (user && (isFirstTimeSet || isReset)) {
+        const { data: { session } } = await window.cfpSupabase.auth.getSession();
+        enterSetPassword(session || { user, access_token: null });
+        return;
+      }
+
       if (!user) {
         accountContainerEl.style.maxWidth = '680px';
         loggedOutEl.style.display = 'block';

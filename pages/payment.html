@@ -79,6 +79,27 @@
       .checkout-wrap { grid-template-columns: 1fr; }
       .checkout-summary { position: static; }
     }
+    /* ── "View Course Content" accordion (below the checkout) ── */
+    .course-content-accordion {
+      max-width: 1080px; margin: 1.75rem auto 0; width: 100%;
+    }
+    .course-content-toggle {
+      width: 100%; display: flex; align-items: center; justify-content: space-between;
+      gap: 1rem; background: rgba(16,12,2,0.75); border: 1px solid rgba(244,194,13,0.18);
+      border-radius: 12px; padding: 1.05rem 1.5rem; cursor: pointer;
+      font-family: 'Manrope', sans-serif; font-size: 0.82rem; font-weight: 700;
+      letter-spacing: 0.08em; text-transform: uppercase; color: #F4C20D;
+      backdrop-filter: blur(16px); transition: border-color 0.25s, background 0.25s;
+    }
+    .course-content-toggle:hover { border-color: rgba(244,194,13,0.45); background: rgba(24,18,3,0.85); }
+    .course-content-caret { font-size: 0.9rem; transition: transform 0.3s ease; }
+    .course-content-toggle[aria-expanded="true"] .course-content-caret { transform: rotate(180deg); }
+    .course-content-body {
+      border: 1px solid rgba(244,194,13,0.14); border-top: none;
+      border-radius: 0 0 12px 12px; padding: 1.75rem 1.5rem 0.5rem;
+      background: rgba(12,9,2,0.6);
+    }
+    .course-content-body[hidden] { display: none; }
   </style>
   <!-- Google tag (gtag.js) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-XGWVGC4N1G"></script>
@@ -196,6 +217,15 @@
         </div>
       </div>
 
+    </div>
+
+    <!-- Collapsible full curriculum — shown only for courses with rich content -->
+    <div id="course-content-accordion" class="course-content-accordion" style="display:none;">
+      <button type="button" id="course-content-toggle" class="course-content-toggle" aria-expanded="false" aria-controls="course-content-body">
+        <span>View Course Content</span>
+        <span class="course-content-caret" aria-hidden="true">▾</span>
+      </button>
+      <div id="course-content-body" class="course-content-body" hidden></div>
     </div>
   </div>
 
@@ -329,6 +359,17 @@
     if (includesEl && SELECTED_COURSE.features) {
       includesEl.innerHTML = SELECTED_COURSE.features.map(f => `<li>${f}</li>`).join('');
     }
+    // Full curriculum accordion — only for courses with rich (multi-column) content
+    const accordion = document.getElementById('course-content-accordion');
+    const bodyEl = document.getElementById('course-content-body');
+    const richHtml = (typeof window.cfpRenderCourseFeaturesRich === 'function')
+      ? window.cfpRenderCourseFeaturesRich(SELECTED_COURSE) : '';
+    if (accordion && bodyEl && richHtml) {
+      bodyEl.innerHTML = richHtml;
+      accordion.style.display = 'block';
+    } else if (accordion) {
+      accordion.style.display = 'none';
+    }
     refreshOrderSummary();
   }
 
@@ -352,6 +393,18 @@
       payBtn.style.opacity = '';
       payBtn.style.cursor = '';
     }
+  })();
+
+  /* ── "View Course Content" accordion toggle ── */
+  (function () {
+    const toggle = document.getElementById('course-content-toggle');
+    const body = document.getElementById('course-content-body');
+    if (!toggle || !body) return;
+    toggle.addEventListener('click', function () {
+      const open = toggle.getAttribute('aria-expanded') === 'true';
+      toggle.setAttribute('aria-expanded', String(!open));
+      body.hidden = open;
+    });
   })();
 
   /* ── COUPON LOGIC ── */

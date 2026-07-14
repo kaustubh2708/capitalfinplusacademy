@@ -322,7 +322,7 @@
   <!-- ===== BLOCK 2 — HERO (Centered, Milky Way Galaxy) ===== -->
   <section id="hero">
     <div class="container">
-      <div class="hero-center">
+      <div class="hero-center" id="hero-center" style="opacity:0;transition:opacity 0.45s ease;">
         <div class="hero-badge reveal">
           <span class="hero-badge-dot" aria-hidden="true"></span>
           <span id="hero-badge-text">Trusted by 500+ Traders</span>
@@ -338,7 +338,7 @@
         </p>
         <div class="hero-buttons reveal reveal-delay-3">
           <a href="javascript:void(0)" class="btn btn-primary open-modal" id="hero-book-btn">Book a Discovery Call</a>
-          <a href="#courses" class="btn btn-secondary" id="hero-cta2-btn">Explore Courses</a>
+          <a href="#courses" class="btn btn-secondary" id="hero-cta2-btn">Explore Your Path</a>
         </div>
       </div>
     </div>
@@ -470,9 +470,9 @@
           <div class="service-icon">
             <svg viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
           </div>
-          <h3>Structured Courses</h3>
+          <h3>Structured Learning</h3>
           <p>From the free foundation course to the advanced CFA Framework — our curriculum is built as a complete progression system. Each module builds on the last, ensuring no gaps in your understanding or execution confidence.</p>
-          <a href="#courses" class="service-link">View Courses →</a>
+          <a href="#courses" class="service-link">View Learning →</a>
         </div>
         <div class="service-card reveal reveal-delay-2">
           <div class="service-icon">
@@ -555,46 +555,6 @@
           <p>Fear, greed, FOMO, and overtrading destroy more accounts than bad strategies. Developing the right mindset is essential for long-term success.</p>
           <span class="philosophy-v2-pill">Psychology</span>
         </div>
-
-        <div class="philosophy-v2-card philosophy-v2-quad reveal reveal-delay-1">
-          <div class="philosophy-v2-num">07</div>
-          <div class="philosophy-v2-top">
-            <div class="philosophy-v2-icon"><svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></div>
-          </div>
-          <h3>Every Trade Needs a Reason</h3>
-          <p>Entries, stop losses, and targets should always be backed by logic, structure, and risk-reward — not emotions.</p>
-          <span class="philosophy-v2-pill">Discipline</span>
-        </div>
-
-        <div class="philosophy-v2-card philosophy-v2-quad reveal reveal-delay-2">
-          <div class="philosophy-v2-num">08</div>
-          <div class="philosophy-v2-top">
-            <div class="philosophy-v2-icon"><svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2"/><path d="M16.24 7.76a6 6 0 010 8.49M7.76 16.24a6 6 0 010-8.49M19.07 4.93a10 10 0 010 14.14M4.93 19.07a10 10 0 010-14.14"/></svg></div>
-          </div>
-          <h3>Learning Happens in Live Markets</h3>
-          <p>Concepts can be taught in classrooms, but true understanding develops when markets are open and decisions must be made in real time.</p>
-          <span class="philosophy-v2-pill">Live Learning</span>
-        </div>
-
-        <div class="philosophy-v2-card philosophy-v2-quad reveal">
-          <div class="philosophy-v2-num">09</div>
-          <div class="philosophy-v2-top">
-            <div class="philosophy-v2-icon"><svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5z"/><path d="M19 14l.7 2 2 .7-2 .7-.7 2-.7-2-2-.7 2-.7z"/></svg></div>
-          </div>
-          <h3>Simplicity Wins</h3>
-          <p>We believe in simple, repeatable frameworks rather than complicated indicators and constantly changing strategies.</p>
-          <span class="philosophy-v2-pill">Simplicity</span>
-        </div>
-
-        <div class="philosophy-v2-card philosophy-v2-quad reveal reveal-delay-1">
-          <div class="philosophy-v2-num">10</div>
-          <div class="philosophy-v2-top">
-            <div class="philosophy-v2-icon"><svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg></div>
-          </div>
-          <h3>The Goal Is Independence</h3>
-          <p>The objective is not to create followers. The objective is to develop traders and investors who can think independently and make informed decisions.</p>
-          <span class="philosophy-v2-pill">Independence</span>
-        </div>
       </div>
     </div>
   </section>
@@ -610,7 +570,7 @@
 
       <h3 class="courses-subheading">Designed for Every Stage of a Trader's Journey</h3>
 
-      <div class="plans-grid" id="plans-grid">
+      <div class="plans-grid" id="plans-grid" style="opacity:0;transition:opacity 0.45s ease;">
         <!-- Plan-tier cards (static fallback, overwritten by render.js from data.js / Supabase) -->
         <div class="course-card reveal">
           <div class="course-top-border"></div>
@@ -667,7 +627,7 @@
         </div>
       </div>
 
-      <div style="overflow-x:auto;border:1px solid var(--border);border-radius:16px;margin-top:4.5rem;">
+      <div id="course-compare-wrap" style="overflow-x:auto;border:1px solid var(--border);border-radius:16px;margin-top:4.5rem;opacity:0;transition:opacity 0.45s ease;">
         <table style="width:100%;border-collapse:collapse;min-width:760px;font-size:0.88rem;">
           <thead>
             <tr style="border-bottom:1px solid var(--border);">
@@ -748,7 +708,7 @@
         </table>
       </div>
 
-      <div class="courses-grid" id="courses-grid" style="margin-top:4.5rem;">
+      <div class="courses-grid" id="courses-grid" style="margin-top:4.5rem;opacity:0;transition:opacity 0.45s ease;">
 
         <!-- Course 3 — COMING SOON (static fallback, overwritten by render.js from data.js) -->
         <div class="course-card reveal reveal-delay-2">
@@ -1082,7 +1042,7 @@
           </ul>
         </div>
         <div class="footer-col">
-          <h4>Courses</h4>
+          <h4>Learning</h4>
           <ul class="footer-links">
             <li><a href="/pages/payment.html?course=4">Self-Study</a></li>
             <li><a href="/pages/payment.html?course=5">Guided Learning</a></li>

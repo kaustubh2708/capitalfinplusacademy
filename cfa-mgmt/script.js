@@ -69,7 +69,7 @@ async function cfpSyncCollection(table, localArray, mapToRow) {
 }
 
 /* ── SITE CONTENT (hero/about/stats/contact/legal/premium/pages) ── */
-const CFP_SITE_CONTENT_KEYS = ['hero', 'about', 'stats', 'contact', 'legal', 'premium', 'pages'];
+const CFP_SITE_CONTENT_KEYS = ['hero', 'about', 'stats', 'contact', 'legal', 'premium', 'pages', 'comparison'];
 
 async function cfpSaveSiteContent() {
   const rows = CFP_SITE_CONTENT_KEYS.map(key => ({ key, value: state[key] }));
@@ -105,6 +105,7 @@ async function cfpAdminLoadData() {
     legal: siteMap.legal || defaults.legal || {},
     premium: siteMap.premium || defaults.premium || { anonDays: 7, selfStudyDays: 30, guidedDays: 90 },
     pages: siteMap.pages || defaults.pages || {},
+    comparison: siteMap.comparison || defaults.comparison || { columns: ['Features', 'Self-Study', 'Guided Learning', 'Mentorship Program'], rows: [] },
     courses: (coursesRes.data || []).map(cfpRowToCourse),
     testimonials: (testRes.data || []).map(cfpRowToTestimonial),
     articles: (artRes.data || []).map(cfpRowToArticle),
@@ -163,11 +164,12 @@ function switchPanel(id) {
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
   document.getElementById('panel-' + id).classList.add('active');
   document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.panel === id));
-  const titles = { dashboard: 'Dashboard', hero: 'Hero Section', about: 'About / Founder', courses: 'Courses & Pricing', testimonials: 'Testimonials', 'blog-list': 'All Articles', 'blog-new': 'New Article', 'bt-list': 'All Backtests', 'bt-new': 'New Backtest', students: 'Students', 'manual-enroll': 'Manual Enroll', transactions: 'Transactions', submissions: 'Form Submissions', 'contact-info': 'Contact & Integrations', 'page-content': 'Blog & Backtesting Pages', newsletter: 'Newsletter', 'send-newsletter': 'Send Newsletter', 'playlist-videos': 'Playlist Videos', coupons: 'Coupons', 'academy-pdf': 'Academy PDF' };
+  const titles = { dashboard: 'Dashboard', hero: 'Hero Section', about: 'About / Founder', courses: 'Courses & Pricing', comparison: 'Comparison Table', testimonials: 'Testimonials', 'blog-list': 'All Articles', 'blog-new': 'New Article', 'bt-list': 'All Backtests', 'bt-new': 'New Backtest', students: 'Students', 'manual-enroll': 'Manual Enroll', transactions: 'Transactions', submissions: 'Form Submissions', 'contact-info': 'Contact & Integrations', 'page-content': 'Blog & Backtesting Pages', newsletter: 'Newsletter', 'send-newsletter': 'Send Newsletter', 'playlist-videos': 'Playlist Videos', coupons: 'Coupons', 'academy-pdf': 'Academy PDF' };
   document.getElementById('topbar-title').textContent = titles[id] || id;
   if (id === 'blog-list') renderBlogTable();
   if (id === 'testimonials') renderTestimonials();
   if (id === 'courses') renderCourses();
+  if (id === 'comparison') renderComparison();
   if (id === 'students') renderStudents();
   if (id === 'manual-enroll') renderManualEnroll();
   if (id === 'transactions') renderTransactions();
@@ -259,6 +261,9 @@ function collectFormData() {
       else course[f] = el.value;
     });
   });
+
+  // Comparison table (collected from its own panel's inputs, if present)
+  collectComparison();
 }
 
 function val(id) { const el = document.getElementById(id); return el ? el.value : ''; }
@@ -465,6 +470,78 @@ async function deleteCourse(id) {
     renderDashboard();
     showToast('🗑 Course removed');
   } catch (e) { /* persist() already toasted the error */ }
+}
+
+/* ── COMPARISON TABLE (the "Designed for Every Stage" plan grid) ── */
+function renderComparison() {
+  const wrap = document.getElementById('comparison-edit');
+  if (!wrap) return;
+  if (!state.comparison || !Array.isArray(state.comparison.columns)) {
+    state.comparison = { columns: ['Features', 'Self-Study', 'Guided Learning', 'Mentorship Program'], rows: [] };
+  }
+  const comp = state.comparison;
+  const colInputs = comp.columns.map((c, i) => `
+    <div class="form-group" style="flex:1;min-width:150px;">
+      <label class="form-label">${i === 0 ? 'Row-header column' : 'Plan column ' + i}</label>
+      <input class="form-input" data-comp-col="${i}" value="${escAttr(c)}" />
+    </div>`).join('');
+  const planCols = comp.columns.slice(1);
+  const rowsHtml = (comp.rows || []).map((row, ri) => `
+    <div class="card" data-comp-row="${ri}" style="padding:1rem 1.25rem;">
+      <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.75rem;">
+        <strong style="font-size:0.85rem;color:var(--text-sec);">Row ${ri + 1}</strong>
+        <button class="action-btn delete" style="margin-left:auto" onclick="cfpRemoveComparisonRow(${ri})">🗑 Remove</button>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Feature (row heading)</label><input class="form-input" data-comp-field="feature" value="${escAttr(row.feature)}" /></div>
+        <div class="form-group"><label class="form-label">Sub-label (optional grey text)</label><input class="form-input" data-comp-field="sub" value="${escAttr(row.sub || '')}" /></div>
+      </div>
+      <div class="form-row-3">
+        ${planCols.map((pc, ci) => `<div class="form-group"><label class="form-label">${escHtml(pc)}</label><input class="form-input" data-comp-cell="${ci}" value="${escAttr((row.cells && row.cells[ci]) || '')}" /></div>`).join('')}
+      </div>
+    </div>`).join('') || '<div class="empty-state">No rows yet — click "Add Row".</div>';
+
+  wrap.innerHTML = `
+    <div class="card">
+      <h3>Column Headings</h3>
+      <p class="form-hint">The first column is the row-header column ("Features"). The other three are your plan tiers — keep these matching the plan names above.</p>
+      <div class="form-row">${colInputs}</div>
+    </div>
+    <div class="card">
+      <h3>Rows <span class="tag">${(comp.rows || []).length}</span></h3>
+      <p class="form-hint">Type <code>✓</code> for a checkmark, <code>—</code> (or leave blank) for a dash, or any text for a plan cell. Click <strong>Save Changes</strong> at the top when done.</p>
+      <div id="comparison-rows">${rowsHtml}</div>
+      <button class="btn-accent" id="add-comparison-row" style="margin-top:1rem;">+ Add Row</button>
+    </div>`;
+
+  document.getElementById('add-comparison-row').addEventListener('click', () => {
+    collectComparison();
+    const n = Math.max(1, state.comparison.columns.length - 1);
+    state.comparison.rows.push({ feature: 'New feature', sub: '', cells: Array(n).fill('—') });
+    renderComparison();
+    showToast('✅ Row added — fill it in and Save Changes');
+  });
+}
+
+function collectComparison() {
+  const wrap = document.getElementById('comparison-edit');
+  if (!wrap || !state.comparison) return;
+  const colEls = [...wrap.querySelectorAll('[data-comp-col]')].sort((a, b) => a.dataset.compCol - b.dataset.compCol);
+  if (colEls.length) state.comparison.columns = colEls.map(el => el.value);
+  state.comparison.rows = [...wrap.querySelectorAll('[data-comp-row]')].map(rowEl => {
+    const feature = rowEl.querySelector('[data-comp-field="feature"]');
+    const sub = rowEl.querySelector('[data-comp-field="sub"]');
+    const cells = [...rowEl.querySelectorAll('[data-comp-cell]')]
+      .sort((a, b) => a.dataset.compCell - b.dataset.compCell).map(el => el.value);
+    return { feature: feature ? feature.value : '', sub: sub ? sub.value : '', cells };
+  });
+}
+
+function cfpRemoveComparisonRow(ri) {
+  collectComparison();
+  state.comparison.rows.splice(ri, 1);
+  renderComparison();
+  showToast('🗑 Row removed');
 }
 
 /* ── TESTIMONIALS ── */

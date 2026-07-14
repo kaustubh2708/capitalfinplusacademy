@@ -17,6 +17,19 @@ function cfpBtIconSvg(iconName) {
   return (typeof CFP_SVG_ICONS !== 'undefined' && CFP_SVG_ICONS[key]) || '';
 }
 
+/* Result → coloured pill. Win green, Loss red, plus two neutral states. */
+const CFP_BT_RESULT_STYLE = {
+  'Win':               { bg: 'rgba(34,197,94,0.12)',  color: '#4ade80', icon: '✅' },
+  'Loss':              { bg: 'rgba(239,68,68,0.12)',  color: '#fb7185', icon: '❌' },
+  'No setup no trade': { bg: 'rgba(148,163,184,0.14)', color: '#cbd5e1', icon: '⚪' },
+  'Target/SL pending': { bg: 'rgba(244,194,13,0.14)',  color: '#F4C20D', icon: '⏳' }
+};
+function cfpBtResultBadge(result) {
+  if (!result) return '';
+  const s = CFP_BT_RESULT_STYLE[result] || CFP_BT_RESULT_STYLE['Loss'];
+  return `<span class="post-tag-mostread" style="background:${s.bg};color:${s.color};">${s.icon} ${result}</span>`;
+}
+
 /* Populated once cfpLoadPublicData() resolves, in the async block at the
    bottom of this file — every function below reads it via closure. */
 let CFP_BACKTESTS = [];
@@ -51,7 +64,7 @@ function renderBtGrid() {
     const isUnlocked = !isFree && cfpUserHasPremiumAccess && cfpWithinTierCutoff(b.date);
     const badgeClass = isFree ? 'badge-free' : (isUnlocked ? 'badge-free' : 'badge-premium');
     const badgeLabel = isFree ? '🔓 Free' : (isUnlocked ? '🔓 Unlocked' : '🔒 Premium');
-    const resultBadge = b.result ? `<span class="post-tag-mostread" style="background:${b.result === 'Win' ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.12)'};color:${b.result === 'Win' ? '#4ade80' : '#fb7185'};">${b.result === 'Win' ? '✅' : '❌'} ${b.result}</span>` : '';
+    const resultBadge = cfpBtResultBadge(b.result);
     const accessible = isFree || isUnlocked;
     let thumbContent;
     if (b.chartImage) {
@@ -160,7 +173,7 @@ function openBacktest(id) {
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:0.75rem;flex-wrap:wrap;">
       <span class="post-access-badge ${isFree ? 'badge-free' : 'badge-premium'}">${badgeLabel}</span>
       <span class="post-card-category">${b.instrument} · ${b.timeframe}</span>
-      ${b.result ? `<span class="post-tag-mostread" style="background:${b.result === 'Win' ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.12)'};color:${b.result === 'Win' ? '#4ade80' : '#fb7185'};">${b.result === 'Win' ? '✅' : '❌'} ${b.result}</span>` : ''}
+      ${cfpBtResultBadge(b.result)}
       <span class="article-date" style="margin-left:auto;">${b.date} · ${b.readtime}</span>
     </div>
     <h1 style="font-family:'Manrope',sans-serif;font-weight:800;font-size:1.4rem;color:#fff;line-height:1.35;letter-spacing:-0.02em;">${b.title}</h1>

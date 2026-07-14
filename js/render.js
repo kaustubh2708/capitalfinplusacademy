@@ -32,6 +32,10 @@
     if (cta1) cta1.textContent = DATA.hero.cta1;
     const cta2 = document.getElementById('hero-cta2-btn');
     if (cta2) cta2.textContent = DATA.hero.cta2;
+    /* Reveal now that live copy is in — starts at opacity:0 so edited hero
+       text never flashes the hardcoded fallback first. */
+    const heroWrap = document.getElementById('hero-center');
+    if (heroWrap) heroWrap.style.opacity = '1';
   }
 
   /* ── STATS (sets data-target so the existing counter animation still runs) ── */
@@ -125,14 +129,18 @@
 
   function renderPlans() {
     const grid = document.getElementById('plans-grid');
-    if (!grid || !DATA.courses) return;
-    const plans = DATA.courses.filter(c => c.planOnly);
-    if (plans.length) grid.innerHTML = plans.map((c, i) => planCardHtml(c, i)).join('');
+    if (!grid) return;
+    if (DATA.courses) {
+      const plans = DATA.courses.filter(c => c.planOnly);
+      if (plans.length) grid.innerHTML = plans.map((c, i) => planCardHtml(c, i)).join('');
+    }
+    grid.style.opacity = '1';   // reveal — gated at opacity:0 so fallback cards don't flash
   }
 
   function renderCourses() {
     const grid = document.getElementById('courses-grid');
-    if (!grid || !DATA.courses) return;
+    if (!grid) return;
+    if (!DATA.courses) { grid.style.opacity = '1'; return; }
     // The pricing table + plan cards above now cover the Self-Study /
     // Guided Learning / Mentorship tiers (flagged planOnly so they don't
     // duplicate here) — only the standalone course (Academy Framework)
@@ -147,6 +155,46 @@
       html += `<div class="courses-row courses-row-single">${rest.map((c, i) => courseCardHtml(c, i)).join('')}</div>`;
     }
     grid.innerHTML = html;
+    grid.style.opacity = '1';   // reveal — gated at opacity:0 so fallback cards don't flash
+  }
+
+  /* ── PLAN COMPARISON TABLE (admin-editable via the Comparison Table panel) ── */
+  function cfpEsc(s) {
+    return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+  function cfpCompCell(val, colIdx) {
+    const v = String(val == null ? '' : val).trim();
+    const isCheck = v === '✓';
+    const isDash = v === '' || v === '—';
+    const bg = colIdx === 3 ? 'background:rgba(244,194,13,0.04);' : '';
+    let color = 'var(--lilac)', size = '';
+    if (isCheck) { color = 'var(--purple)'; size = 'font-size:1.1rem;'; }
+    else if (isDash) { color = 'var(--muted)'; }
+    return `<td style="padding:1.1rem 1.5rem;${bg}color:${color};${size}">${isDash ? '—' : cfpEsc(v)}</td>`;
+  }
+  function renderComparisonTable() {
+    const tbody = document.getElementById('course-table-body');
+    if (!tbody) return;
+    const wrap = document.getElementById('course-compare-wrap');
+    const comp = DATA.comparison;
+    if (!comp || !comp.rows || !comp.columns) { if (wrap) wrap.style.opacity = '1'; return; }
+
+    const head = tbody.parentElement.querySelector('thead tr');
+    if (head) {
+      head.innerHTML = comp.columns.map((c, i) => {
+        if (i === 0) return `<th style="text-align:left;padding:1.25rem 1.5rem;color:var(--muted);font-weight:700;font-size:0.78rem;letter-spacing:0.06em;text-transform:uppercase;">${cfpEsc(c)}</th>`;
+        const bg = i === 3 ? 'background:rgba(244,194,13,0.06);' : '';
+        return `<th style="text-align:left;padding:1.25rem 1.5rem;${bg}color:var(--purple);font-weight:800;font-size:0.95rem;">${cfpEsc(c)}</th>`;
+      }).join('');
+    }
+    tbody.innerHTML = comp.rows.map((row, ri) => {
+      const border = ri === comp.rows.length - 1 ? '' : ' style="border-bottom:1px solid var(--border);"';
+      const sub = row.sub ? `<span style="display:block;font-size:0.76rem;color:var(--muted);font-weight:400;margin-top:0.2rem;">${cfpEsc(row.sub)}</span>` : '';
+      const feature = `<td style="padding:1.1rem 1.5rem;font-weight:700;color:#fff;">${cfpEsc(row.feature)}${sub}</td>`;
+      const cells = (row.cells || []).map((v, ci) => cfpCompCell(v, ci + 1)).join('');
+      return `<tr${border}>${feature}${cells}</tr>`;
+    }).join('');
+    if (wrap) wrap.style.opacity = '1';
   }
 
   /* ── COURSE FEATURES POPUP ──
@@ -183,6 +231,19 @@
     const outcome = g.outcome ? `<div class="course-features-outcome"><strong>Outcome:</strong> ${g.outcome}</div>` : '';
     return `<div class="course-features-group">${heading}${intro}${learnLabel}${bullets}${outcome}</div>`;
   }
+
+  /* Shared: build the 3-column ESSENTIALS/EDGE/PRECISION curriculum markup for
+     a course. Same output the features modal uses — reused on the payment page
+     ("View Course Content" accordion). Returns '' when there's no rich content. */
+  window.cfpRenderCourseFeaturesRich = function (c) {
+    if (!c || !(c.featuresRich || '').trim()) return '';
+    const groups = cfpParseFeaturesRich(c.featuresRich);
+    const closing = groups.length && /^final promise$/i.test(groups[groups.length - 1].heading) ? groups.pop() : null;
+    const wide = groups.length >= 3;
+    const columns = groups.map(cfpRenderFeatureGroup).join('');
+    const closingHtml = closing ? `<div class="course-features-closing">${closing.intro.map(l => `<p>${l}</p>`).join('')}</div>` : '';
+    return (wide ? `<div class="course-features-columns">${columns}</div>` : columns) + closingHtml;
+  };
 
   /* Faux-document preview: teases the course PDF/curriculum without a real
      file — first 2 lines readable, rest blurred behind a lock overlay.
@@ -645,6 +706,7 @@
     renderAbout();
     renderPlans();
     renderCourses();
+    renderComparisonTable();
     renderTestimonials();
     renderBlogPreview();
     renderContact();
