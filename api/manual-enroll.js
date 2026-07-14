@@ -42,14 +42,16 @@ module.exports = async (req, res) => {
   const firstName = normalizedEmail.split('@')[0].split(/[._-]/)[0];
   firstName[0] && (firstName[0] = firstName[0].toUpperCase()); // best-effort
 
-  /* Resolve the Supabase course UUID from the data.js-style courseId ("4" etc.) */
-  const lookupName = COURSE_ID_TO_NAME[String(courseId)] || null;
-  if (!lookupName) return res.status(400).json({ error: 'Unknown courseId "' + courseId + '".' });
+  /* Resolve the course row — the admin dropdown sends Supabase UUIDs directly,
+     but fall back to name lookup for the old numeric ids just in case. */
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(courseId));
+  const courseQuery = isUuid
+    ? supabase.from('courses').select('id, name, price').eq('id', courseId).maybeSingle()
+    : supabase.from('courses').select('id, name, price').eq('name', COURSE_ID_TO_NAME[String(courseId)] || '__none__').maybeSingle();
 
-  const { data: courseRow, error: courseLookupErr } = await supabase
-    .from('courses').select('id, name, price').eq('name', lookupName).maybeSingle();
+  const { data: courseRow, error: courseLookupErr } = await courseQuery;
   if (courseLookupErr || !courseRow) {
-    return res.status(400).json({ error: 'Course "' + lookupName + '" not found in Supabase. Make sure courses are synced from the admin Courses & Pricing panel.' });
+    return res.status(400).json({ error: 'Course not found for id "' + courseId + '". Make sure courses are synced from the admin Courses & Pricing panel.' });
   }
 
   /* Invite (new user) or resolve (existing user) — same listUsers pattern as
