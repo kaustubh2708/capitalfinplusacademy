@@ -97,7 +97,7 @@ module.exports = async (req, res) => {
       razorpay_payment_id: paymentId,
       amount,
       status: 'captured',
-      notes: notes || null
+      raw_response: notes ? { manual_notes: notes } : null
     }).select('id').single();
   if (paymentErr) return res.status(500).json({ error: 'Payment insert failed: ' + paymentErr.message });
 
