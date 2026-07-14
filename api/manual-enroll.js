@@ -53,6 +53,7 @@ module.exports = async (req, res) => {
   if (courseLookupErr || !courseRow) {
     return res.status(400).json({ error: 'Course not found for id "' + courseId + '". Make sure courses are synced from the admin Courses & Pricing panel.' });
   }
+  const lookupName = courseRow.name;
 
   /* Invite (new user) or resolve (existing user) — same listUsers pattern as
      verify-payment.js to avoid the getUserByEmail bug */
