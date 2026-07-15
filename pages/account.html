@@ -145,14 +145,26 @@
         <span class="section-tag">Welcome to Capital Finplus</span>
         <h1 style="font-size:clamp(1.6rem,3vw,2.1rem);font-weight:800;margin-top:0.75rem;margin-bottom:0.75rem;">Set your password</h1>
         <p style="color:var(--muted);margin:0 auto 1.5rem;">One last step — choose a password for <strong id="set-password-email" style="color:#fff;">your account</strong> to access your course.</p>
+        <style>
+          .pw-wrap { position:relative; }
+          .pw-wrap .form-input { padding-right:2.5rem; }
+          .pw-eye { position:absolute; right:0.75rem; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; color:var(--muted); padding:0; line-height:1; font-size:1.1rem; }
+          .pw-eye:hover { color:#fff; }
+        </style>
         <form id="set-password-form" style="text-align:left;display:flex;flex-direction:column;gap:1rem;">
           <div class="form-group">
             <label for="set-password-input">New Password</label>
-            <input class="form-input" type="password" id="set-password-input" placeholder="At least 8 characters" minlength="8" required />
+            <div class="pw-wrap">
+              <input class="form-input" type="password" id="set-password-input" placeholder="At least 8 characters" minlength="8" required />
+              <button type="button" class="pw-eye" onclick="(function(b){var i=document.getElementById('set-password-input');i.type=i.type==='password'?'text':'password';b.textContent=i.type==='password'?'👁':'🙈';})(this)" aria-label="Toggle password visibility">👁</button>
+            </div>
           </div>
           <div class="form-group">
             <label for="set-password-confirm">Confirm Password</label>
-            <input class="form-input" type="password" id="set-password-confirm" placeholder="Re-enter your password" minlength="8" required />
+            <div class="pw-wrap">
+              <input class="form-input" type="password" id="set-password-confirm" placeholder="Re-enter your password" minlength="8" required />
+              <button type="button" class="pw-eye" onclick="(function(b){var i=document.getElementById('set-password-confirm');i.type=i.type==='password'?'text':'password';b.textContent=i.type==='password'?'👁':'🙈';})(this)" aria-label="Toggle password visibility">👁</button>
+            </div>
           </div>
           <p id="set-password-error" style="display:none;color:#fb7185;font-size:0.82rem;"></p>
           <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;">Set Password &amp; Continue →</button>

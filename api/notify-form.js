@@ -6,6 +6,7 @@
    Always returns 200.
    ============================================== */
 
+const { createClient } = require('@supabase/supabase-js');
 const sendNotification = require('./_send-notification');
 
 // In-memory rate limiter — 5 form submissions per IP per 10 minutes.
@@ -118,6 +119,19 @@ module.exports = async (req, res) => {
         html: buildConfirmationHtml(String(type || '').toLowerCase(), name)
       })
     }).catch(e => console.error('notify-form: confirmation email failed', e));
+  }
+
+  // Add form submitter to newsletter (fire-and-forget)
+  const { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY } = process.env;
+  if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY && userEmail && userEmail.includes('@')) {
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    supabase.from('newsletter_subscribers').insert({
+      email: userEmail,
+      name: String(name || '').trim(),
+      source: 'form'
+    }).then(({ error }) => {
+      if (error && error.code !== '23505') console.error('notify-form: newsletter insert failed', error);
+    });
   }
 
   return res.status(200).json({ ok: true });
