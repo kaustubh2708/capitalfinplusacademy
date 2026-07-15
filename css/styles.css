@@ -1591,3 +1591,20 @@ footer {
   #masterclass-float-btn svg { width: 22px; height: 22px; }
   #masterclass-popup { bottom: 140px; right: 16px; }
 }
+
+/* View Course Content accordion (course modal + payment page) */
+.course-content-toggle {
+  width: 100%; display: flex; align-items: center; justify-content: space-between;
+  gap: 1rem; background: rgba(16,12,2,0.75); border: 1px solid rgba(244,194,13,0.18);
+  border-radius: 12px; padding: 1.05rem 1.5rem; cursor: pointer;
+  font-family: 'Manrope', sans-serif; font-size: 0.82rem; font-weight: 700;
+  letter-spacing: 0.08em; text-transform: uppercase; color: #F4C20D;
+  backdrop-filter: blur(16px); transition: border-color 0.25s, background 0.25s;
+}
+.course-content-toggle:hover { border-color: rgba(244,194,13,0.45); background: rgba(24,18,3,0.85); }
+.course-content-caret { font-size: 0.9rem; transition: transform 0.3s ease; }
+.course-content-body {
+  border: 1px solid rgba(244,194,13,0.14); border-top: none;
+  border-radius: 0 0 12px 12px; padding: 1.75rem 1.5rem 0.5rem;
+  background: rgba(12,9,2,0.6);
+}

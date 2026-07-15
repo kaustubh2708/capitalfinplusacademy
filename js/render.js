@@ -286,6 +286,7 @@
        columns instead of becoming a 4th column. 3+ remaining sections lay
        out side by side and widen the modal to fit them. */
     let body;
+    let richHtml = '';
     let wide = false;
     if ((c.featuresRich || '').trim()) {
       const groups = cfpParseFeaturesRich(c.featuresRich);
@@ -293,14 +294,23 @@
       wide = groups.length >= 3;
       const columns = groups.map(cfpRenderFeatureGroup).join('');
       const closingHtml = closing ? `<div class="course-features-closing">${closing.intro.map(l => `<p>${l}</p>`).join('')}</div>` : '';
-      body = (wide ? `<div class="course-features-columns">${columns}</div>` : columns) + closingHtml;
+      richHtml = (wide ? `<div class="course-features-columns">${columns}</div>` : columns) + closingHtml;
+      body = `<ul class="course-features">${(c.features || []).map(f => `<li>${f}</li>`).join('')}</ul>`;
     } else {
       body = `<ul class="course-features">${(c.features || []).map(f => `<li>${f}</li>`).join('')}</ul>`;
     }
 
-    if (modalEl) modalEl.classList.toggle('modal-wide', wide);
+    if (modalEl) modalEl.classList.toggle('modal-wide', false);
     const levelLine = (c.level && c.level !== c.name) ? `<div class="course-features-modal-level">${c.level}</div>` : '';
     const subLine = (c.subtitle && c.subtitle !== c.name) ? `<div class="course-features-modal-sub">${c.subtitle}</div>` : '';
+    const accordionHtml = richHtml ? `
+      <div class="course-content-accordion" style="margin-top:1.25rem;">
+        <button type="button" class="course-content-toggle modal-cc-toggle" aria-expanded="false">
+          <span>View Course Content</span>
+          <span class="course-content-caret" aria-hidden="true">▾</span>
+        </button>
+        <div class="course-content-body" style="display:none;">${richHtml}</div>
+      </div>` : '';
     content.innerHTML = `
       <div class="course-features-modal-top"></div>
       <div class="course-features-modal-head">
@@ -311,7 +321,16 @@
       ${body}
       ${cfpDocPreviewHtml(c)}
       <a href="${c.isModal ? 'javascript:void(0)' : c.ctaLink}" class="btn btn-primary" style="width:100%;justify-content:center;margin-top:1rem;" onclick="closeCourseFeatures();${c.isModal ? ' if (typeof openModal === \'function\') openModal();' : ''}">${c.isModal ? c.ctaLabel : 'Proceed to Payment'} →</a>
+      ${accordionHtml}
     `;
+    const toggleBtn = content.querySelector('.modal-cc-toggle');
+    if (toggleBtn) toggleBtn.addEventListener('click', function () {
+      const bodyEl = this.nextElementSibling;
+      const open = this.getAttribute('aria-expanded') === 'true';
+      this.setAttribute('aria-expanded', String(!open));
+      this.querySelector('.course-content-caret').style.transform = open ? '' : 'rotate(180deg)';
+      bodyEl.style.display = open ? 'none' : '';
+    });
     modal.classList.add('active');
     document.body.style.overflow = 'hidden';
   };
