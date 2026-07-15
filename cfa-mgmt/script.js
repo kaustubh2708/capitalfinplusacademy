@@ -1036,13 +1036,23 @@ function cfpToggleStudentEdit(userId) {
   cfpRenderStudentsTable();
 }
 
+async function cfpAdminFetch(action, payload) {
+  const { data: { session } } = await window.cfpSupabase.auth.getSession();
+  const res = await fetch('/api/manual-enroll', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action, adminToken: session?.access_token || '', ...payload })
+  });
+  return res.json();
+}
+
 async function cfpRevokeEnrollment(enrollmentId, userId) {
   if (!confirm('Revoke this course enrollment? The student will immediately lose access.')) return;
   const msg = document.getElementById('student-edit-msg-' + userId);
-  if (msg) msg.textContent = 'Revoking…';
-  const { error } = await window.cfpSupabase.from('enrollments').delete().eq('id', enrollmentId);
-  if (error) {
-    if (msg) msg.style.color = 'var(--red)'; if (msg) msg.textContent = 'Failed: ' + error.message;
+  if (msg) { msg.style.color = 'var(--text-muted)'; msg.textContent = 'Revoking…'; }
+  const result = await cfpAdminFetch('revoke', { enrollmentId });
+  if (result.error) {
+    if (msg) { msg.style.color = 'var(--red)'; msg.textContent = 'Failed: ' + result.error; }
     return;
   }
   await renderStudents();
@@ -1056,17 +1066,10 @@ async function cfpAddEnrollment(userId) {
   if (!courseName) return;
   const msg = document.getElementById('student-edit-msg-' + userId);
   if (msg) { msg.style.color = 'var(--text-muted)'; msg.textContent = 'Adding…'; }
-
-  const { data: courseRow, error: courseErr } = await window.cfpSupabase
-    .from('courses').select('id').eq('name', courseName).maybeSingle();
-  if (courseErr || !courseRow) {
-    if (msg) { msg.style.color = 'var(--red)'; msg.textContent = 'Could not find course in database.'; } return;
-  }
-  const { error } = await window.cfpSupabase.from('enrollments').insert({
-    user_id: userId, course_id: courseRow.id, status: 'active', purchased_at: new Date().toISOString()
-  });
-  if (error && error.code !== '23505') {
-    if (msg) { msg.style.color = 'var(--red)'; msg.textContent = 'Failed: ' + error.message; } return;
+  const result = await cfpAdminFetch('add-enrollment', { userId, courseName });
+  if (result.error) {
+    if (msg) { msg.style.color = 'var(--red)'; msg.textContent = 'Failed: ' + result.error; }
+    return;
   }
   await renderStudents();
   cfpStudentEditingId = userId;
@@ -1075,8 +1078,8 @@ async function cfpAddEnrollment(userId) {
 
 async function cfpDeleteStudent(userId) {
   if (!confirm('Delete this student? This will remove ALL their enrollments. Their Supabase Auth account and profile will remain — only enrollments are deleted.')) return;
-  const { error } = await window.cfpSupabase.from('enrollments').delete().eq('user_id', userId);
-  if (error) { alert('Failed to delete: ' + error.message); return; }
+  const result = await cfpAdminFetch('delete-student', { userId });
+  if (result.error) { alert('Failed to delete: ' + result.error); return; }
   await renderStudents();
 }
 

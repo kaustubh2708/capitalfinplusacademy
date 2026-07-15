@@ -26,8 +26,8 @@ module.exports = async (req, res) => {
     return res.status(500).json({ error: 'Supabase env vars not configured.' });
   }
 
-  const { email, courseId, enrollType, notes, adminToken } = req.body || {};
-  if (!email || !courseId) return res.status(400).json({ error: 'email and courseId are required.' });
+  const body = req.body || {};
+  const { adminToken } = body;
   if (!adminToken) return res.status(401).json({ error: 'No admin token provided.' });
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
@@ -37,6 +37,41 @@ module.exports = async (req, res) => {
   if (authErr || !caller) return res.status(401).json({ error: 'Invalid admin session.' });
   const { data: callerProfile } = await supabase.from('profiles').select('is_admin').eq('id', caller.id).maybeSingle();
   if (!callerProfile || !callerProfile.is_admin) return res.status(403).json({ error: 'Caller is not an admin.' });
+
+  /* ── REVOKE: delete one enrollment row by id ── */
+  if (body.action === 'revoke') {
+    const { enrollmentId } = body;
+    if (!enrollmentId) return res.status(400).json({ error: 'enrollmentId required.' });
+    const { error } = await supabase.from('enrollments').delete().eq('id', enrollmentId);
+    if (error) return res.status(500).json({ error: error.message });
+    return res.status(200).json({ success: true });
+  }
+
+  /* ── ADD-ENROLLMENT: add a course to an existing user (no invite/email) ── */
+  if (body.action === 'add-enrollment') {
+    const { userId, courseName } = body;
+    if (!userId || !courseName) return res.status(400).json({ error: 'userId and courseName required.' });
+    const { data: courseRow, error: courseErr } = await supabase.from('courses').select('id').eq('name', courseName).maybeSingle();
+    if (courseErr || !courseRow) return res.status(400).json({ error: 'Course not found: ' + courseName });
+    const { error } = await supabase.from('enrollments').insert({
+      user_id: userId, course_id: courseRow.id, status: 'active', purchased_at: new Date().toISOString()
+    });
+    if (error && error.code !== '23505') return res.status(500).json({ error: error.message });
+    return res.status(200).json({ success: true });
+  }
+
+  /* ── DELETE-STUDENT: remove all enrollments for a user ── */
+  if (body.action === 'delete-student') {
+    const { userId } = body;
+    if (!userId) return res.status(400).json({ error: 'userId required.' });
+    const { error } = await supabase.from('enrollments').delete().eq('user_id', userId);
+    if (error) return res.status(500).json({ error: error.message });
+    return res.status(200).json({ success: true });
+  }
+
+  /* ── MANUAL ENROLL (original flow) ── */
+  const { email, courseId, enrollType, notes } = body;
+  if (!email || !courseId) return res.status(400).json({ error: 'email and courseId are required.' });
 
   const normalizedEmail = String(email).trim().toLowerCase();
   const firstName = normalizedEmail.split('@')[0].split(/[._-]/)[0];
