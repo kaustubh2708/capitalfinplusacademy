@@ -60,12 +60,14 @@ module.exports = async (req, res) => {
     return res.status(200).json({ success: true });
   }
 
-  /* ── DELETE-STUDENT: remove all enrollments for a user ── */
+  /* ── DELETE-STUDENT: remove all enrollments + auth user ── */
   if (body.action === 'delete-student') {
     const { userId } = body;
     if (!userId) return res.status(400).json({ error: 'userId required.' });
-    const { error } = await supabase.from('enrollments').delete().eq('user_id', userId);
-    if (error) return res.status(500).json({ error: error.message });
+    const { error: enrollErr } = await supabase.from('enrollments').delete().eq('user_id', userId);
+    if (enrollErr) return res.status(500).json({ error: enrollErr.message });
+    const { error: authErr } = await supabase.auth.admin.deleteUser(userId);
+    if (authErr) return res.status(500).json({ error: 'Enrollments deleted but auth user removal failed: ' + authErr.message });
     return res.status(200).json({ success: true });
   }
 
@@ -104,7 +106,7 @@ module.exports = async (req, res) => {
     if (!inviteErr && inviteData && inviteData.user) {
       userId = inviteData.user.id;
       isNewUser = true;
-    } else if (inviteErr && /already (registered|exists)/i.test(inviteErr.message || '')) {
+    } else if (inviteErr && /already.*(registered|exists)/i.test(inviteErr.message || '')) {
       /* Existing user — find via listUsers (getUserByEmail doesn't exist in supabase-js) */
       const { data: listData, error: listErr } = await supabase.auth.admin.listUsers({ page: 1, perPage: 1000 });
       const match = !listErr && listData && listData.users

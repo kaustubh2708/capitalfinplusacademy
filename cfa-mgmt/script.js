@@ -1077,7 +1077,7 @@ async function cfpAddEnrollment(userId) {
 }
 
 async function cfpDeleteStudent(userId) {
-  if (!confirm('Delete this student? This will remove ALL their enrollments. Their Supabase Auth account and profile will remain — only enrollments are deleted.')) return;
+  if (!confirm('Delete this student? This will remove ALL their enrollments AND their login account. They can be re-enrolled fresh via Manual Enroll.')) return;
   const result = await cfpAdminFetch('delete-student', { userId });
   if (result.error) { alert('Failed to delete: ' + result.error); return; }
   await renderStudents();
