@@ -1536,6 +1536,7 @@ async function cfpRenderManualEnrollHistory() {
 (function initManualEnrollForm() {
   document.getElementById('me-enroll-btn').addEventListener('click', async () => {
     const email = document.getElementById('me-email').value.trim();
+    const name = document.getElementById('me-name').value.trim();
     const courseId = document.getElementById('me-course').value;
     const enrollType = document.querySelector('input[name="me-type"]:checked')?.value || 'paid';
     const notes = document.getElementById('me-notes').value.trim();
@@ -1554,7 +1555,7 @@ async function cfpRenderManualEnrollHistory() {
       const res = await fetch('/api/manual-enroll', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, courseId, enrollType, notes, adminToken: session?.access_token || '' })
+        body: JSON.stringify({ email, name, courseId, enrollType, notes, adminToken: session?.access_token || '' })
       });
       const json = await res.json();
       if (!res.ok) {
@@ -1564,6 +1565,7 @@ async function cfpRenderManualEnrollHistory() {
         msgEl.textContent = '✅ ' + json.message;
         msgEl.style.color = '#4ade80';
         document.getElementById('me-email').value = '';
+        document.getElementById('me-name').value = '';
         document.getElementById('me-notes').value = '';
         cfpRenderManualEnrollHistory();
       }

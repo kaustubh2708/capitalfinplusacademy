@@ -70,12 +70,14 @@ module.exports = async (req, res) => {
   }
 
   /* ── MANUAL ENROLL (original flow) ── */
-  const { email, courseId, enrollType, notes } = body;
+  const { email, name, courseId, enrollType, notes } = body;
   if (!email || !courseId) return res.status(400).json({ error: 'email and courseId are required.' });
 
   const normalizedEmail = String(email).trim().toLowerCase();
-  const firstName = normalizedEmail.split('@')[0].split(/[._-]/)[0];
-  firstName[0] && (firstName[0] = firstName[0].toUpperCase()); // best-effort
+  const fullName = (name || '').trim();
+  const firstName = fullName
+    ? fullName.split(' ')[0]
+    : (normalizedEmail.split('@')[0].split(/[._-]/)[0].replace(/^./, c => c.toUpperCase()));
 
   /* Resolve the course row — the admin dropdown sends Supabase UUIDs directly,
      but fall back to name lookup for the old numeric ids just in case. */
@@ -96,7 +98,7 @@ module.exports = async (req, res) => {
   let isNewUser = false;
   try {
     const { data: inviteData, error: inviteErr } = await supabase.auth.admin.inviteUserByEmail(normalizedEmail, {
-      data: { full_name: '' },
+      data: { full_name: fullName },
       redirectTo: (process.env.SITE_URL || 'https://capitalfinplusadvizors.com') + '/pages/account.html'
     });
     if (!inviteErr && inviteData && inviteData.user) {
