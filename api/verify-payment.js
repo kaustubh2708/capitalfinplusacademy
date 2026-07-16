@@ -275,7 +275,7 @@ module.exports = async (req, res) => {
         });
         if (!inviteErr && inviteData && inviteData.user) {
           userId = inviteData.user.id;
-        } else if (inviteErr && /already (registered|exists)/i.test(inviteErr.message || '')) {
+        } else if (inviteErr && /already.*(registered|exists)/i.test(inviteErr.message || '')) {
           const { data: listData, error: listErr } = await supabase.auth.admin.listUsers({ page: 1, perPage: 1000 });
           const match = !listErr && listData && listData.users
             ? listData.users.find(u => (u.email || '').toLowerCase() === checkoutEmail)
