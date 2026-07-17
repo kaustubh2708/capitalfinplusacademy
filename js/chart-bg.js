@@ -114,24 +114,26 @@ window.CFP_CHART_BG = true;
   }
 
   /* Drifting candlesticks along a band, low opacity. */
+  const CANDLE_FADE = 30; // frames to fade a new candle in
+
   function makeCandles() {
-    const w = 7, gap = 34;
+    const w = 6, gap = 16;
     const n = Math.ceil(W / gap) + 2;
     const arr = [];
     let base = rand(0.4, 0.6);
     for (let i = 0; i < n; i++) {
       base = clamp(base + rand(-0.06, 0.06), 0.2, 0.8);
-      arr.push(candle(i * gap, base));
+      arr.push(candle(base, time - CANDLE_FADE)); // pre-aged so initial candles are fully visible
     }
     return { w, gap, arr, offset: 0 };
   }
 
-  function candle(x, base) {
-    const o = base + rand(-0.05, 0.05);
-    const c = base + rand(-0.05, 0.05);
-    const hi = Math.max(o, c) + rand(0.01, 0.05);
-    const lo = Math.min(o, c) - rand(0.01, 0.05);
-    return { x, o, c, hi, lo, up: c >= o, base };
+  function candle(base, born) {
+    const o = base + rand(-0.10, 0.10);
+    const c = base + rand(-0.10, 0.10);
+    const hi = Math.max(o, c) + rand(0.02, 0.08);
+    const lo = Math.min(o, c) - rand(0.02, 0.08);
+    return { o, c, hi, lo, up: c >= o, base, born: born != null ? born : time };
   }
 
   function stepCandles() {
@@ -141,19 +143,20 @@ window.CFP_CHART_BG = true;
       candles.arr.shift();
       const prev = candles.arr[candles.arr.length - 1];
       const base = clamp(prev.base + rand(-0.06, 0.06), 0.2, 0.8);
-      candles.arr.push(candle((candles.arr.length) * candles.gap, base));
+      candles.arr.push(candle(base)); // born = current time → starts at alpha 0
     }
   }
 
   function drawCandles() {
-    const baseY = H * 0.62, amp = H * 0.32, w = candles.w;
+    const baseY = H * 0.62, amp = H * 0.44, w = candles.w;
     const y = (v) => baseY - v * amp;
     for (let i = 0; i < candles.arr.length; i++) {
       const c = candles.arr[i];
       const x = i * candles.gap - candles.offset;
       const col = c.up ? UP : DOWN;
-      ctx.strokeStyle = `rgba(${col},0.16)`;
-      ctx.fillStyle = `rgba(${col},0.10)`;
+      const fadeA = Math.min(1, (time - c.born) / CANDLE_FADE);
+      ctx.strokeStyle = `rgba(${col},${(0.18 * fadeA).toFixed(3)})`;
+      ctx.fillStyle = `rgba(${col},${(0.11 * fadeA).toFixed(3)})`;
       ctx.lineWidth = 1;
       // wick
       ctx.beginPath();
