@@ -73,7 +73,7 @@
 .azd-seg-pill {
   position: absolute;
   top: 4px;
-  bottom: 4px;
+  bottom: 4px;   /* stretches with the tallest button, so wrapping is safe */
   left: 0;
   width: 0;
   border-radius: 7px;
@@ -87,16 +87,16 @@
 .azd-seg button {
   position: relative;
   z-index: 1;
+  min-width: 0;                 /* flex items must be allowed to shrink */
   font-family: 'Manrope', sans-serif;
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0;
   color: rgba(240, 234, 214, 0.5);
   background: transparent;
   border: 0;
   border-radius: 7px;
-  padding: 9px 18px;
+  padding: 8px 16px;
   cursor: pointer;
   transition: color 0.2s ease;
   white-space: nowrap;
@@ -115,15 +115,26 @@
 .azd-seg.azd-seg-nopill .azd-seg-pill { display: none; }
 .azd-seg.azd-seg-nopill button[aria-pressed="true"] { background: var(--purple); }
 /* Full-width variants used inside the calculator panel */
-.azd-seg.azd-seg-fill { display: flex; width: 100%; }
+/* Full-width variant (the calculator sidebar). The column is ~300px, so three
+   labels cannot rely on nowrap — they must be free to wrap onto a second line
+   rather than push through the container edge. */
+.azd-seg.azd-seg-fill {
+  display: flex;
+  width: 100%;
+  align-items: stretch;
+}
 .azd-seg.azd-seg-fill button {
   flex: 1 1 0;
-  padding: 9px 4px;
+  min-width: 0;
+  padding: 8px 6px;
   text-align: center;
-  letter-spacing: 0.04em;
+  white-space: normal;
+  overflow-wrap: break-word;
+  line-height: 1.25;
+  font-size: 0.76rem;
 }
-@media (max-width: 420px) {
-  .azd-seg.azd-seg-fill button { font-size: 0.62rem; padding: 9px 2px; }
+@media (max-width: 400px) {
+  .azd-seg.azd-seg-fill button { font-size: 0.7rem; padding: 8px 3px; }
 }
 
 /* ── KPI strip ──────────────────────────────────────────────────── */

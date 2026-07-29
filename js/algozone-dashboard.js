@@ -465,6 +465,140 @@
     return { half: 1.96 * se };
   }
 
+
+  /* ---------------------------------------------------------------
+     Real return paths
+
+     Compounding is not "expected rate to the twelfth power". A real account
+     starts each period with whatever the last one left it, and some periods
+     lose money. These helpers walk the ACTUAL per-session sequence the
+     backtest produced, so monthly and daily compounding mean what they say —
+     and so the volatility drag a constant-rate model hides is included.
+     --------------------------------------------------------------- */
+  var SESSIONS_PER_YEAR = TRADING_DAYS_PER_MONTH * MONTHS;   // 252
+
+  /* Per-session return as a fraction of TOTAL capital, given the sizing the
+     user has chosen. The exported path is per-trade %, so it has to be scaled
+     by how much of the account each trade actually uses. */
+  function dailySeries(scoring) {
+    var pk = ((DATA.paths || {})[S.model] || {})[scoring || S.scoring] || {};
+    var kind = C.market === 'stocks' ? 'equity' : 'options';
+    var src = pk[kind] || {};
+    var names;
+    if (C.market === 'stocks') {
+      names = C.instrument === 'PORTFOLIO' ? Object.keys(src) : [C.instrument];
+    } else {
+      names = [C.market === 'niftyopt' ? NIFTY : C.instrument];
+    }
+    var byIdx = {};
+    names.forEach(function (nm) {
+      (src[nm] || []).forEach(function (e) {
+        var b = byIdx[e[0]] || (byIdx[e[0]] = [0, 0]);
+        b[0] += e[1];        /* summed per-trade % */
+        b[1] += e[2];        /* trades that session */
+      });
+    });
+    /* Clip to the window these instruments actually have data for. A month
+       before an archive begins is not a flat month — it is not a month at all,
+       and counting it as zero both dilutes the average and conceals real
+       losing months (NIFTY's futures archive is only ~69 sessions deep). */
+    var cov = DATA.coverage || {};
+    var a = null, z = null;
+    names.forEach(function (nm) {
+      var c = cov[nm];
+      if (!c) return;
+      a = a === null ? c[0] : Math.min(a, c[0]);
+      z = z === null ? c[1] : Math.max(z, c[1]);
+    });
+    var total = (DATA.dates || []).length;
+    if (a === null) { a = 0; z = total - 1; }
+    var N = z - a + 1;
+    var out = new Array(N);
+    for (var i = 0; i < N; i++) out[i] = 0;
+    out.offset = a;
+    Object.keys(byIdx).forEach(function (k) {
+      var i = +k, sum = byIdx[k][0], n = byIdx[k][1], frac;
+      if (C.market === 'stocks') {
+        /* capital split into `concurrent` slots; you cannot take more trades
+           in a day than you have slots, so scale the day down pro rata. */
+        var slots = Math.max(1, C.concurrent);
+        frac = sum * (Math.min(n, slots) / n) / slots;
+      } else {
+        /* each signal buys `deploy`% of the account, capped at 100% in total */
+        var d = C.deploy / 100;
+        frac = sum * (Math.min(n * d, 1) / n);
+      }
+      var j = i - a;
+      if (j >= 0 && j < N) out[j] = frac / 100;
+    });
+    return out;
+  }
+
+  function _grow(arr) {                       /* compounded product − 1 */
+    var v = 1;
+    for (var i = 0; i < arr.length; i++) v *= (1 + arr[i]);
+    return v - 1;
+  }
+  function _sum(arr) {
+    var v = 0;
+    for (var i = 0; i < arr.length; i++) v += arr[i];
+    return v;
+  }
+
+  /* Everything the projection table needs, derived from the real path. */
+  function pathStats(series, mode) {
+    var N = series.length || 1;
+    var dates = DATA.dates || [];
+    var off = series.offset || 0;
+    var order = [], buckets = {};
+    for (var i = 0; i < N; i++) {
+      var m = (dates[i + off] || '').slice(0, 7);
+      if (!(m in buckets)) { buckets[m] = []; order.push(m); }
+      buckets[m].push(series[i]);
+    }
+    var monthly = order.map(function (m) {
+      return mode === 'daily' ? _grow(buckets[m]) : _sum(buckets[m]);
+    });
+    var dayAvg = _sum(series) / N;
+    var monthAvg = monthly.length ? _sum(monthly) / monthly.length : 0;
+
+    /* Annualise the way the chosen mode actually behaves. */
+    var year;
+    if (mode === 'none') {
+      year = dayAvg * SESSIONS_PER_YEAR;
+    } else if (mode === 'monthly') {
+      var g = monthly.length
+        ? Math.pow(Math.max(1 + _grow(monthly), 1e-9), 1 / monthly.length) - 1
+        : 0;
+      year = Math.pow(1 + g, MONTHS) - 1;
+    } else {
+      var gd = Math.pow(Math.max(1 + _grow(series), 1e-9), 1 / N) - 1;
+      year = Math.pow(1 + gd, SESSIONS_PER_YEAR) - 1;
+    }
+
+    /* The band is now REAL: the best and worst twelve-month stretch that
+       actually occurred, not a symmetric confidence interval. */
+    var win = Math.min(SESSIONS_PER_YEAR, N), lo = null, hi = null;
+    for (var a = 0; a + win <= N; a += 5) {
+      var slice = series.slice(a, a + win);
+      var v = mode === 'none' ? _sum(slice) : _grow(slice);
+      if (lo === null || v < lo) lo = v;
+      if (hi === null || v > hi) hi = v;
+    }
+    if (lo === null) { lo = year; hi = year; }
+
+    return {
+      dayAvg: dayAvg, monthAvg: monthAvg, year: year,
+      monthLo: monthly.length ? Math.min.apply(null, monthly) : 0,
+      monthHi: monthly.length ? Math.max.apply(null, monthly) : 0,
+      yearLo: lo, yearHi: hi,
+      months: monthly.length,
+      negMonths: monthly.filter(function (v) { return v < 0; }).length,
+      sessions: N,
+      fullWindow: N >= SESSIONS_PER_YEAR
+    };
+  }
+
   function renderCalc() {
     var p = profile();
     var out = el('azd-calc-out');
@@ -486,51 +620,35 @@
     var dayLow = (perTradeBase - b.half) * p.tradesPerDay * lotMult;
     var dayHigh = (perTradeBase + b.half) * p.tradesPerDay * lotMult;
 
-    /* Three ways to read a year:
-         none    — profits withdrawn; a year is simply twelve months
-         monthly — each month's profit is added to capital for the next month
-         daily   — each session's profit is added for the next session
-       Daily compounding of an intraday edge is arithmetically valid and
-       practically fantasy; the warning block below fires on it deliberately. */
-    function project(day) {
-      var month = day * TRADING_DAYS_PER_MONTH;
-      var year;
-      if (C.compound === 'daily') {
-        var d = day / C.amount;
-        year = C.amount * (Math.pow(1 + d, TRADING_DAYS_PER_MONTH * MONTHS) - 1);
-        month = C.amount * (Math.pow(1 + d, TRADING_DAYS_PER_MONTH) - 1);
-      } else if (C.compound === 'monthly') {
-        year = C.amount * (Math.pow(1 + month / C.amount, MONTHS) - 1);
-      } else {
-        year = month * MONTHS;
-      }
-      return { day: day, month: month, year: year };
-    }
+    /* THE PATH, not a power.
+       Compounding is not "expected rate ^ 12". A real account carries whatever
+       the previous period left into the next, and some periods lose money.
+       pathStats() walks the actual session-by-session sequence the backtest
+       produced, so "monthly" and "daily" mean what they say and the volatility
+       drag a constant-rate model hides is included. */
+    var PS = pathStats(dailySeries(), C.compound);
     var compLabel = C.compound === 'daily' ? ' (compounded daily)'
       : C.compound === 'monthly' ? ' (compounded monthly)' : '';
-    var lo = project(dayLow), mid = project(dayBase), hi = project(dayHigh);
 
-    /* A compounded annual figure is only a measurement while the monthly rate is
-       one a real account could actually sustain. Above ~20% a month the twelfth
-       power turns a thin backtest into a number with no physical meaning — at
-       176% a month, ₹1 lakh "becomes" ₹1,980 crore, which is not a projection,
-       it is an arithmetic artefact. Suppress it rather than print it. */
+    /* Even a real path explodes if the per-month rate is one no account could
+       actually sustain, so the ceiling stays — measured on the flat rate so it
+       does not depend on which compounding mode is selected. */
     var COMPOUND_CEILING_PCT = 20;
-    /* Measured on the SIMPLE monthly rate (day × 21), never on an already
-       compounded one — otherwise turning daily compounding on inflates the
-       month, trips the ceiling, and silently reverts the year to the flat
-       fallback, making daily and monthly look identical. */
-    var simpleMonthPct = dayBase * TRADING_DAYS_PER_MONTH / C.amount * 100;
-    var monthPct = simpleMonthPct;
+    var flatMonthPct = PS.dayAvg * TRADING_DAYS_PER_MONTH * 100;
+    var monthPct = flatMonthPct;
     var compoundBlocked = C.compound !== 'none' &&
-                          simpleMonthPct > COMPOUND_CEILING_PCT;
-    if (compoundBlocked) {
-      [lo, mid, hi].forEach(function (x, i) {
-        var day = [dayLow, dayBase, dayHigh][i];
-        x.month = day * TRADING_DAYS_PER_MONTH;
-        x.year = day * TRADING_DAYS_PER_MONTH * MONTHS;
-      });
-    }
+                          flatMonthPct > COMPOUND_CEILING_PCT;
+
+    var yearFrac = compoundBlocked
+      ? PS.dayAvg * SESSIONS_PER_YEAR
+      : PS.year;
+
+    var lo  = { day: PS.dayAvg * C.amount, month: PS.monthLo * C.amount,
+                year: PS.yearLo * C.amount };
+    var mid = { day: PS.dayAvg * C.amount, month: PS.monthAvg * C.amount,
+                year: yearFrac * C.amount };
+    var hi  = { day: PS.dayAvg * C.amount, month: PS.monthHi * C.amount,
+                year: PS.yearHi * C.amount };
     var pctOf = function (v) { return (v / C.amount * 100); };
 
     /* — scenario cards — */
@@ -557,26 +675,13 @@
     var otherKey = S.scoring === 'pure' ? 'honest' : 'pure';
     var q = profile(otherKey);
     var compare = '';
-    var noCostBook = false;
     if (q.ok) {
-      var qMult = C.market === 'stocks' ? 1 : q.units;
-      var qDay = q.perTrade * q.tradesPerDay * qMult;
-      var qMonth = qDay * TRADING_DAYS_PER_MONTH;
-      var qYear;
+      var QS = pathStats(dailySeries(otherKey), C.compound);
       var qBlocked = C.compound !== 'none' &&
-        (qDay * TRADING_DAYS_PER_MONTH / C.amount * 100) > COMPOUND_CEILING_PCT;
-      if (qBlocked) {
-        qYear = qDay * TRADING_DAYS_PER_MONTH * MONTHS;
-        qMonth = qDay * TRADING_DAYS_PER_MONTH;
-      } else if (C.compound === 'daily') {
-        var qd = qDay / C.amount;
-        qYear = C.amount * (Math.pow(1 + qd, TRADING_DAYS_PER_MONTH * MONTHS) - 1);
-        qMonth = C.amount * (Math.pow(1 + qd, TRADING_DAYS_PER_MONTH) - 1);
-      } else if (C.compound === 'monthly') {
-        qYear = C.amount * (Math.pow(1 + qMonth / C.amount, MONTHS) - 1);
-      } else {
-        qYear = qMonth * MONTHS;
-      }
+        QS.dayAvg * TRADING_DAYS_PER_MONTH * 100 > COMPOUND_CEILING_PCT;
+      var qDay = QS.dayAvg * C.amount;
+      var qMonth = QS.monthAvg * C.amount;
+      var qYear = (qBlocked ? QS.dayAvg * SESSIONS_PER_YEAR : QS.year) * C.amount;
       compare = '<div class="azd-proj-row" style="border-bottom:0;opacity:0.82">' +
         '<div class="azd-proj-k">' +
         (otherKey === 'honest'
@@ -591,59 +696,36 @@
         '</div>';
     }
 
-    if (noCostBook) {
-      compare = '<div class="azd-proj-row" style="border-bottom:0;opacity:0.82">' +
-        '<div class="azd-proj-k" style="grid-column:1/-1;font-weight:500;font-size:0.8rem;' +
-        'color:rgba(240,234,214,0.45)">Option premiums here are modelled on ' +
-        'theoretical prices with no bid-ask spread and no cost adjustment. There is ' +
-        'no after-costs option book yet — real spreads alone can remove the entire ' +
-        'edge shown above.</div></div>';
-    }
-
-    /* Extrapolating a year from a thin sample is arithmetic, not evidence. */
     var thin = p.n < 100;
-    var monthlyPct = mid.month / C.amount * 100;
     var stretch = '';
     if (compoundBlocked) {
       stretch += '<div class="azd-warn"><strong>Compounding is switched off for this ' +
-        'selection.</strong> The measured rate here is ' + pct(monthPct, 0) +
-        ' a month. Raised to the twelfth power that produces a number with no ' +
-        'physical meaning — there is not enough liquidity in the market to keep ' +
-        'redeploying at that rate, and a single losing run breaks the sequence. ' +
-        'The annual row therefore shows twelve flat months, not a compounded ' +
-        'curve. Lower the deployment percentage, or read the monthly figure and ' +
-        'stop there.</div>';
+        'selection.</strong> The measured rate averages ' + pct(monthPct, 0) +
+        ' a month. Carried through a year that produces a number with no physical ' +
+        'meaning — there is not enough liquidity to keep redeploying at that rate. ' +
+        'The annual row falls back to the flat rate. Lower the deployment ' +
+        'percentage, or read the monthly figure and stop there.</div>';
     } else if (C.compound === 'daily') {
-      stretch += '<div class="azd-warn"><strong>Daily compounding is a maths exercise, ' +
-        'not a plan.</strong> It assumes you can scale your position every single ' +
-        'session with no limit on lot size, no widening of spreads, and no losing ' +
-        'run interrupting the sequence. None of those hold. Use the "None" setting ' +
-        'for any figure you intend to rely on.</div>';
+      stretch += '<div class="azd-warn"><strong>Daily compounding assumes you can ' +
+        'resize every session.</strong> The sequence below is the real one, but ' +
+        'redeploying profit the next morning ignores lot sizes and the fact that ' +
+        'you cannot buy part of a contract. Treat "None" as the figure to rely on.</div>';
     }
-    if (thin || monthlyPct > 20) {
+    if (thin) {
       stretch += '<div class="azd-warn" style="border-color:rgba(244,194,13,0.4);' +
-        'background:rgba(244,194,13,0.06)">' +
-        (thin ? '<strong>Small sample.</strong> This projection rests on just ' +
-          p.n + ' backtested trades — nowhere near enough to extend into a ' +
-          'monthly or annual figure with any confidence. Look at the width of the ' +
-          'low-to-high band above: that is how little the data actually pins down. ' : '') +
-        (monthlyPct > 20 ? (thin ? '<br><br>' : '') +
-          '<strong>This monthly rate cannot persist.</strong> The figures imply ' +
-          pct(monthlyPct, 0) + ' a month. No strategy compounds at that rate — ' +
-          'position sizes hit liquidity limits, spreads widen against you, and the ' +
-          'edge shrinks as size grows. Read the annual row as what the arithmetic ' +
-          'says, not as an outcome anyone should expect.' : '') +
-        '</div>';
+        'background:rgba(244,194,13,0.06)"><strong>Small sample.</strong> This rests ' +
+        'on just ' + p.n + ' backtested trades over ' + PS.months + ' months — too ' +
+        'few to extend into an annual figure with any confidence.</div>';
     }
 
     /* — projection table — */
     var proj = '<div class="azd-proj">' +
-      '<div class="azd-proj-row head"><div>Projection</div><div>Low end</div>' +
-      '<div>Expected</div><div>High end</div></div>' +
+      '<div class="azd-proj-row head"><div>Projection</div><div>Worst</div>' +
+      '<div>Average</div><div>Best</div></div>' +
       prow('Per trade', perTradeBase - b.half, perTradeBase, perTradeBase + b.half, true) +
-      prow('Per trading day', lo.day, mid.day, hi.day, false, pctOf(mid.day)) +
-      prow('Per month (' + TRADING_DAYS_PER_MONTH + ' sessions)' +
-        (C.compound === 'daily' && !compoundBlocked ? ' (compounded daily)' : ''),
+      prow('Per trading day', mid.day, mid.day, mid.day, false, pctOf(mid.day)) +
+      prow('Per month' + (C.compound === 'daily' && !compoundBlocked
+        ? ' (compounded daily)' : ''),
         lo.month, mid.month, hi.month, false, pctOf(mid.month)) +
       prow('Per year' + (compoundBlocked ? '' : compLabel),
         lo.year, mid.year, hi.year, false, pctOf(mid.year)) +
@@ -665,25 +747,25 @@
     var capped = C.market === 'stocks' && freq > p.tradesPerDay + 0.001;
     var basis = '<div class="azd-note" style="margin-top:1.1rem">' +
       '<strong>How this was worked out.</strong> ' + esc(p.unitName) + '. ' +
-      'The algo produced <strong>' + freq.toFixed(2) + ' signals per session</strong> on this selection over ' +
-      p.n.toLocaleString('en-IN') + ' backtested trades' +
+      'The algo produced <strong>' + freq.toFixed(2) + ' signals per session</strong> ' +
+      'on this selection over ' + p.n.toLocaleString('en-IN') + ' backtested trades' +
       (capped ? ', capped to ' + p.tradesPerDay.toFixed(2) + ' because you only have ' +
-        C.concurrent + ' position slot' + (C.concurrent > 1 ? 's' : '') : '') +
-      '. Expected = the measured average outcome. Low and high ends are the ' +
-      '<strong>95% confidence interval</strong> around that average — the ' +
-      'statistical uncertainty in the backtest, not a forecast of good or bad years. ' +
-      'A month is taken as ' + TRADING_DAYS_PER_MONTH + ' trading sessions.' +
+        C.concurrent + ' position slot' + (C.concurrent > 1 ? 's' : '') : '') + '.' +
+      '<br><br>The monthly and annual rows are <strong>not an average raised to a ' +
+      'power</strong>. They walk the actual session-by-session result across ' +
+      PS.sessions.toLocaleString('en-IN') + ' sessions and ' + PS.months +
+      ' months, carrying each period&rsquo;s closing capital into the next — losing ' +
+      'stretches included. <strong>' + PS.negMonths + ' of those ' + PS.months +
+      ' months lost money.</strong> &ldquo;Worst&rdquo; and &ldquo;Best&rdquo; are ' +
+      'the actual worst and best month, and the worst and best twelve-month stretch, ' +
+      'that occurred in the data — not a symmetric error bar.' +
       (C.compound === 'monthly'
-        ? ' Monthly compounding assumes every rupee of profit is redeployed the following month, ' +
-          'which requires the strategy to keep working at a larger size — it usually does not.'
+        ? ' Monthly reinvestment adds each month&rsquo;s profit or loss to capital for the next.'
         : C.compound === 'daily'
-        ? ' Daily compounding redeploys profit the very next session. It is the most ' +
-          'flattering assumption available and the least realistic: it ignores lot ' +
-          'sizes, liquidity, and the fact that returns are not earned smoothly.'
-        : '') +
+        ? ' Daily reinvestment does the same every session.'
+        : ' With reinvestment off, profits are withdrawn and capital stays flat.') +
       '</div>';
 
-    /* — the loss side, stated as plainly as the gain side — */
     /* Deploying the whole amount on every signal concentrates the account into
        one trade. Say so in rupees when a single stop is a big share of it —
        this is the number most people never work out for themselves. */

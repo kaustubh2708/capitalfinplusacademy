@@ -112,43 +112,126 @@ setTimeout(() => {
   const unit = 200000 / 2;
   const expT1 = unit * e.pct_at_t1 / 100;
   const expSL = unit * e.pct_at_sl / 100;
-  const tpd = Math.min(e.trades_per_session, 2);
-  const expDay = unit * (e.avg_pct_trade / 100) * tpd;
-  const expMonth = expDay * 21;
-  const rupees = s => [...s.matchAll(/[−-]?₹[\d,]+(?:\.\d+)?(?:\s?[LC]r?)?/g)].map(m => m[0]);
-  const out = $('#azd-calc-out').textContent.replace(/\s+/g, ' ');
   const fmt = v => (v < 0 ? '−₹' : '₹') + Math.abs(Math.round(v)).toLocaleString('en-IN');
-  ok('T1 scenario ₹ matches', out.includes(fmt(expT1)), fmt(expT1));
-  ok('SL scenario ₹ matches', out.includes(fmt(expSL)), fmt(expSL));
-
   const compact = v => {
     const n = Math.abs(v), s = v < 0 ? '−₹' : '₹';
     if (n >= 1e7) return s + (n / 1e7).toFixed(2) + ' Cr';
     if (n >= 1e5) return s + (n / 1e5).toFixed(2) + ' L';
     return s + Math.round(n).toLocaleString('en-IN');
   };
-  ok('daily ₹ matches', out.includes(compact(expDay)), compact(expDay));
-  ok('monthly ₹ matches', out.includes(compact(expMonth)), compact(expMonth));
+  const out = () => $('#azd-calc-out').textContent.replace(/\s+/g, ' ');
+  ok('T1 scenario ₹ matches', out().includes(fmt(expT1)), fmt(expT1));
+  ok('SL scenario ₹ matches', out().includes(fmt(expSL)), fmt(expSL));
 
-  console.log('\n— compounding —');
-  const before = $('#azd-calc-out').textContent;
-  seg('azd-compound-seg', 'monthly');
-  const after = $('#azd-calc-out').textContent;
-  ok('monthly compounding changes the annual figure', before !== after);
-  ok('monthly label shown', after.includes('compounded monthly'));
-  const r = expMonth / 200000;
-  const compYear = 200000 * (Math.pow(1 + r, 12) - 1);
-  ok('compounded-monthly annual matches',
-     after.replace(/\s+/g, ' ').includes(compact(compYear)), compact(compYear));
+  /* Independently rebuild the daily return path from D.paths and re-derive the
+     projection, exactly as the page should be doing it. */
+  function buildSeries(scoring, market, instrument, opts) {
+    const pk = (D.paths[model] || {})[scoring] || {};
+    const kind = market === 'stocks' ? 'equity' : 'options';
+    const src = pk[kind] || {};
+    const names = market === 'stocks'
+      ? (instrument === 'PORTFOLIO' ? Object.keys(src) : [instrument])
+      : [market === 'niftyopt' ? 'NIFTY 50' : instrument];
+    let a = null, z = null;
+    for (const nm of names) {
+      const c = D.coverage[nm];
+      if (!c) continue;
+      a = a === null ? c[0] : Math.min(a, c[0]);
+      z = z === null ? c[1] : Math.max(z, c[1]);
+    }
+    const N = z - a + 1;
+    const arr = new Array(N).fill(0);
+    const agg = {};
+    for (const nm of names) for (const [i, pc, n] of (src[nm] || [])) {
+      const b = agg[i] || (agg[i] = [0, 0]);
+      b[0] += pc; b[1] += n;
+    }
+    for (const k of Object.keys(agg)) {
+      const [sum, n] = agg[k];
+      let frac;
+      if (market === 'stocks') {
+        const slots = Math.max(1, opts.concurrent);
+        frac = sum * (Math.min(n, slots) / n) / slots;
+      } else {
+        const dep = opts.deploy / 100;
+        frac = sum * (Math.min(n * dep, 1) / n);
+      }
+      const j = +k - a;
+      if (j >= 0 && j < N) arr[j] = frac / 100;
+    }
+    arr.offset = a;
+    return arr;
+  }
+  const sum = a => a.reduce((x, y) => x + y, 0);
+  const grow = a => a.reduce((x, y) => x * (1 + y), 1) - 1;
+  function stats(series, mode) {
+    const off = series.offset || 0, order = [], b = {};
+    for (let i = 0; i < series.length; i++) {
+      const m = D.dates[i + off].slice(0, 7);
+      if (!(m in b)) { b[m] = []; order.push(m); }
+      b[m].push(series[i]);
+    }
+    const monthly = order.map(m => mode === 'daily' ? grow(b[m]) : sum(b[m]));
+    const dayAvg = sum(series) / series.length;
+    let year;
+    if (mode === 'none') year = dayAvg * 252;
+    else if (mode === 'monthly') {
+      const g = Math.pow(1 + grow(monthly), 1 / monthly.length) - 1;
+      year = Math.pow(1 + g, 12) - 1;
+    } else {
+      const gd = Math.pow(1 + grow(series), 1 / series.length) - 1;
+      year = Math.pow(1 + gd, 252) - 1;
+    }
+    return {
+      dayAvg, year, months: monthly.length,
+      monthAvg: sum(monthly) / monthly.length,
+      monthLo: Math.min(...monthly), monthHi: Math.max(...monthly),
+      neg: monthly.filter(v => v < 0).length
+    };
+  }
+  const S0 = buildSeries('pure', 'stocks', 'PORTFOLIO', { concurrent: 2 });
+  const P0 = stats(S0, 'none');
+  ok('daily ₹ matches the real path', out().includes(compact(P0.dayAvg * 200000)),
+     compact(P0.dayAvg * 200000));
+  ok('average month ₹ matches the real path',
+     out().includes(compact(P0.monthAvg * 200000)), compact(P0.monthAvg * 200000));
+  ok('worst month is the real worst month',
+     out().includes(compact(P0.monthLo * 200000)), compact(P0.monthLo * 200000));
+  ok('best month is the real best month',
+     out().includes(compact(P0.monthHi * 200000)), compact(P0.monthHi * 200000));
+  ok('losing-month count is stated',
+     out().includes(P0.neg + ' of those ' + P0.months + ' months lost money'),
+     P0.neg + '/' + P0.months);
+  ok('the page says it is not a power of an average',
+     out().includes('not an average raised to a power'));
 
-  seg('azd-compound-seg', 'daily');
-  const daily = $('#azd-calc-out').textContent.replace(/\s+/g, ' ');
-  const d = expDay / 200000;
-  const dYear = 200000 * (Math.pow(1 + d, 21 * 12) - 1);
-  ok('daily label shown', daily.includes('compounded daily'));
-  ok('compounded-daily annual matches', daily.includes(compact(dYear)), compact(dYear));
-  ok('daily compounding carries its own warning',
-     daily.includes('Daily compounding is a maths exercise'));
+  console.log('\n— after-costs path shows real losing months —');
+  seg('azd-scoring-seg', 'honest');
+  const Ph = stats(buildSeries('honest', 'stocks', 'PORTFOLIO', { concurrent: 2 }), 'none');
+  ok('after costs, some months lose money', Ph.neg > 0, Ph.neg + ' of ' + Ph.months);
+  ok('and the worst month is negative', Ph.monthLo < 0,
+     compact(Ph.monthLo * 200000));
+  ok('page shows that negative month', out().includes(compact(Ph.monthLo * 200000)));
+  seg('azd-scoring-seg', 'pure');
+
+  console.log('\n— compounding walks the path —');
+  const yearAvg = () => {
+    const m = out().match(/Per year[^₹]*₹[\d.,]+ ?[LC]?r?\s*(₹[\d.,]+ ?[LC]?r?)/);
+    return m ? m[1] : null;
+  };
+  const seen = {};
+  for (const mode of ['none', 'monthly', 'daily']) {
+    seg('azd-compound-seg', mode);
+    const want = compact(stats(buildSeries('pure', 'stocks', 'PORTFOLIO',
+                                           { concurrent: 2 }), mode).year * 200000);
+    ok(mode + ' annual matches an independent path compounding',
+       out().includes(want), want);
+    seen[mode] = yearAvg();
+  }
+  ok('all three compounding modes give different annual figures',
+     new Set(Object.values(seen)).size === 3, JSON.stringify(seen));
+  ok('daily carries its own caveat', (seg('azd-compound-seg', 'daily'),
+     out().includes('assumes you can resize every session')));
   seg('azd-compound-seg', 'none');
 
   console.log('\n— options & futures calculators —');
@@ -221,20 +304,6 @@ setTimeout(() => {
      !$('#azd-calc-out').textContent.includes('no after-costs option book'));
   seg('azd-scoring-seg', 'pure');
   seg('azd-market-seg', 'stocks');
-
-  console.log('\n— daily vs monthly compounding must differ —');
-  seg('azd-calc-market-seg', 'stocks');
-  amt.value = '200000'; amt.dispatchEvent(new window.Event('input'));
-  seg('azd-compound-seg', 'monthly');
-  const yM = $('#azd-calc-out').textContent.match(/Per year[^₹]*(₹[\d.,]+ ?[LC]?r?)/);
-  seg('azd-compound-seg', 'daily');
-  const yD = $('#azd-calc-out').textContent.match(/Per year[^₹]*(₹[\d.,]+ ?[LC]?r?)/);
-  ok('annual figure changes between monthly and daily compounding',
-     yM && yD && yM[1] !== yD[1], (yM && yM[1]) + ' vs ' + (yD && yD[1]));
-  seg('azd-compound-seg', 'none');
-  const yN = $('#azd-calc-out').textContent.match(/Per year[^₹]*(₹[\d.,]+ ?[LC]?r?)/);
-  ok('and again with no compounding', yN && yN[1] !== yM[1] && yN[1] !== yD[1],
-     yN && yN[1]);
 
   console.log('\n— the compounding ceiling —');
   amt.value = '200000'; amt.dispatchEvent(new window.Event('input'));

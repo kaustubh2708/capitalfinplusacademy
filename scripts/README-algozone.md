@@ -11,20 +11,27 @@ data commit — no HTML change needed.
 
 ## Refreshing the numbers
 
-In the `Trading algo` repo, on the Mac (the sandbox cannot reach Yahoo):
+In the `Trading algo` repo, on the Mac:
 
-    bash options_multi.sh          # only if the OPTIONS figures are stale
-    bash algozone.sh ~/Developer/v6
+    bash algozone.sh ~/Developer/v6        # 750 sessions = 3 years (default)
+    bash algozone.sh ~/Developer/v6 0      # the WHOLE archive, 2015 -> today
 
 That writes `output/public_stats.json` and copies it here as
 `data/algo-stats.json`. Then commit and push this repo.
+
+**Window matters, and a short one flatters.** Going from 250 to 750 sessions
+moved v2 from +0.336 to +0.286 R/trade signal-pure, and +0.139 to +0.092 after
+costs. The shipped file is 3 years because that is what fits a sandbox
+execution limit; `--days 0` on the Mac scores ~2,833 sessions per stock and is
+the better number to publish. NIFTY is the exception — its futures archive is
+only ~69 sessions deep, so NIFTY option counts stay small no matter what.
 
 ## Testing after a change
 
     npm install jsdom --no-save
     node scripts/test-algozone.js . data/algo-stats.json
 
-58 checks: it renders the real page against the real data in jsdom, drives
+62 checks: it renders the real page against the real data in jsdom, drives
 every control, and independently re-derives the calculator's arithmetic from
 the JSON. All must pass before deploying.
 
@@ -48,7 +55,17 @@ the JSON. All must pass before deploying.
 2. **Option positions are sized as a fraction of capital** (25% by default), not
    "as many lots as the money buys". The 100% setting exists but says what it
    costs you when the stop hits.
-3. **Compounding switches itself off above ~20% a month.** Twelve powers of a
+3. **Compounding walks the real path.** `algo-stats.json` carries
+   `dates`, `coverage` and `paths[model][mode][equity|options][instrument]` —
+   the actual per-session return sequence. Monthly and daily reinvestment
+   compound that sequence, carrying each period's closing capital into the
+   next, so losing months are included and the volatility drag a
+   constant-rate model hides is not. "Worst" and "Best" in the projection
+   table are the real worst/best month and twelve-month stretch in the data,
+   not a symmetric error bar. `coverage` clips each instrument to the window
+   its archive actually spans — without it, months predating an archive count
+   as flat zero-return months and hide every real loss.
+4. **Compounding switches itself off above ~20% a month.** Twelve powers of a
    thin, high-percentage option result produces figures with no physical
    meaning (₹1 lakh "becoming" ₹1,980 crore). Above the ceiling the annual row
    falls back to twelve flat months and explains why.
