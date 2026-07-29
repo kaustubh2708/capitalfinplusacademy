@@ -16,6 +16,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800;900&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/css/styles.css" />
+  <link rel="stylesheet" href="/css/algozone-dashboard.css" />
   <script src="/js/data.js"></script>
   <script src="/js/config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -382,10 +383,14 @@
   <section class="az-hero">
     <div class="az-badge">
       <span class="az-badge-dot"></span>
-      In Development · Launching Soon
+      In Development · Backtest data live
     </div>
     <h1 class="az-title">Algozone</h1>
     <p class="az-subtitle">Algorithmically shortlisted opportunities.<br>Every setup filtered through the CFA Framework.</p>
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:1.5rem">
+      <a href="#algo-performance" class="btn btn-primary">See the performance</a>
+      <a href="#algo-calculator" class="btn btn-secondary">Return calculator</a>
+    </div>
     <p class="az-sub-body">
       We scan 2,000+ NSE stocks daily so you don't have to. Algozone surfaces only the setups that match
       Pravesh's complete trading checklist — trend, structure, volume, and risk/reward — and delivers them
@@ -467,6 +472,343 @@
     </div>
   </section>
 
+  <hr class="az-divider" />
+
+  <!-- ===== PERFORMANCE BOARD ===== -->
+  <section class="azd" id="algo-performance">
+    <p class="azd-label">Backtested performance</p>
+    <h2 class="azd-heading">How the engine has actually behaved</h2>
+    <p class="azd-sub">
+      Every number below comes from replaying the CFA Structure Engine over real
+      NSE 5-minute data, trade by trade — entry, stop, both targets, exit. Nothing
+      is hand-picked and nothing is a projection. Switch between the equity,
+      stock-option and NIFTY-option views to see the same signals expressed three
+      ways.
+    </p>
+
+    <div class="azd-loading">Loading performance data…</div>
+
+    <div class="azd-needs-data" style="display:none">
+      <div class="azd-controls">
+        <div class="azd-ctl-group">
+          <div class="azd-ctl-label">Strategy version</div>
+          <div class="azd-seg" id="azd-model-seg"></div>
+        </div>
+        <div class="azd-ctl-group">
+          <div class="azd-ctl-label">Instrument type</div>
+          <div class="azd-seg" id="azd-market-seg"></div>
+        </div>
+        <div class="azd-ctl-group">
+          <div class="azd-ctl-label">Costs</div>
+          <div class="azd-seg" id="azd-scoring-seg"></div>
+        </div>
+      </div>
+
+      <div class="azd-kpis" id="azd-kpis"></div>
+
+      <div class="azd-panel">
+        <div class="azd-panel-title">Per instrument</div>
+        <div class="azd-panel-note" id="azd-board-note"></div>
+        <div class="azd-chart" id="azd-chart"></div>
+      </div>
+
+      <div class="azd-panel">
+        <div class="azd-panel-title">The full table</div>
+        <div class="azd-panel-note">
+          Tap any column heading to sort. <strong>T1</strong> and <strong>T2</strong>
+          are the two profit targets the engine sets on every trade;
+          <strong>stopped</strong> means price hit the protective stop first.
+        </div>
+        <div class="azd-tablewrap">
+          <table class="azd-table" id="azd-table"></table>
+        </div>
+      </div>
+
+      <div class="azd-note">
+        <strong>Read this before the numbers.</strong> The <em>Backtest</em> view is
+        signal-pure: it applies no brokerage, no slippage and no entry cutoff, and it
+        excludes trades still open at the 15:30 close. The <em>After costs</em> view
+        applies 0.04% costs, a 14:30 entry cutoff, a one-candle confirmation lag and
+        marks unfinished trades to the closing price. The gap between the two is
+        large and it is the honest measure of what execution takes away — always
+        look at both before drawing a conclusion.
+      </div>
+
+      <p class="azd-meta" id="azd-meta"></p>
+    </div>
+  </section>
+
+  <hr class="az-divider" />
+
+  <!-- ===== RETURN CALCULATOR ===== -->
+  <section class="azd" id="algo-calculator">
+    <p class="azd-label">Scenario calculator</p>
+    <h2 class="azd-heading">What these numbers mean on your capital</h2>
+    <p class="azd-sub">
+      Enter an amount and the calculator applies the <em>historical</em> outcome mix
+      to it — what one trade returned when Target 1 was hit, when Target 2 was hit,
+      and when the stop was hit — then extends that to a day, a month and a year.
+      This is arithmetic on past results. It is not a projection of your returns and
+      it is not a promise of any kind.
+    </p>
+
+    <div class="azd-loading">Loading calculator…</div>
+
+    <div class="azd-needs-data" style="display:none">
+      <div class="azd-calc-grid">
+        <div class="azd-panel" style="margin-bottom:0">
+          <div class="azd-field">
+            <label for="azd-calc-amount">Amount you are ready to deploy</label>
+            <div class="azd-amount-display" id="azd-amount-display">₹1,00,000</div>
+            <input class="azd-input" type="number" id="azd-calc-amount" min="5000"
+                   max="10000000" step="1000" style="margin-top:0.6rem" />
+            <input class="azd-range" type="range" id="azd-calc-range"
+                   min="3.7" max="7" step="0.01" />
+            <div class="azd-hint">₹5,000 to ₹1 crore.</div>
+          </div>
+
+          <div class="azd-field">
+            <label>Traded as</label>
+            <div class="azd-seg" id="azd-calc-market-seg" style="display:flex;width:100%"></div>
+          </div>
+
+          <div class="azd-field" id="azd-calc-instr-field">
+            <label for="azd-calc-instrument">Instrument</label>
+            <select class="azd-select" id="azd-calc-instrument"></select>
+          </div>
+
+          <div class="azd-field" id="azd-calc-deploy-field">
+            <label for="azd-calc-deploy">Capital deployed per trade</label>
+            <select class="azd-select" id="azd-calc-deploy">
+              <option value="10">10% — conservative</option>
+              <option value="25" selected>25%</option>
+              <option value="50">50%</option>
+              <option value="100">100% — everything, every trade</option>
+            </select>
+            <div class="azd-hint">
+              How much of the amount goes into any single option position. At 100%
+              one stop-loss can take out a large share of the account in one trade.
+            </div>
+          </div>
+
+          <div class="azd-field" id="azd-calc-conc-field">
+            <label for="azd-calc-concurrent">Positions held at once</label>
+            <select class="azd-select" id="azd-calc-concurrent">
+              <option value="1">1 — full amount in one trade</option>
+              <option value="2" selected>2 — split in half</option>
+              <option value="3">3 — split in thirds</option>
+              <option value="4">4</option>
+              <option value="5">5</option>
+            </select>
+            <div class="azd-hint">
+              Your capital is divided between these slots, and you cannot take more
+              trades in a day than you have slots for.
+            </div>
+          </div>
+
+          <div class="azd-field" style="margin-bottom:0">
+            <label>Reinvest profits</label>
+            <div class="azd-seg azd-seg-fill" id="azd-compound-seg"></div>
+            <div class="azd-hint">
+              <strong style="color:rgba(240,234,214,0.6)">None</strong> — profits
+              withdrawn; a year is twelve months.
+              <strong style="color:rgba(240,234,214,0.6)">Monthly</strong> — each
+              month's profit is added to capital for the next.
+              <strong style="color:rgba(240,234,214,0.6)">Daily</strong> — added
+              every session. The last is arithmetic, not a plan.
+            </div>
+          </div>
+        </div>
+
+        <div id="azd-calc-out"></div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="az-divider" />
+
+  <!-- ===== RISK DISCLOSURE ===== -->
+  <section class="azd" id="algo-risk">
+    <p class="azd-label">Before you trade any of this</p>
+    <h2 class="azd-heading">The risks, stated plainly</h2>
+    <p class="azd-sub">
+      We would rather you walked away informed than arrived optimistic. Every
+      section below describes a way this can lose you money. Read all of them.
+    </p>
+
+    <div class="azd-warn" style="margin-bottom:1.6rem">
+      <strong>The single most important sentence on this page:</strong> a backtest
+      shows what a set of rules <em>would have</em> done on data that has already
+      happened, with perfect discipline, perfect fills and no emotion. Live trading
+      has none of those things. Treat every figure here as an upper bound on what is
+      achievable, not an expectation — and assume your real result will be
+      materially lower.
+    </div>
+
+    <div class="azd-acc">
+
+      <details>
+        <summary><span class="azd-acc-tag med">Method</span>How a backtest overstates reality</summary>
+        <div class="azd-acc-body">
+          <p>Backtests fail in predictable ways, and ours is no exception:</p>
+          <ul>
+            <li><strong>Fills are assumed.</strong> The engine books the trigger
+              price. In a fast market you get a worse price, or no fill at all on
+              exactly the trades that would have run furthest.</li>
+            <li><strong>Costs bite harder than they look.</strong> Brokerage, STT,
+              exchange and GST charges are small per trade and enormous across
+              hundreds of them. On our own data, applying realistic costs removes a
+              large share of the measured edge — which is why the “After costs”
+              toggle exists and why you should use it.</li>
+            <li><strong>The same rules were tuned on the same history.</strong> When
+              a strategy is designed and measured on one dataset, some of its
+              apparent edge is a description of that dataset, not a law of markets.
+              Live results are almost always worse than backtested ones.</li>
+            <li><strong>The instruments are correlated.</strong> Sixteen NSE names
+              on one big index day are not sixteen independent bets. Trade counts
+              overstate how much diversification is really present, which makes the
+              results look statistically stronger than they are.</li>
+            <li><strong>Option prices are modelled, not quoted.</strong> Option
+              figures use a pricing model with realised volatility. Real bid-ask
+              spreads, especially on single stocks, can erase the entire edge.</li>
+          </ul>
+        </div>
+      </details>
+
+      <details>
+        <summary><span class="azd-acc-tag med">Equity</span>Intraday stocks</summary>
+        <div class="azd-acc-body">
+          <p>The mildest of the three, and still capable of losing money steadily.</p>
+          <ul>
+            <li><strong>You lose on a large minority of trades by design.</strong>
+              The stop is hit on a meaningful share of setups. That is not the
+              strategy failing — it is the strategy working. The edge, if it exists,
+              only appears across hundreds of trades.</li>
+            <li><strong>Losing runs are longer than people expect.</strong> The
+              calculator shows the worst consecutive losing streak in the backtest.
+              Live, you will sit through one of those, and it will feel like the
+              method has stopped working.</li>
+            <li><strong>Gaps ignore your stop.</strong> Intraday stops do not protect
+              against a stock opening far below your level on news.</li>
+            <li><strong>Leverage multiplies both directions.</strong> Intraday
+              margin makes a 2% adverse move a much larger loss on your own money.
+              None of the figures on this page assume borrowed capital.</li>
+            <li><strong>Liquidity is not uniform.</strong> The results above are on
+              large, liquid names. Thinner stocks behave far worse.</li>
+          </ul>
+        </div>
+      </details>
+
+      <details>
+        <summary><span class="azd-acc-tag med">Futures</span>Why we read the futures chart but never trade it</summary>
+        <div class="azd-acc-body">
+          <p>The NIFTY signals on this page are <strong>detected on the NIFTY
+            futures chart</strong> — it is the cleanest continuous intraday series
+            for the index, without the auction artefacts of the spot calculation.
+            The <strong>trade itself is a bought at-the-money option</strong>, never
+            a futures position. That is a deliberate risk decision:</p>
+          <ul>
+            <li><strong>A futures loss is not capped.</strong> An adverse gap can
+              leave you owing more than the margin you posted. A bought option
+              cannot lose more than the premium paid — you always know the worst
+              case before you enter.</li>
+            <li><strong>Margin calls arrive intraday.</strong> If the balance falls
+              below requirement the broker squares you off, usually at the worst
+              moment. Buying premium removes that mechanism entirely.</li>
+            <li><strong>One lot is large.</strong> A NIFTY futures lot controls a
+              notional value many times the margin, so a fraction-of-a-percent index
+              move is a large rupee swing. An option lot on the same signal costs a
+              few thousand rupees.</li>
+            <li><strong>You cannot size below one lot</strong> in either instrument
+              — but the option lot is affordable at account sizes where the futures
+              lot is not.</li>
+          </ul>
+          <p>If you choose to trade the signals as futures anyway, understand that
+            every figure on this page is calculated on <em>option</em> economics and
+            does not describe what futures would do. The leverage, the loss profile
+            and the margin mechanics are all different.</p>
+        </div>
+      </details>
+
+      <details>
+        <summary><span class="azd-acc-tag high">Options</span>NIFTY and stock options (buying premium)</summary>
+        <div class="azd-acc-body">
+          <p><strong>The most attractive-looking numbers on this page belong to the
+            most dangerous instrument on it.</strong> Option percentages are large
+            because the base is small — a 40% loss on premium is a normal outcome,
+            not a disaster scenario.</p>
+          <ul>
+            <li><strong>Total loss is a routine result.</strong> A bought option can
+              expire worthless. Losing 100% of the premium on a trade is ordinary,
+              not exceptional.</li>
+            <li><strong>Time decay works against you every single day.</strong> If
+              the underlying does nothing, you lose money. Being right about
+              direction but late is the same as being wrong.</li>
+            <li><strong>Volatility can crush a correct trade.</strong> A fall in
+              implied volatility can leave you losing money even when the index moves
+              your way — particularly after events.</li>
+            <li><strong>Spreads and liquidity.</strong> Away from at-the-money NIFTY
+              strikes, spreads widen sharply. On single-stock options they can be
+              wide enough to make a profitable strategy unprofitable.</li>
+            <li><strong>Our option figures are modelled.</strong> They use a
+              theoretical pricing model, not traded quotes. Treat them as the
+              optimistic end of the range.</li>
+            <li><strong>Selling options is categorically worse.</strong> Nothing on
+              this page covers option writing, which carries theoretically unlimited
+              loss. Do not extrapolate these figures to it.</li>
+          </ul>
+        </div>
+      </details>
+
+      <details>
+        <summary><span class="azd-acc-tag high">You</span>The risks that are not about the market</summary>
+        <div class="azd-acc-body">
+          <ul>
+            <li><strong>Execution discipline.</strong> A backtest never skips a
+              signal, never moves a stop, never doubles down after a loss and never
+              takes a day off. If you do any of those things, you are not trading
+              this strategy and these numbers do not describe you.</li>
+            <li><strong>Position sizing errors</strong> destroy more accounts than
+              bad strategies do. Risking too much per trade turns a normal losing
+              streak into a permanent loss.</li>
+            <li><strong>Taxes.</strong> Intraday and F&amp;O profits are taxable as
+              business income in India, with separate audit and reporting
+              requirements. None of the figures above are after tax.</li>
+            <li><strong>Regime change.</strong> Market structure changes. A rule set
+              that worked for a decade can stop working, and there is no reliable
+              way to know in advance that it has.</li>
+            <li><strong>Opportunity and psychological cost.</strong> Active intraday
+              trading demands attention every session and produces sustained stress.
+              Most people who attempt it stop within a year, and most stop at a loss.</li>
+          </ul>
+        </div>
+      </details>
+
+      <details>
+        <summary><span class="azd-acc-tag low">Scope</span>What Algozone is, and what it is not</summary>
+        <div class="azd-acc-body">
+          <ul>
+            <li>Algozone is an <strong>educational research tool</strong> that shows
+              how a rules-based structure method has behaved historically.</li>
+            <li>It is <strong>not investment advice</strong>, not a recommendation to
+              buy or sell any security, and not a portfolio management or advisory
+              service.</li>
+            <li>Capital Finplus Academy is <strong>an educational platform</strong>.
+              Please consult a SEBI-registered investment adviser before acting on
+              anything you see here.</li>
+            <li><strong>Past performance is not indicative of future results.</strong>
+              This applies to every figure on this page without exception.</li>
+            <li>Trade only capital you can afford to lose in full. If a total loss of
+              the amount you entered in the calculator would change your life,
+              the amount is too large.</li>
+          </ul>
+        </div>
+      </details>
+
+    </div>
+  </section>
+
+
   <!-- ===== GET NOTIFIED ===== -->
   <section class="az-notify">
     <div class="az-notify-box">
@@ -543,6 +885,7 @@
 
 <script src="/js/script.js"></script>
 <script src="/js/render.js"></script>
+<script src="/js/algozone-dashboard.js"></script>
 <script>
 function azNotify() {
   const emailEl = document.getElementById('az-email');

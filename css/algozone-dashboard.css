@@ -1,0 +1,493 @@
+/* ==================================================================
+   Capital Finplus Academy — Algozone performance dashboard
+   Scoped to .azd-* so it cannot collide with styles.css or the
+   existing .az-* Algozone page styles.
+   Inherits the site palette from :root in /css/styles.css
+   (--purple #F4C20D, --surface-*, --border, --muted).
+   ================================================================== */
+
+.azd {
+  padding: 0 5vw 4rem;
+  max-width: 1160px;
+  margin: 0 auto;
+}
+.azd-label {
+  text-align: center;
+  font-family: 'Manrope', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--purple);
+  margin-bottom: 0.75rem;
+}
+.azd-heading {
+  text-align: center;
+  font-family: 'Manrope', sans-serif;
+  font-weight: 800;
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  color: #fff;
+  letter-spacing: -0.02em;
+  margin-bottom: 0.6rem;
+}
+.azd-sub {
+  text-align: center;
+  max-width: 660px;
+  margin: 0 auto 2.25rem;
+  color: rgba(240, 234, 214, 0.5);
+  font-size: 0.95rem;
+  line-height: 1.7;
+}
+
+/* ── Controls ───────────────────────────────────────────────────── */
+.azd-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  justify-content: center;
+  align-items: flex-end;
+  margin-bottom: 1.75rem;
+}
+.azd-ctl-group { text-align: center; }
+.azd-ctl-label {
+  font-family: 'Manrope', sans-serif;
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(240, 234, 214, 0.38);
+  margin-bottom: 0.5rem;
+}
+.azd-seg {
+  position: relative;
+  display: inline-flex;
+  background: rgba(10, 8, 2, 0.85);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 4px;
+  gap: 0;
+}
+/* The sliding highlight. It is a single element that moves and resizes to sit
+   behind whichever button is pressed, rather than a background toggled on each
+   button — that is what makes the movement animate. */
+.azd-seg-pill {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  left: 0;
+  width: 0;
+  border-radius: 7px;
+  background: var(--purple);
+  transform: translateX(0);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+  z-index: 0;
+}
+.azd-seg button {
+  position: relative;
+  z-index: 1;
+  font-family: 'Manrope', sans-serif;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: rgba(240, 234, 214, 0.5);
+  background: transparent;
+  border: 0;
+  border-radius: 7px;
+  padding: 9px 18px;
+  cursor: pointer;
+  transition: color 0.2s ease;
+  white-space: nowrap;
+}
+.azd-seg button:hover { color: rgba(240, 234, 214, 0.85); }
+.azd-seg button[aria-pressed="true"] {
+  color: #100c02;
+  font-weight: 800;
+}
+.azd-seg button:focus-visible {
+  outline: 2px solid var(--purple);
+  outline-offset: 2px;
+}
+/* Fallback for any context where the pill cannot be measured (no layout):
+   colour the pressed button directly so the state is never invisible. */
+.azd-seg.azd-seg-nopill .azd-seg-pill { display: none; }
+.azd-seg.azd-seg-nopill button[aria-pressed="true"] { background: var(--purple); }
+/* Full-width variants used inside the calculator panel */
+.azd-seg.azd-seg-fill { display: flex; width: 100%; }
+.azd-seg.azd-seg-fill button {
+  flex: 1 1 0;
+  padding: 9px 4px;
+  text-align: center;
+  letter-spacing: 0.04em;
+}
+@media (max-width: 420px) {
+  .azd-seg.azd-seg-fill button { font-size: 0.62rem; padding: 9px 2px; }
+}
+
+/* ── KPI strip ──────────────────────────────────────────────────── */
+.azd-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.85rem;
+  margin-bottom: 1.5rem;
+}
+.azd-kpi {
+  background: rgba(244, 194, 13, 0.04);
+  border: 1px solid rgba(244, 194, 13, 0.12);
+  border-radius: 14px;
+  padding: 1.1rem 1rem;
+  text-align: center;
+}
+.azd-kpi-n {
+  font-family: 'Manrope', sans-serif;
+  font-weight: 800;
+  font-size: 1.5rem;
+  letter-spacing: -0.02em;
+  color: #fff;
+  line-height: 1.2;
+}
+.azd-kpi-n.pos { color: #4ade80; }
+.azd-kpi-n.neg { color: #f87171; }
+.azd-kpi-l {
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(240, 234, 214, 0.42);
+  margin-top: 0.35rem;
+}
+
+/* ── Panels / cards ─────────────────────────────────────────────── */
+.azd-panel {
+  background: rgba(16, 12, 2, 0.55);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 1.4rem 1.5rem;
+  margin-bottom: 1.25rem;
+}
+.azd-panel-title {
+  font-family: 'Manrope', sans-serif;
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: #fff;
+  margin-bottom: 0.25rem;
+}
+.azd-panel-note {
+  font-size: 0.78rem;
+  color: rgba(240, 234, 214, 0.4);
+  line-height: 1.6;
+  margin-bottom: 1.1rem;
+}
+
+/* ── Chart ──────────────────────────────────────────────────────── */
+.azd-chart { width: 100%; overflow-x: auto; }
+.azd-chart svg { display: block; min-width: 560px; width: 100%; height: auto; }
+.azd-bar { transition: opacity 0.15s; }
+.azd-bar:hover { opacity: 0.75; }
+.azd-axis { stroke: rgba(244, 194, 13, 0.14); stroke-width: 1; }
+.azd-tick {
+  fill: rgba(240, 234, 214, 0.38);
+  font-size: 10px;
+  font-family: 'Manrope', sans-serif;
+}
+.azd-vlabel {
+  fill: rgba(240, 234, 214, 0.75);
+  font-size: 10.5px;
+  font-weight: 700;
+  font-family: 'Manrope', sans-serif;
+}
+
+/* ── Table ──────────────────────────────────────────────────────── */
+.azd-tablewrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.azd-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.83rem;
+  min-width: 720px;
+}
+.azd-table th,
+.azd-table td {
+  padding: 9px 12px;
+  text-align: right;
+  border-bottom: 1px solid rgba(244, 194, 13, 0.09);
+  white-space: nowrap;
+}
+.azd-table th:first-child,
+.azd-table td:first-child {
+  text-align: left;
+  font-weight: 600;
+  color: #fff;
+}
+.azd-table th {
+  font-family: 'Manrope', sans-serif;
+  font-size: 0.68rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: rgba(240, 234, 214, 0.42);
+  cursor: pointer;
+  user-select: none;
+  border-bottom-color: rgba(244, 194, 13, 0.2);
+}
+.azd-table th:hover { color: var(--purple); }
+.azd-table th[data-sorted]::after {
+  content: ' ▾';
+  color: var(--purple);
+}
+.azd-table th[data-sorted="asc"]::after { content: ' ▴'; }
+.azd-table td { color: rgba(240, 234, 214, 0.78); }
+.azd-table tbody tr:hover td { background: rgba(244, 194, 13, 0.035); }
+.azd-pos { color: #4ade80; }
+.azd-neg { color: #f87171; }
+.azd-mut { color: rgba(240, 234, 214, 0.35); }
+
+/* ── Calculator ─────────────────────────────────────────────────── */
+.azd-calc-grid {
+  display: grid;
+  grid-template-columns: minmax(280px, 340px) 1fr;
+  gap: 1.25rem;
+  align-items: start;
+}
+@media (max-width: 860px) {
+  .azd-calc-grid { grid-template-columns: 1fr; }
+}
+.azd-field { margin-bottom: 1.15rem; }
+.azd-field > label {
+  display: block;
+  font-family: 'Manrope', sans-serif;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(240, 234, 214, 0.42);
+  margin-bottom: 0.5rem;
+}
+.azd-input,
+.azd-select {
+  width: 100%;
+  background: rgba(10, 8, 2, 0.8);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: #fff;
+  font-family: 'Manrope', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 600;
+  padding: 11px 13px;
+  outline: none;
+  transition: border-color 0.18s;
+}
+.azd-input:focus,
+.azd-select:focus { border-color: var(--purple); }
+.azd-select option { background: #17130a; color: #fff; }
+.azd-range {
+  width: 100%;
+  margin-top: 0.7rem;
+  accent-color: var(--purple);
+  cursor: pointer;
+}
+.azd-amount-display {
+  font-family: 'Manrope', sans-serif;
+  font-weight: 800;
+  font-size: 1.35rem;
+  color: var(--purple);
+  letter-spacing: -0.01em;
+}
+.azd-hint {
+  font-size: 0.72rem;
+  color: rgba(240, 234, 214, 0.33);
+  line-height: 1.55;
+  margin-top: 0.45rem;
+}
+.azd-switch {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: rgba(240, 234, 214, 0.72);
+}
+.azd-switch input { accent-color: var(--purple); width: 16px; height: 16px; cursor: pointer; }
+
+/* Scenario cards */
+.azd-scen {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.85rem;
+  margin-bottom: 1.1rem;
+}
+.azd-scen-card {
+  border-radius: 14px;
+  padding: 1.05rem 1rem;
+  border: 1px solid;
+  background: rgba(16, 12, 2, 0.5);
+}
+.azd-scen-card.t1 { border-color: rgba(74, 222, 128, 0.28); background: rgba(74, 222, 128, 0.05); }
+.azd-scen-card.t2 { border-color: rgba(74, 222, 128, 0.45); background: rgba(74, 222, 128, 0.09); }
+.azd-scen-card.sl { border-color: rgba(248, 113, 113, 0.32); background: rgba(248, 113, 113, 0.06); }
+.azd-scen-card.fl { border-color: rgba(240, 234, 214, 0.16); }
+.azd-scen-h {
+  font-family: 'Manrope', sans-serif;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(240, 234, 214, 0.5);
+  margin-bottom: 0.45rem;
+}
+.azd-scen-v {
+  font-family: 'Manrope', sans-serif;
+  font-weight: 800;
+  font-size: 1.35rem;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+.azd-scen-p {
+  font-size: 0.75rem;
+  color: rgba(240, 234, 214, 0.42);
+  margin-top: 0.4rem;
+  line-height: 1.5;
+}
+
+/* Projection rows */
+.azd-proj { border-top: 1px solid rgba(244, 194, 13, 0.12); }
+.azd-proj-row {
+  display: grid;
+  grid-template-columns: 1fr repeat(3, minmax(88px, 1fr));
+  gap: 0.5rem;
+  padding: 0.8rem 0;
+  border-bottom: 1px solid rgba(244, 194, 13, 0.08);
+  align-items: baseline;
+}
+.azd-proj-row.head {
+  padding-bottom: 0.5rem;
+  border-bottom-color: rgba(244, 194, 13, 0.2);
+}
+.azd-proj-row.head > * {
+  font-family: 'Manrope', sans-serif;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(240, 234, 214, 0.4);
+  text-align: right;
+}
+.azd-proj-row.head > *:first-child { text-align: left; }
+.azd-proj-k {
+  font-family: 'Manrope', sans-serif;
+  font-weight: 600;
+  font-size: 0.88rem;
+  color: rgba(240, 234, 214, 0.8);
+}
+.azd-proj-v {
+  text-align: right;
+  font-family: 'Manrope', sans-serif;
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: rgba(240, 234, 214, 0.55);
+}
+.azd-proj-v.base {
+  color: #fff;
+  font-weight: 800;
+  font-size: 1.05rem;
+}
+.azd-proj-v.neg { color: #f87171; }
+.azd-proj-sub {
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 500;
+  color: rgba(240, 234, 214, 0.3);
+  margin-top: 2px;
+}
+
+/* Warning / disclosure blocks */
+.azd-warn {
+  border: 1px solid rgba(248, 113, 113, 0.3);
+  background: rgba(248, 113, 113, 0.06);
+  border-radius: 14px;
+  padding: 1.05rem 1.2rem;
+  font-size: 0.83rem;
+  line-height: 1.7;
+  color: rgba(240, 234, 214, 0.72);
+  margin-top: 1.1rem;
+}
+.azd-warn strong { color: #fca5a5; }
+.azd-note {
+  border: 1px solid var(--border);
+  background: rgba(244, 194, 13, 0.035);
+  border-radius: 14px;
+  padding: 1.05rem 1.2rem;
+  font-size: 0.83rem;
+  line-height: 1.7;
+  color: rgba(240, 234, 214, 0.62);
+}
+.azd-note strong { color: var(--purple); }
+
+/* ── Risk accordion ─────────────────────────────────────────────── */
+.azd-acc { border-top: 1px solid rgba(244, 194, 13, 0.12); }
+.azd-acc details {
+  border-bottom: 1px solid rgba(244, 194, 13, 0.12);
+}
+.azd-acc summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 1.1rem 2.2rem 1.1rem 0;
+  position: relative;
+  font-family: 'Manrope', sans-serif;
+  font-weight: 700;
+  font-size: 1rem;
+  color: #fff;
+  transition: color 0.18s;
+}
+.azd-acc summary::-webkit-details-marker { display: none; }
+.azd-acc summary:hover { color: var(--purple); }
+.azd-acc summary::after {
+  content: '+';
+  position: absolute;
+  right: 0.35rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 1.35rem;
+  font-weight: 400;
+  color: var(--purple);
+  line-height: 1;
+}
+.azd-acc details[open] summary::after { content: '−'; }
+.azd-acc-body {
+  padding: 0 0 1.4rem;
+  font-size: 0.88rem;
+  line-height: 1.75;
+  color: rgba(240, 234, 214, 0.6);
+}
+.azd-acc-body p { margin: 0 0 0.85rem; }
+.azd-acc-body ul { margin: 0 0 0.9rem; padding-left: 1.15rem; }
+.azd-acc-body li { margin-bottom: 0.5rem; }
+.azd-acc-body strong { color: rgba(240, 234, 214, 0.92); }
+.azd-acc-tag {
+  display: inline-block;
+  font-family: 'Manrope', sans-serif;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 3px 9px;
+  border-radius: 100px;
+  margin-right: 0.6rem;
+  vertical-align: middle;
+}
+.azd-acc-tag.low { background: rgba(74, 222, 128, 0.14); color: #4ade80; border: 1px solid rgba(74, 222, 128, 0.3); }
+.azd-acc-tag.med { background: rgba(244, 194, 13, 0.14); color: var(--purple); border: 1px solid rgba(244, 194, 13, 0.3); }
+.azd-acc-tag.high { background: rgba(248, 113, 113, 0.14); color: #f87171; border: 1px solid rgba(248, 113, 113, 0.32); }
+
+.azd-loading {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: rgba(240, 234, 214, 0.35);
+  font-size: 0.9rem;
+}
+.azd-meta {
+  text-align: center;
+  font-size: 0.74rem;
+  color: rgba(240, 234, 214, 0.3);
+  margin-top: 1rem;
+  line-height: 1.7;
+}
