@@ -57,7 +57,7 @@ setTimeout(() => {
     if (!b) throw new Error('no button ' + v + ' in ' + id);
     b.click();
   };
-  for (const m of ['options', 'niftyopt', 'stocks']) {
+  for (const m of ['options', 'niftyopt', 'futures', 'stocks']) {
     seg('azd-market-seg', m);
     ok(m + ' board renders', $('#azd-table').querySelectorAll('tbody tr').length >= 1
       && !$('#azd-table').innerHTML.includes('undefined'));
@@ -72,7 +72,8 @@ setTimeout(() => {
   }
 
   console.log('\n— segmented controls track the selection —');
-  for (const [id, vals] of [['azd-market-seg', ['options', 'niftyopt', 'stocks']],
+  for (const [id, vals] of [['azd-market-seg', ['options', 'niftyopt', 'futures', 'stocks']],
+                            ['azd-period-seg', D.periods],
                             ['azd-model-seg', D.model_order],
                             ['azd-scoring-seg', ['honest', 'pure']],
                             ['azd-compound-seg', ['monthly', 'daily', 'none']]]) {
@@ -108,7 +109,8 @@ setTimeout(() => {
   $('#azd-calc-concurrent').dispatchEvent(new window.Event('change'));
 
   const model = D.model_order[0];
-  const e = D.models[model].equity.pure.overall;
+  const PER = 'All';   // the board defaults to all-time
+  const e = D.models[model].equity.pure[PER].overall;
   const unit = 200000 / 2;
   const expT1 = unit * e.pct_at_t1 / 100;
   const expSL = unit * e.pct_at_sl / 100;
@@ -242,7 +244,7 @@ setTimeout(() => {
      oSel.options.length + ' stocks');
   oSel.value = 'MARUTI';
   oSel.dispatchEvent(new window.Event('change'));
-  const o = D.options[model].pure['MARUTI'];
+  const o = D.options[model].pure[PER]['MARUTI'];
   amt.value = '200000'; amt.dispatchEvent(new window.Event('input'));
   const dep = () => +$('#azd-calc-deploy').value;
   ok('option sizing defaults to a fraction, not the whole account', dep() === 25,
@@ -266,7 +268,7 @@ setTimeout(() => {
 
   seg('azd-calc-market-seg', 'niftyopt');
   const nOut = $('#azd-calc-out').textContent.replace(/\s+/g, ' ');
-  const nifty = D.options[model].pure['NIFTY 50'];
+  const nifty = D.options[model].pure[PER]['NIFTY 50'];
   const nlots = Math.floor(200000 * dep() / 100 / nifty.invest);
   ok('NIFTY-options view uses NIFTY premiums, not the stock it replaced',
      nOut.includes(nlots + ' lot') && nOut.includes(fmt(nifty.invest)),
@@ -276,12 +278,15 @@ setTimeout(() => {
      fmt(nifty.invest * nifty.pct_t1 / 100 * nlots));
   ok('instrument dropdown hidden on the NIFTY view',
      $('#azd-calc-instr-field').style.display === 'none');
-  ok('no futures trading view remains',
-     ![...$('#azd-calc-market-seg').querySelectorAll('button')]
+  ok('futures IS offered as a fourth view (re-added on request)',
+     [...$('#azd-calc-market-seg').querySelectorAll('button')]
        .some(b => b.dataset.v === 'futures'));
-  ok('futures chart explained as signal source only, on the board',
+  ok('NIFTY detected on the index, with full history explained',
      (seg('azd-market-seg', 'niftyopt'),
-      $('#azd-board-note').textContent.includes('signal source only')));
+      $('#azd-board-note').textContent.includes('settle on the index')));
+  ok('NIFTY option sample is now a real year+, not ~40 trades',
+     D.options[model].pure[PER]['NIFTY 50'].n > 150,
+     D.options[model].pure[PER]['NIFTY 50'].n + ' trades');
 
   console.log('\n— guardrails —');
   amt.value = '5000';
@@ -297,13 +302,114 @@ setTimeout(() => {
   const optHonest = $('#azd-kpis').textContent;
   ok('options pure ≠ options after costs', optPure !== optHonest);
   ok('option cost basis is stated', $('#azd-board-note').textContent.includes('of premium per round trip'));
-  const pw = D.options[model].pure['NIFTY 50'].win_pct;
-  const hw = D.options[model].honest['NIFTY 50'].win_pct;
+  const pw = D.options[model].pure[PER]['NIFTY 50'].win_pct;
+  const hw = D.options[model].honest[PER]['NIFTY 50'].win_pct;
   ok('after-costs win rate is lower', hw < pw, pw + '% -> ' + hw + '%');
   ok('no "no after-costs option book" message remains',
      !$('#azd-calc-out').textContent.includes('no after-costs option book'));
   seg('azd-scoring-seg', 'pure');
   seg('azd-market-seg', 'stocks');
+
+  console.log('\n— new: period selector, futures tab, win streak —');
+  ok('period list exported', Array.isArray(D.periods) && D.periods.length >= 3,
+     (D.periods || []).join('/'));
+  seg('azd-market-seg', 'stocks');
+  seg('azd-scoring-seg', 'honest');
+  const kpiFor = p => { seg('azd-period-seg', p); return $('#azd-kpis').textContent; };
+  const k1 = kpiFor('1M'), kAll = kpiFor('All');
+  ok('switching period changes the board', k1 !== kAll);
+  ok('period is named in the board note',
+     (seg('azd-period-seg', '3M'), $('#azd-board-note').textContent.includes('last 3M')));
+  seg('azd-period-seg', 'All');
+  ok('win streak shown', $('#azd-kpis').textContent.includes('best winning run'));
+  ok('loss streak still shown', $('#azd-kpis').textContent.includes('worst losing run'));
+  const eh = D.models[model].equity.honest;
+  ok('1M trade count < all-time', eh['1M'].overall.entries < eh.All.overall.entries,
+     eh['1M'].overall.entries + ' vs ' + eh.All.overall.entries);
+  ok('win streak >= loss streak all-time',
+     eh.All.overall.max_win_streak >= eh.All.overall.max_loss_streak,
+     eh.All.overall.max_win_streak + ' vs ' + eh.All.overall.max_loss_streak);
+  seg('azd-market-seg', 'futures');
+  const fTxt = $('#azd-kpis').textContent + $('#azd-board-note').textContent;
+  ok('futures tab renders', fTxt.includes('futures trades') && fTxt.includes('margin per lot'));
+  ok('futures carries an explicit caution',
+     $('#azd-board-note').textContent.includes('do not recommend this'));
+  ok('futures table has a row', $('#azd-table').querySelectorAll('tbody tr').length === 1);
+  seg('azd-market-seg', 'stocks');
+  seg('azd-scoring-seg', 'pure');
+
+  console.log('\n— risk of ruin —');
+  seg('azd-scoring-seg', 'honest');
+  seg('azd-calc-market-seg', 'options');
+  $('#azd-calc-instrument').value = 'MARUTI';
+  $('#azd-calc-instrument').dispatchEvent(new window.Event('change'));
+  $('#azd-calc-deploy').value = '100';
+  $('#azd-calc-deploy').dispatchEvent(new window.Event('change'));
+  amt.value = '10000'; amt.dispatchEvent(new window.Event('input'));
+  const ruinTxt = () => $('#azd-calc-out').textContent.replace(/\s+/g, ' ');
+
+  /* Independently re-derive the wipe-out sequence from the JSON. */
+  const om = D.options[model].honest[PER]['MARUTI'];
+  const eqm = D.models[model].equity.honest[PER].per_instrument['MARUTI'];
+  let cap = 10000, stops = 0;
+  while (stops < 200) {
+    const lots = Math.floor(cap / om.invest);
+    if (lots < 1) break;
+    cap -= lots * om.invest * Math.abs(om.pct_sl / 100);
+    stops++;
+  }
+  ok('ruin panel is shown', ruinTxt().includes('losing run'));
+  ok('stops-to-ruin matches an independent simulation',
+     ruinTxt().includes('finished after ' + stops), stops + ' stops');
+  ok('remaining balance matches', ruinTxt().includes(fmt(cap)), fmt(cap));
+  ok('observed losing streak is quoted',
+     ruinTxt().includes(eqm.max_loss_streak + ' in a row'),
+     eqm.max_loss_streak + ' in a row');
+  ok('flagged fatal because the streak exceeds what the account survives',
+     stops <= eqm.max_loss_streak &&
+     ruinTxt().includes('does not survive a losing run'));
+  ok('and the annual figure is explicitly disowned',
+     ruinTxt().includes('would not have lived to complete'));
+  ok('an implausible rate is called out whatever the reinvest setting',
+     ruinTxt().includes('This rate cannot persist'));
+
+  amt.value = '200000'; amt.dispatchEvent(new window.Event('input'));
+  seg('azd-calc-market-seg', 'stocks');
+  ok('a sane stock configuration is not flagged fatal',
+     !ruinTxt().includes('does not survive a losing run'));
+  ok('...but still states what the streak costs',
+     /leaves you with ₹[\d,]+ — \d+% of what you started/.test(ruinTxt()));
+  $('#azd-calc-deploy').value = '25';
+  $('#azd-calc-deploy').dispatchEvent(new window.Event('change'));
+
+  console.log('\n— NIFTY futures in the calculator —');
+  seg('azd-scoring-seg', 'honest');       // be explicit — the board is shared state
+  seg('azd-calc-market-seg', 'futures');
+  amt.value = '1000000'; amt.dispatchEvent(new window.Event('input'));
+  const fpure = D.models[model].futures.honest[PER];
+  const flots = Math.floor(1000000 / fpure.margin_per_lot);
+  const fOut = () => $('#azd-calc-out').textContent.replace(/\s+/g, ' ');
+  ok('futures lots sized off margin', fOut().includes(flots + ' lot'),
+     flots + ' lots x ' + fmt(fpure.margin_per_lot));
+  ok('futures T1 rupees match', fOut().includes(fmt(fpure.rs_at_t1 * flots)),
+     fmt(fpure.rs_at_t1 * flots));
+  ok('futures SL rupees match', fOut().includes(fmt(fpure.rs_at_sl * flots)));
+  ok('deployment % hidden for futures',
+     $('#azd-calc-deploy-field').style.display === 'none');
+  ok('instrument dropdown hidden for futures',
+     $('#azd-calc-instr-field').style.display === 'none');
+  ok('ruin panel sizes futures by margin, consistent with the scenario card',
+     fOut().includes(flots + ' lot') &&
+     fOut().includes(fmt(fpure.rs_at_sl * flots)),
+     flots + ' lots, stop ' + fmt(fpure.rs_at_sl * flots));
+  ok('futures has its own rupee path',
+     !!((D.paths[model].pure.futures || {})['NIFTY 50'] || []).length,
+     ((D.paths[model].pure.futures || {})['NIFTY 50'] || []).length + ' sessions');
+  amt.value = '100000'; amt.dispatchEvent(new window.Event('input'));
+  ok('under one lot of margin -> explicit warning, no fantasy number',
+     fOut().includes('cannot be sized below one lot'));
+  amt.value = '200000'; amt.dispatchEvent(new window.Event('input'));
+  seg('azd-calc-market-seg', 'stocks');
 
   console.log('\n— the compounding ceiling —');
   amt.value = '200000'; amt.dispatchEvent(new window.Event('input'));

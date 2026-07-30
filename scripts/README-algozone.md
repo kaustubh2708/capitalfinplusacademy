@@ -31,7 +31,7 @@ only ~69 sessions deep, so NIFTY option counts stay small no matter what.
     npm install jsdom --no-save
     node scripts/test-algozone.js . data/algo-stats.json
 
-62 checks: it renders the real page against the real data in jsdom, drives
+93 checks: it renders the real page against the real data in jsdom, drives
 every control, and independently re-derives the calculator's arithmetic from
 the JSON. All must pass before deploying.
 
@@ -65,10 +65,50 @@ the JSON. All must pass before deploying.
    not a symmetric error bar. `coverage` clips each instrument to the window
    its archive actually spans — without it, months predating an archive count
    as flat zero-return months and hide every real loss.
-4. **Compounding switches itself off above ~20% a month.** Twelve powers of a
+4. **Risk of ruin is modelled, not implied.** Every other figure is an
+   average, and averages assume the account survives to collect them. The
+   calculator walks a run of consecutive stop-losses using the chosen sizing,
+   re-sizing after each loss, and compares it with the longest losing streak
+   the model actually produced. If that run ends the account the panel turns
+   red and explicitly disowns the annual figure above it. Example: MARUTI
+   options, ₹10,000, 100% deployed — dead after 2 stops, against a 6-loss
+   streak in the data.
+5. **Compounding switches itself off above ~20% a month.** Twelve powers of a
    thin, high-percentage option result produces figures with no physical
    meaning (₹1 lakh "becoming" ₹1,980 crore). Above the ceiling the annual row
    falls back to twelve flat months and explains why.
+
+## Shape of `data/algo-stats.json`
+
+Everything is keyed by **model → scoring mode → trailing window**:
+
+    models[v2].equity.honest["3M"].overall
+    models[v2].equity.honest["3M"].per_instrument["MARUTI"]
+    models[v2].futures.honest["3M"]
+    options[v2].honest["3M"]["MARUTI"]
+    paths[v2].honest.equity["MARUTI"]      # window-independent, indexed into dates[]
+
+Windows are `1M / 3M / 6M / 1Y / All`, measured back from the newest session,
+matching `backtest_range._periods` so the public board and the internal hub
+agree on what "last 3M" means. The page's Period control switches between them.
+
+## The four market views
+
+`Stocks` (cash equity) · `Stock Options` (15 names, index excluded) ·
+`NIFTY Options` (index only) · `NIFTY Futures`. All four appear on **both** the
+board and the calculator.
+
+Sizing differs by view and the calculator hides the controls that do not apply:
+stocks split capital across N concurrent slots; options buy premium up to a
+chosen deployment %; **futures are sized in whole lots against margin**, so
+neither the deployment % nor the instrument dropdown is shown. Futures also use
+their own rupees-per-lot path (`paths[model][mode].futures`) rather than the
+equity % path — margin, not notional, is the capital at risk.
+
+The futures tab exists because it was asked for and because the option numbers
+are derived from the same signals — but it carries a standing caution in the
+board note: futures losses are not capped at the margin posted, and one lot
+needs ~₹1.65L. It is not a recommendation.
 
 ## We read the NIFTY futures chart; we do not trade futures
 
