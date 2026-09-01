@@ -404,7 +404,7 @@ if (bookingForm) {
         message: goalMessage
       });
     }
-    fetch('/api/notify-form', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'booking', name, phone, email, experience: document.getElementById('f-exp')?.value || '', message: goalMessage }) }).catch(() => {});
+    fetch('/api/notify-form', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'booking', name, phone, email, experience: document.getElementById('f-exp')?.value || '', message: goalMessage, _hp: document.getElementById('f-hp')?.value || '', _t: window._cfpFt || 0 }) }).catch(() => {});
     const calUrl = window.cfpCalendlyUrl;
     if (calUrl) {
       // Close our modal first, then open Calendly's own popup overlay
@@ -505,7 +505,7 @@ if (contactForm) {
     if (typeof cfpRecordSubmission === 'function') {
       cfpRecordSubmission({ type: 'contact', name: _cName, email: _cEmail, phone: _cPhone, experience: '', message: _cMsg });
     }
-    fetch('/api/notify-form', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'contact', name: _cName, email: _cEmail, phone: _cPhone, message: _cMsg }) }).catch(() => {});
+    fetch('/api/notify-form', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'contact', name: _cName, email: _cEmail, phone: _cPhone, message: _cMsg, _hp: document.getElementById('c-hp')?.value || '', _t: window._cfpFt || 0 }) }).catch(() => {});
     contactForm.style.display = 'none';
     if (contactSuccess) contactSuccess.classList.add('show');
   });

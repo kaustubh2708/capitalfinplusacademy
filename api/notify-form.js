@@ -79,7 +79,18 @@ module.exports = async (req, res) => {
     return res.status(429).json({ ok: false, reason: 'Too many submissions. Please wait a few minutes and try again.' });
   }
 
-  const { type, name, email, phone, message, experience } = req.body || {};
+  const { type, name, email, phone, message, experience, _hp, _t } = req.body || {};
+
+  // Honeypot: bots fill hidden fields, humans don't
+  if (_hp && String(_hp).trim()) {
+    return res.status(200).json({ ok: true }); // silent accept — don't tip off the bot
+  }
+
+  // Time delta: reject if form was submitted impossibly fast (< 2.5s after page load)
+  const now = Date.now();
+  if (_t && typeof _t === 'number' && _t > 0 && (now - _t) < 2500) {
+    return res.status(200).json({ ok: true });
+  }
   const typeLabel = type ? String(type).charAt(0).toUpperCase() + String(type).slice(1) : 'Form';
 
   // Admin notification
@@ -106,7 +117,9 @@ module.exports = async (req, res) => {
 
   // Confirmation email to the user (fire-and-forget)
   const resendKey = process.env.RESEND_API_KEY;
-  const userEmail = String(email || '').trim().toLowerCase();
+  const rawEmail = String(email || '').trim().toLowerCase();
+  // Normalize Gmail dot-trick so i.b.ef.a@gmail.com deduplicates with ibefa@gmail.com
+  const userEmail = rawEmail.replace(/^([^@]+)(@gmail\.com)$/, (_, local, domain) => local.replace(/\./g, '') + domain);
   if (resendKey && userEmail && userEmail.includes('@')) {
     const subject = CONFIRMATION_SUBJECTS[String(type || '').toLowerCase()] || 'We\'ve received your enquiry — CFA Academy';
     fetch('https://api.resend.com/emails', {

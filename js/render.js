@@ -602,6 +602,7 @@
       <div id="mc-popup-pitch">
         <div class="mc-popup-title">Want to join our free masterclass?</div>
         <p class="mc-popup-sub">Live every Saturday, 11:00 AM. Next session: <strong>${formatMasterclassDate(nextSaturday11AM())}</strong>.</p>
+        <input type="text" id="mc-hp" name="website" tabindex="-1" autocomplete="off" style="opacity:0;position:absolute;left:-9999px;height:0;width:0;" aria-hidden="true" />
         <div class="form-group"><label for="mc-name">Name</label><input class="form-input" id="mc-name" type="text" placeholder="Rahul Sharma" /></div>
         <div class="form-group"><label for="mc-email">Email</label><input class="form-input" id="mc-email" type="email" placeholder="rahul@example.com" /></div>
         <button type="button" class="btn btn-primary" id="mc-submit" style="width:100%;justify-content:center;">Reserve My Spot →</button>
@@ -639,7 +640,7 @@
       if (typeof cfpRecordSubmission === 'function') {
         cfpRecordSubmission({ type: 'masterclass', name, email, phone: '', experience: '', message: 'Free Masterclass — ' + sessionDate });
       }
-      fetch('/api/notify-form', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'masterclass', name, email, message: 'Free Masterclass — ' + sessionDate }) }).catch(() => {});
+      fetch('/api/notify-form', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'masterclass', name, email, message: 'Free Masterclass — ' + sessionDate, _hp: document.getElementById('mc-hp')?.value || '', _t: window._cfpFt || 0 }) }).catch(() => {});
       localStorage.setItem('cfp_masterclass_submitted', '1');
       document.getElementById('mc-popup-pitch').style.display = 'none';
       document.getElementById('mc-popup-success').style.display = 'block';

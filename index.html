@@ -173,6 +173,7 @@
   <script src="/js/config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="/js/supabase-client.js"></script>
+  <script>window._cfpFt = Date.now();</script>
   <!-- Google tag (gtag.js) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-XGWVGC4N1G"></script>
   <script>
@@ -203,6 +204,7 @@
     </div>
     <div class="modal-body" id="modal-form-body">
       <form id="booking-form" novalidate>
+        <input type="text" id="f-hp" name="website" tabindex="-1" autocomplete="off" style="opacity:0;position:absolute;left:-9999px;height:0;width:0;" aria-hidden="true" />
         <div class="modal-form-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
           <div class="form-group">
             <label for="f-name">Full Name <span class="required-asterisk">*</span></label>
@@ -949,6 +951,7 @@
             <p style="font-size:0.85rem;color:var(--muted);">We'll get back to you within 24 hours.</p>
           </div>
           <form id="contact-form" novalidate>
+            <input type="text" id="c-hp" name="website" tabindex="-1" autocomplete="off" style="opacity:0;position:absolute;left:-9999px;height:0;width:0;" aria-hidden="true" />
             <div class="form-row">
               <div class="form-group">
                 <label for="c-name">Name</label>
