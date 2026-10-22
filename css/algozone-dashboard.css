@@ -248,6 +248,31 @@
 .azd-table th[data-sorted="asc"]::after { content: ' ▴'; }
 .azd-table td { color: rgba(240, 234, 214, 0.78); }
 .azd-table tbody tr:hover td { background: rgba(244, 194, 13, 0.035); }
+/* Month-by-month heatmap */
+.azd-hm-table { min-width: 860px; font-size: 0.78rem; }
+.azd-hm-table th { cursor: default; text-align: center; }
+.azd-hm-table th:hover { color: rgba(240, 234, 214, 0.42); }
+.azd-hm-table td { padding: 4px 3px; text-align: center; }
+.azd-hm-table tbody tr:hover td { background: none; }
+.azd-hm-table td.azd-pos { color: #4ade80; }
+.azd-hm-table td.azd-neg { color: #f87171; }
+.azd-hm {
+  display: block;
+  padding: 7px 4px;
+  border-radius: 6px;
+  color: #fff;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.azd-hm-empty { background: rgba(240, 234, 214, 0.04); min-height: 2.1em; }
+.azd-hm-legend {
+  display: flex; flex-wrap: wrap; gap: 0.4rem 1.1rem;
+  margin-top: 0.8rem; font-size: 0.76rem; color: rgba(240, 234, 214, 0.65);
+}
+.azd-hm-legend i {
+  display: inline-block; width: 9px; height: 9px; border-radius: 2px;
+  margin-right: 5px; vertical-align: middle;
+}
 .azd-pos { color: #4ade80; }
 .azd-neg { color: #f87171; }
 .azd-mut { color: rgba(240, 234, 214, 0.35); }

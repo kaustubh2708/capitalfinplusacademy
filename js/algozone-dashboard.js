@@ -683,6 +683,78 @@
 
 
   /* ---------------------------------------------------------------
+     MONTH-BY-MONTH P&L HEATMAP
+     Same session path the calculator uses, in ₹ on the chosen capital,
+     not compounded. One row per year: 12 months, total, the year's
+     deepest peak-to-trough drop, and return / max drawdown.
+     --------------------------------------------------------------- */
+  var MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+  function inrShort(v) {
+    var n = Math.abs(v), s;
+    if (n >= 10000000) s = (n / 10000000).toFixed(2) + 'Cr';
+    else if (n >= 100000) s = (n / 100000).toFixed(2) + 'L';
+    else if (n >= 1000) s = (n / 1000).toFixed(1) + 'k';
+    else s = String(Math.round(n));
+    return (v < 0 ? '−' : '') + s;
+  }
+
+  function renderMonthly() {
+    var box = el('azd-monthly');
+    if (!box) return;
+    var series = dailySeries(), dates = DATA.dates || [], off = series.offset || 0;
+    var years = {}, order = [];
+    for (var i = 0; i < series.length; i++) {
+      var d = dates[i + off] || '';
+      var y = d.slice(0, 4), m = +d.slice(5, 7) - 1;
+      if (!y || m < 0) continue;
+      var Y = years[y];
+      if (!Y) { Y = years[y] = { m: {}, cum: 0, peak: 0, dd: 0 }; order.push(y); }
+      var v = series[i] * C.amount;
+      Y.m[m] = (Y.m[m] || 0) + v;
+      Y.cum += v;
+      if (Y.cum > Y.peak) Y.peak = Y.cum;
+      if (Y.cum - Y.peak < Y.dd) Y.dd = Y.cum - Y.peak;
+    }
+
+    var maxAbs = 0, green = 0, red = 0;
+    order.forEach(function (y) {
+      Object.keys(years[y].m).forEach(function (k) {
+        var v = years[y].m[k];
+        maxAbs = Math.max(maxAbs, Math.abs(v));
+        if (v > 0) green++; else if (v < 0) red++;
+      });
+    });
+
+    function cellHtml(v) {
+      if (v == null) return '<td><span class="azd-hm azd-hm-empty"></span></td>';
+      var a = maxAbs ? 0.12 + 0.6 * Math.abs(v) / maxAbs : 0.12;
+      var rgb = v >= 0 ? '74,222,128' : '248,113,113';
+      return '<td><span class="azd-hm" style="background:rgba(' + rgb + ',' + a.toFixed(2) +
+        ')" title="' + inrExact(v) + ' · ' + pct(v / C.amount * 100) + '">' + inrShort(v) + '</span></td>';
+    }
+
+    var head = '<tr><th>Year</th>' + MON.map(function (m) { return '<th>' + m + '</th>'; }).join('') +
+      '<th>Total</th><th>Max DD</th><th>R/MDD</th></tr>';
+    var body = order.map(function (y) {
+      var Y = years[y], cells = '';
+      for (var m = 0; m < 12; m++) cells += cellHtml(Y.m[m]);
+      var rmdd = Y.dd < 0 ? (Y.cum / -Y.dd).toFixed(1) : '—';
+      return '<tr><td>' + y + '</td>' + cells +
+        '<td class="' + cls(Y.cum) + '"><strong>' + inrShort(Y.cum) + '</strong></td>' +
+        '<td class="azd-neg">' + (Y.dd < 0 ? inrShort(Y.dd) : '0') + '</td>' +
+        '<td>' + rmdd + '</td></tr>';
+    }).join('');
+
+    box.innerHTML =
+      '<div class="azd-tablewrap"><table class="azd-table azd-hm-table"><thead>' + head +
+      '</thead><tbody>' + body + '</tbody></table></div>' +
+      '<div class="azd-hm-legend"><span><i style="background:#4ade80"></i>' + green +
+      ' green</span><span><i style="background:#f87171"></i>' + red + ' red</span>' +
+      '<span class="azd-mut">On ' + inrExact(C.amount) + ', not compounded. Hover a cell for the %.</span></div>';
+  }
+
+  /* ---------------------------------------------------------------
      RISK OF RUIN
 
      Every other number on this page is an average, and averages assume the
@@ -742,7 +814,9 @@
   function renderCalc() {
     var p = profile();
     var out = el('azd-calc-out');
+    renderMonthly();
     if (!p.ok) {
+      el('azd-monthly').innerHTML = '';
       out.innerHTML = '<div class="azd-warn"><strong>Not enough capital for one unit.</strong> ' +
         esc(p.note || 'No backtested trades for this combination.') + '</div>';
       return;
