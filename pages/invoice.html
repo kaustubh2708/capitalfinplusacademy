@@ -79,9 +79,72 @@
     return '₹' + Number(n).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
+  /* inv: { number, date, name, email, phone, paymentRef, orderRef, method,
+            item, itemSub, amounts: {taxable, gst, total}, paid } */
+  function render(inv) {
+    var out = document.getElementById('out');
+    var s = inv.amounts;
+    document.title = 'Invoice ' + inv.number + ' | Capital Finplus Academy';
+    out.className = 'sheet';
+    out.innerHTML =
+      '<div class="top">' +
+        '<div class="brand">' + esc(SELLER.name) +
+          '<small>' + esc([SELLER.address, SELLER.gstin ? 'GSTIN: ' + SELLER.gstin : '', SELLER.email].filter(Boolean).join('\n')) + '</small></div>' +
+        '<div class="title"><h1>' + (SELLER.gstin ? 'TAX INVOICE' : 'INVOICE') + '</h1><div>' +
+          'Invoice no. <strong>' + esc(inv.number) + '</strong><br>' +
+          'Date <strong>' + esc(inv.date) + '</strong></div></div>' +
+      '</div>' +
+      '<div class="parties">' +
+        '<div><div class="label">Billed to</div><p>' +
+          esc(inv.name || '—') + (inv.email ? '<br>' + esc(inv.email) : '') + (inv.phone ? '<br>' + esc(inv.phone) : '') + '</p></div>' +
+        '<div><div class="label">Payment</div><p>' +
+          (inv.paymentRef ? 'Reference ' + esc(inv.paymentRef) + '<br>' : '') +
+          (inv.orderRef ? 'Order ' + esc(inv.orderRef) + '<br>' : '') +
+          (inv.method ? 'Method ' + esc(String(inv.method).toUpperCase()) : '') +
+          (!inv.paymentRef && !inv.orderRef && !inv.method ? '—' : '') + '</p></div>' +
+      '</div>' +
+      '<table><thead><tr><th>Description</th><th>SAC</th><th class="r">Qty</th><th class="r">Amount</th></tr></thead><tbody>' +
+        '<tr><td><strong>' + esc(inv.item) + '</strong><br><span style="color:#8a836f;font-size:0.8rem;">' + esc(inv.itemSub) + '</span></td>' +
+        '<td>' + esc(SELLER.sac) + '</td><td class="r">1</td><td class="r">' + money(s.taxable) + '</td></tr>' +
+      '</tbody></table>' +
+      '<div class="totals">' +
+        '<div><span>Taxable value</span><span>' + money(s.taxable) + '</span></div>' +
+        '<div><span>GST @ 18%</span><span>' + money(s.gst) + '</span></div>' +
+        '<div class="grand"><span>' + (inv.paid ? 'Total paid' : 'Total due') + '</span><span>' + money(s.total) + '</span></div>' +
+      '</div>' +
+      (inv.paid ? '<span class="paid">PAID</span>' : '') +
+      '<div class="foot">This is a computer-generated invoice and needs no signature. ' +
+        'Capital Finplus Academy is an educational platform; nothing purchased here is investment advice. ' +
+        'Questions about this invoice: ' + esc(SELLER.email) + '.</div>';
+    document.getElementById('print-btn').style.display = '';
+  }
+
+  function longDate(d) {
+    return new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
+  }
+
   (async function () {
     var out = document.getElementById('out');
-    var paymentId = new URLSearchParams(location.search).get('p');
+    var params = new URLSearchParams(location.search);
+
+    /* Manual invoice built in the admin panel. The details travel through
+       this browser's localStorage, never the URL. */
+    if (params.get('draft')) {
+      var d = null;
+      try { d = JSON.parse(localStorage.getItem('cfp_invoice_draft') || 'null'); } catch (e) {}
+      if (!d) { out.textContent = 'No invoice draft found — generate it again from the admin panel.'; return; }
+      document.querySelector('.bar a').href = '/cfa-mgmt/';
+      render({
+        number: d.number, date: longDate(d.date), name: d.name, email: d.email, phone: d.phone,
+        paymentRef: d.paymentRef, method: d.method, item: d.item,
+        itemSub: d.itemSub || 'Capital Finplus Academy — online learning programme',
+        amounts: d.gstIncluded ? window.cfpInvoice.split(d.amount) : window.cfpInvoice.fromTaxable(d.amount),
+        paid: d.paid
+      });
+      return;
+    }
+
+    var paymentId = params.get('p');
     if (!paymentId) { out.textContent = 'No invoice selected.'; return; }
 
     var sess = await window.cfpSupabase.auth.getSession();
@@ -100,41 +163,13 @@
     if (!res.ok) { out.textContent = p.error || 'Could not load this invoice.'; return; }
     if (!p.amount) { out.textContent = 'This enrollment was complimentary, so there is no invoice for it.'; return; }
 
-    var s = window.cfpInvoice.split(p.amount);
-    var date = new Date(p.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
-    document.title = 'Invoice ' + window.cfpInvoice.invoiceNumber(p) + ' | Capital Finplus Academy';
-
-    out.className = 'sheet';
-    out.innerHTML =
-      '<div class="top">' +
-        '<div class="brand">' + esc(SELLER.name) +
-          '<small>' + esc([SELLER.address, SELLER.gstin ? 'GSTIN: ' + SELLER.gstin : '', SELLER.email].filter(Boolean).join('\n')) + '</small></div>' +
-        '<div class="title"><h1>' + (SELLER.gstin ? 'TAX INVOICE' : 'INVOICE') + '</h1><div>' +
-          'Invoice no. <strong>' + esc(window.cfpInvoice.invoiceNumber(p)) + '</strong><br>' +
-          'Date <strong>' + esc(date) + '</strong></div></div>' +
-      '</div>' +
-      '<div class="parties">' +
-        '<div><div class="label">Billed to</div><p>' +
-          esc(p.name || '—') + '<br>' + esc(p.email) + (p.phone ? '<br>' + esc(p.phone) : '') + '</p></div>' +
-        '<div><div class="label">Payment</div><p>' +
-          'Reference ' + esc(p.paymentRef || '—') + '<br>' +
-          (p.orderRef ? 'Order ' + esc(p.orderRef) + '<br>' : '') +
-          (p.method ? 'Method ' + esc(String(p.method).toUpperCase()) : '') + '</p></div>' +
-      '</div>' +
-      '<table><thead><tr><th>Description</th><th>SAC</th><th class="r">Qty</th><th class="r">Amount</th></tr></thead><tbody>' +
-        '<tr><td><strong>' + esc(p.course) + '</strong><br><span style="color:#8a836f;font-size:0.8rem;">Capital Finplus Academy — online learning programme</span></td>' +
-        '<td>' + esc(SELLER.sac) + '</td><td class="r">1</td><td class="r">' + money(s.taxable) + '</td></tr>' +
-      '</tbody></table>' +
-      '<div class="totals">' +
-        '<div><span>Taxable value</span><span>' + money(s.taxable) + '</span></div>' +
-        '<div><span>GST @ 18%</span><span>' + money(s.gst) + '</span></div>' +
-        '<div class="grand"><span>Total paid</span><span>' + money(s.total) + '</span></div>' +
-      '</div>' +
-      '<span class="paid">PAID</span>' +
-      '<div class="foot">This is a computer-generated invoice and needs no signature. ' +
-        'Capital Finplus Academy is an educational platform; nothing purchased here is investment advice. ' +
-        'Questions about this invoice: ' + esc(SELLER.email) + '.</div>';
-    document.getElementById('print-btn').style.display = '';
+    render({
+      number: window.cfpInvoice.invoiceNumber(p), date: longDate(p.createdAt),
+      name: p.name, email: p.email, phone: p.phone,
+      paymentRef: p.paymentRef, orderRef: p.orderRef, method: p.method,
+      item: p.course, itemSub: 'Capital Finplus Academy — online learning programme',
+      amounts: window.cfpInvoice.split(p.amount), paid: true
+    });
   })();
 </script>
 </body>

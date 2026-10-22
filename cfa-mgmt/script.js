@@ -164,7 +164,7 @@ function switchPanel(id) {
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
   document.getElementById('panel-' + id).classList.add('active');
   document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.panel === id));
-  const titles = { dashboard: 'Dashboard', hero: 'Hero Section', about: 'About / Founder', courses: 'Courses & Pricing', comparison: 'Comparison Table', testimonials: 'Testimonials', 'blog-list': 'All Articles', 'blog-new': 'New Article', 'bt-list': 'All Backtests', 'bt-new': 'New Backtest', students: 'Students', 'manual-enroll': 'Manual Enroll', transactions: 'Transactions', submissions: 'Form Submissions', 'contact-info': 'Contact & Integrations', 'page-content': 'Blog & Backtesting Pages', newsletter: 'Newsletter', 'send-newsletter': 'Send Newsletter', 'playlist-videos': 'Playlist Videos', coupons: 'Coupons', 'academy-pdf': 'Academy PDF' };
+  const titles = { dashboard: 'Dashboard', hero: 'Hero Section', about: 'About / Founder', courses: 'Courses & Pricing', comparison: 'Comparison Table', testimonials: 'Testimonials', 'blog-list': 'All Articles', 'blog-new': 'New Article', 'bt-list': 'All Backtests', 'bt-new': 'New Backtest', students: 'Students', 'manual-enroll': 'Manual Enroll', transactions: 'Transactions', invoices: 'Invoices', submissions: 'Form Submissions', 'contact-info': 'Contact & Integrations', 'page-content': 'Blog & Backtesting Pages', newsletter: 'Newsletter', 'send-newsletter': 'Send Newsletter', 'playlist-videos': 'Playlist Videos', coupons: 'Coupons', 'academy-pdf': 'Academy PDF' };
   document.getElementById('topbar-title').textContent = titles[id] || id;
   if (id === 'blog-list') renderBlogTable();
   if (id === 'testimonials') renderTestimonials();
@@ -173,6 +173,7 @@ function switchPanel(id) {
   if (id === 'students') renderStudents();
   if (id === 'manual-enroll') renderManualEnroll();
   if (id === 'transactions') renderTransactions();
+  if (id === 'invoices') renderInvoices();
   if (id === 'submissions') renderSubmissions();
   if (id === 'newsletter') renderNewsletter();
   if (id === 'send-newsletter') renderSendNewsletter();
@@ -1114,6 +1115,73 @@ async function renderTransactions() {
     </tr>`;
   }).join('') || '<tr><td colspan="7" class="empty-state">No transactions yet. Once a customer pays via Razorpay, it will appear here automatically.</td></tr>';
 }
+
+/* ── INVOICES: manual invoice for offline payments. Hands the details to
+   /pages/invoice.html through localStorage (never the URL), not stored. ── */
+async function renderInvoices() {
+  const dateEl = document.getElementById('inv-date');
+  if (!dateEl.value) dateEl.value = new Date().toISOString().slice(0, 10);
+  const numEl = document.getElementById('inv-number');
+  if (!numEl.value) {
+    const d = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    numEl.value = 'CFA/' + window.cfpInvoice.financialYear(d) + '/M' +
+      String(d.getFullYear()).slice(2) + pad(d.getMonth() + 1) + pad(d.getDate()) + pad(d.getHours()) + pad(d.getMinutes());
+  }
+  const { data } = await window.cfpSupabase.from('courses').select('name, price').order('name');
+  document.getElementById('inv-courses').innerHTML = (data || [])
+    .map(c => `<option value="${escAttr(c.name)}">${escHtml(c.price || '')}</option>`).join('');
+  cfpInvoicePreview();
+}
+
+function cfpInvoicePreview() {
+  const amount = parseFloat(document.getElementById('inv-amount').value);
+  const el = document.getElementById('inv-preview');
+  if (!(amount > 0)) { el.textContent = ''; return; }
+  const s = document.getElementById('inv-gst').value === 'included'
+    ? window.cfpInvoice.split(amount) : window.cfpInvoice.fromTaxable(amount);
+  const f = n => '₹' + n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  el.textContent = `Taxable ${f(s.taxable)} + GST ${f(s.gst)} = Total ${f(s.total)}`;
+}
+
+/* Picking a course fills its current price (pre-GST, as listed on the site). */
+document.getElementById('inv-item').addEventListener('change', function () {
+  const opt = [...document.getElementById('inv-courses').options].find(o => o.value === this.value);
+  const price = opt && parseFloat(String(opt.textContent).replace(/[^\d.]/g, ''));
+  if (price > 0) {
+    document.getElementById('inv-amount').value = price;
+    document.getElementById('inv-gst').value = 'add';
+  }
+  cfpInvoicePreview();
+});
+document.getElementById('inv-amount').addEventListener('input', cfpInvoicePreview);
+document.getElementById('inv-gst').addEventListener('change', cfpInvoicePreview);
+
+document.getElementById('inv-generate-btn').addEventListener('click', function () {
+  const v = id => document.getElementById(id).value.trim();
+  const msg = document.getElementById('inv-msg');
+  const amount = parseFloat(v('inv-amount'));
+  const missing = [!v('inv-name') && 'customer name', !v('inv-item') && 'item', !(amount > 0) && 'amount', !v('inv-number') && 'invoice number'].filter(Boolean);
+  if (missing.length) {
+    msg.textContent = 'Please fill in: ' + missing.join(', ') + '.';
+    msg.style.display = 'block';
+    return;
+  }
+  msg.style.display = 'none';
+  try {
+    localStorage.setItem('cfp_invoice_draft', JSON.stringify({
+      number: v('inv-number'), date: v('inv-date') || new Date().toISOString().slice(0, 10),
+      name: v('inv-name'), email: v('inv-email'), phone: v('inv-phone'),
+      item: v('inv-item'), amount, gstIncluded: v('inv-gst') === 'included',
+      paid: !!v('inv-paid'), method: v('inv-method'), paymentRef: v('inv-ref')
+    }));
+  } catch (e) {
+    msg.textContent = 'This browser blocked local storage, so the invoice could not be opened.';
+    msg.style.display = 'block';
+    return;
+  }
+  window.open('/pages/invoice.html?draft=1', '_blank', 'noopener');
+});
 
 /* ── FORM SUBMISSIONS (live from Supabase `form_submissions`) ── */
 async function renderSubmissions() {

@@ -16,6 +16,13 @@
     return { taxable: taxable, gst: gst, total: total };
   }
 
+  /* The other direction: a pre-GST price with 18% added on top. */
+  function fromTaxable(taxable) {
+    taxable = Math.round((Number(taxable) || 0) * 100) / 100;
+    var gst = Math.round(taxable * GST_RATE * 100) / 100;
+    return { taxable: taxable, gst: gst, total: Math.round((taxable + gst) * 100) / 100 };
+  }
+
   /* Indian financial year runs April–March: Oct 2026 → "2026-27". */
   function financialYear(date) {
     var d = new Date(date);
@@ -30,7 +37,7 @@
     return 'CFA/' + financialYear(payment.createdAt) + '/' + ref.slice(-8).toUpperCase();
   }
 
-  var api = { split: split, financialYear: financialYear, invoiceNumber: invoiceNumber };
+  var api = { split: split, fromTaxable: fromTaxable, financialYear: financialYear, invoiceNumber: invoiceNumber };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.cfpInvoice = api;
 })(this);
