@@ -1,6 +1,9 @@
 /* POST /api/manual-enroll
    Admin-only: invite or resolve a user by email, create enrollment + payment
    row, and send the same welcome email as a real Razorpay purchase.
+   Also hosts the admin student actions (revoke / add-enrollment /
+   delete-student) and `action: 'invoice'`, which any signed-in user may
+   call for their OWN payment (lives here to stay under Vercel's 12-function cap).
 
    Body: { email, courseId, enrollType, notes, adminToken }
    adminToken: the admin's Supabase access_token (verified server-side).
@@ -36,7 +39,38 @@ module.exports = async (req, res) => {
   const { data: { user: caller }, error: authErr } = await supabase.auth.getUser(adminToken);
   if (authErr || !caller) return res.status(401).json({ error: 'Invalid admin session.' });
   const { data: callerProfile } = await supabase.from('profiles').select('is_admin').eq('id', caller.id).maybeSingle();
-  if (!callerProfile || !callerProfile.is_admin) return res.status(403).json({ error: 'Caller is not an admin.' });
+  const isAdmin = !!(callerProfile && callerProfile.is_admin);
+
+  /* ── INVOICE: the only action open to non-admins — a student may read
+     their own payment, an admin may read any. ── */
+  if (body.action === 'invoice') {
+    const { paymentId } = body;
+    if (!paymentId) return res.status(400).json({ error: 'paymentId required.' });
+    const { data: p, error } = await supabase
+      .from('payments')
+      .select('id, user_id, amount, status, created_at, razorpay_payment_id, razorpay_order_id, raw_response, courses(name), profiles(full_name, email)')
+      .eq('id', paymentId)
+      .maybeSingle();
+    if (error) return res.status(500).json({ error: error.message });
+    if (!p || (!isAdmin && p.user_id !== caller.id)) return res.status(404).json({ error: 'Invoice not found.' });
+    const raw = p.raw_response || {};
+    const notes = raw.notes || {};
+    return res.status(200).json({
+      id: p.id,
+      amount: Number(p.amount) || 0,
+      status: p.status,
+      createdAt: p.created_at,
+      paymentRef: p.razorpay_payment_id,
+      orderRef: p.razorpay_order_id,
+      method: raw.method || (raw.manual_notes !== undefined ? 'offline' : ''),
+      course: (p.courses && p.courses.name) || '',
+      name: notes.name || (p.profiles && p.profiles.full_name) || '',
+      email: notes.email || raw.email || (p.profiles && p.profiles.email) || '',
+      phone: notes.phone || raw.contact || ''
+    });
+  }
+
+  if (!isAdmin) return res.status(403).json({ error: 'Caller is not an admin.' });
 
   /* ── REVOKE: delete one enrollment row by id ── */
   if (body.action === 'revoke') {

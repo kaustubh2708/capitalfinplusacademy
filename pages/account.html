@@ -542,6 +542,7 @@
             </div>
             ${enrolledDate ? `<div style="font-size:0.76rem;color:var(--muted);margin-bottom:0.6rem;">Enrolled ${enrolledDate}</div>` : ''}
             <p style="color:var(--muted);font-size:0.88rem;line-height:1.6;">${config.desc}</p>
+            ${e.payment_id ? `<a href="/pages/invoice.html?p=${encodeURIComponent(e.payment_id)}" target="_blank" rel="noopener" style="display:inline-block;margin-top:0.75rem;font-size:0.8rem;font-weight:700;color:var(--accent,#F4C20D);text-decoration:none;">Download invoice →</a>` : ''}
           </div>`;
       }).join('');
       const enrolledNames = cfpEnrollments.map(e => e.courses && e.courses.name).filter(Boolean);
@@ -684,7 +685,7 @@
       try {
         const { data, error } = await window.cfpSupabase
           .from('enrollments')
-          .select('status, purchased_at, courses(name)')
+          .select('status, purchased_at, payment_id, courses(name)')
           .eq('user_id', user.id)
           .eq('status', 'active');
         if (error) throw error;

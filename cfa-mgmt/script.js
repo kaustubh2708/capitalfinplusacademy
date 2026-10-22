@@ -1104,7 +1104,7 @@ async function renderTransactions() {
     const courseName = (t.courses && t.courses.name) || '—';
     return `
     <tr>
-      <td class="mono">${escHtml(t.razorpay_payment_id || '—')}</td>
+      <td class="mono">${escHtml(t.razorpay_payment_id || '—')}${Number(t.amount) > 0 ? `<br><a href="/pages/invoice.html?p=${encodeURIComponent(t.id)}" target="_blank" rel="noopener" style="font-size:0.74rem;color:var(--accent,#F4C20D);">Invoice ↗</a>` : ''}</td>
       <td>${escHtml(customerName)}<br><span style="font-size:0.74rem;color:var(--text-muted)">${escHtml(customerEmail)}</span></td>
       <td>${escHtml(courseName)}</td>
       <td>₹${Number(t.amount || 0).toLocaleString('en-IN')}</td>

@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Invoice | Capital Finplus Academy</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Manrope', Arial, sans-serif; background: #ece9e1; color: #1d1a12; padding: 32px 16px; }
+    .bar { max-width: 780px; margin: 0 auto 16px; display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+    .bar a, .bar button { font: 600 0.85rem 'Manrope', sans-serif; padding: 10px 18px; border-radius: 8px; cursor: pointer; text-decoration: none; }
+    .bar a { color: #1d1a12; border: 1px solid #c9c3b3; background: #fff; }
+    .bar button { background: #F4C20D; border: none; color: #1d1a12; }
+    .sheet { max-width: 780px; margin: 0 auto; background: #fff; border-radius: 10px; padding: 48px; box-shadow: 0 4px 24px rgba(0,0,0,0.08); }
+    .top { display: flex; justify-content: space-between; gap: 24px; flex-wrap: wrap; border-bottom: 3px solid #F4C20D; padding-bottom: 24px; margin-bottom: 28px; }
+    .brand { font-weight: 800; font-size: 1.25rem; letter-spacing: 0.02em; }
+    .brand small { display: block; font-weight: 400; font-size: 0.8rem; color: #6b6555; margin-top: 6px; line-height: 1.6; white-space: pre-line; }
+    .title { text-align: right; }
+    .title h1 { font-size: 1.6rem; font-weight: 800; letter-spacing: 0.08em; }
+    .title div { font-size: 0.82rem; color: #6b6555; margin-top: 6px; line-height: 1.7; }
+    .title strong { color: #1d1a12; }
+    .parties { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 28px; }
+    .label { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #9a927d; margin-bottom: 6px; }
+    .parties p { font-size: 0.88rem; line-height: 1.7; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+    th { text-align: left; font-size: 0.68rem; letter-spacing: 0.1em; text-transform: uppercase; color: #9a927d; padding: 10px 8px; border-bottom: 1px solid #e3ded0; }
+    td { padding: 14px 8px; border-bottom: 1px solid #f0ece2; vertical-align: top; }
+    .r { text-align: right; white-space: nowrap; }
+    .totals { margin-left: auto; width: 300px; max-width: 100%; margin-top: 16px; font-size: 0.88rem; }
+    .totals div { display: flex; justify-content: space-between; padding: 7px 8px; }
+    .totals .grand { border-top: 2px solid #1d1a12; margin-top: 6px; padding-top: 12px; font-weight: 800; font-size: 1.05rem; }
+    .paid { display: inline-block; margin-top: 24px; padding: 6px 14px; border-radius: 100px; background: #e5f7ec; color: #17803d; font-weight: 700; font-size: 0.78rem; letter-spacing: 0.06em; }
+    .foot { margin-top: 36px; padding-top: 18px; border-top: 1px solid #e3ded0; font-size: 0.74rem; color: #8a836f; line-height: 1.7; }
+    .msg { max-width: 780px; margin: 60px auto; text-align: center; font-size: 0.95rem; color: #6b6555; }
+    .msg a { color: #1d1a12; font-weight: 700; }
+    @media (max-width: 600px) {
+      .sheet { padding: 28px 20px; }
+      .title { text-align: left; }
+      .parties { grid-template-columns: 1fr; }
+    }
+    @media print {
+      body { background: #fff; padding: 0; }
+      .bar { display: none; }
+      .sheet { box-shadow: none; border-radius: 0; padding: 0; max-width: none; }
+    }
+  </style>
+  <script src="/js/config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/js/supabase-client.js"></script>
+  <script src="/js/invoice.js"></script>
+</head>
+<body>
+  <div class="bar">
+    <a href="/pages/account.html">← Back</a>
+    <button type="button" onclick="window.print()" id="print-btn" style="display:none;">Print / Save as PDF</button>
+  </div>
+  <div id="out" class="msg">Loading invoice…</div>
+
+<script>
+  /* Seller details printed on every invoice. Fill in GSTIN + address
+     once registered — the GSTIN line is hidden while it is empty. */
+  var SELLER = {
+    name: 'Capital Finplus Advizors',
+    address: '',          // e.g. 'Street, City, State – PIN'
+    gstin: '',            // e.g. '07ABCDE1234F1Z5'
+    email: 'connect@capitalfinplusadvizors.com',
+    sac: '999293'         // SAC: commercial training & coaching services
+  };
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+    });
+  }
+  function money(n) {
+    return '₹' + Number(n).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  (async function () {
+    var out = document.getElementById('out');
+    var paymentId = new URLSearchParams(location.search).get('p');
+    if (!paymentId) { out.textContent = 'No invoice selected.'; return; }
+
+    var sess = await window.cfpSupabase.auth.getSession();
+    var token = sess && sess.data && sess.data.session && sess.data.session.access_token;
+    if (!token) {
+      out.innerHTML = 'Please <a href="/pages/account.html">log in</a> to view this invoice.';
+      return;
+    }
+
+    var res = await fetch('/api/manual-enroll', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'invoice', paymentId: paymentId, adminToken: token })
+    });
+    var p = await res.json().catch(function () { return {}; });
+    if (!res.ok) { out.textContent = p.error || 'Could not load this invoice.'; return; }
+    if (!p.amount) { out.textContent = 'This enrollment was complimentary, so there is no invoice for it.'; return; }
+
+    var s = window.cfpInvoice.split(p.amount);
+    var date = new Date(p.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
+    document.title = 'Invoice ' + window.cfpInvoice.invoiceNumber(p) + ' | Capital Finplus Academy';
+
+    out.className = 'sheet';
+    out.innerHTML =
+      '<div class="top">' +
+        '<div class="brand">' + esc(SELLER.name) +
+          '<small>' + esc([SELLER.address, SELLER.gstin ? 'GSTIN: ' + SELLER.gstin : '', SELLER.email].filter(Boolean).join('\n')) + '</small></div>' +
+        '<div class="title"><h1>' + (SELLER.gstin ? 'TAX INVOICE' : 'INVOICE') + '</h1><div>' +
+          'Invoice no. <strong>' + esc(window.cfpInvoice.invoiceNumber(p)) + '</strong><br>' +
+          'Date <strong>' + esc(date) + '</strong></div></div>' +
+      '</div>' +
+      '<div class="parties">' +
+        '<div><div class="label">Billed to</div><p>' +
+          esc(p.name || '—') + '<br>' + esc(p.email) + (p.phone ? '<br>' + esc(p.phone) : '') + '</p></div>' +
+        '<div><div class="label">Payment</div><p>' +
+          'Reference ' + esc(p.paymentRef || '—') + '<br>' +
+          (p.orderRef ? 'Order ' + esc(p.orderRef) + '<br>' : '') +
+          (p.method ? 'Method ' + esc(String(p.method).toUpperCase()) : '') + '</p></div>' +
+      '</div>' +
+      '<table><thead><tr><th>Description</th><th>SAC</th><th class="r">Qty</th><th class="r">Amount</th></tr></thead><tbody>' +
+        '<tr><td><strong>' + esc(p.course) + '</strong><br><span style="color:#8a836f;font-size:0.8rem;">Capital Finplus Academy — online learning programme</span></td>' +
+        '<td>' + esc(SELLER.sac) + '</td><td class="r">1</td><td class="r">' + money(s.taxable) + '</td></tr>' +
+      '</tbody></table>' +
+      '<div class="totals">' +
+        '<div><span>Taxable value</span><span>' + money(s.taxable) + '</span></div>' +
+        '<div><span>GST @ 18%</span><span>' + money(s.gst) + '</span></div>' +
+        '<div class="grand"><span>Total paid</span><span>' + money(s.total) + '</span></div>' +
+      '</div>' +
+      '<span class="paid">PAID</span>' +
+      '<div class="foot">This is a computer-generated invoice and needs no signature. ' +
+        'Capital Finplus Academy is an educational platform; nothing purchased here is investment advice. ' +
+        'Questions about this invoice: ' + esc(SELLER.email) + '.</div>';
+    document.getElementById('print-btn').style.display = '';
+  })();
+</script>
+</body>
+</html>
