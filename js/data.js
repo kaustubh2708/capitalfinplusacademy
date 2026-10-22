@@ -523,29 +523,15 @@ function cfpRecordTransaction(tx) {
   cfpSaveData(data);
 }
 
-/* Record a new form submission (booking modal / contact form / masterclass).
-   Writes to Supabase (form_submissions allows public insert via RLS) so the
-   admin sees every lead from any visitor's device, not just whichever
-   browser happens to load the admin dashboard's old localStorage copy. The
-   localStorage write is kept too as a same-browser fallback/cache. */
+/* Record a new form submission (booking modal / contact form / masterclass)
+   in this browser's localStorage cache only. The Supabase form_submissions
+   row is written server-side by /api/notify-form, AFTER its bot checks
+   (honeypot, submit timing) — a browser insert here would let bots skip them. */
 function cfpRecordSubmission(sub) {
   const data = cfpLoadData();
   data.submissions = data.submissions || [];
   data.submissions.unshift(Object.assign({ id: Date.now(), date: new Date().toLocaleString('en-IN') }, sub));
   cfpSaveData(data);
-
-  if (typeof window !== 'undefined' && window.cfpSupabase) {
-    window.cfpSupabase.from('form_submissions').insert({
-      type: sub.type || 'contact',
-      name: sub.name || '',
-      email: sub.email || '',
-      phone: sub.phone || '',
-      message: sub.message || '',
-      metadata: { experience: sub.experience || '' }
-    }).then(function (res) {
-      if (res.error) console.error('cfpRecordSubmission: Supabase insert failed', res.error);
-    });
-  }
 }
 
 /* Record a newsletter signup (blog page "Stay in the Loop" form). Course

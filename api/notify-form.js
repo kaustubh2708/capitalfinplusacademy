@@ -1,8 +1,10 @@
 /* ==============================================
    Vercel Serverless Function — POST /api/notify-form
    Fire-and-forget handler for form submissions (booking, contact, masterclass).
+   Bot checks first (honeypot `_hp`, submit timing `_t`) — bots get a silent 200.
    1. Sends admin alert to connect@capitalfinplusadvizors.com
    2. Sends confirmation email to the person who submitted
+   3. Writes the form_submissions row + newsletter row (service role)
    Always returns 200.
    ============================================== */
 
@@ -134,17 +136,33 @@ module.exports = async (req, res) => {
     }).catch(e => console.error('notify-form: confirmation email failed', e));
   }
 
-  // Add form submitter to newsletter (fire-and-forget)
+  // Store the lead + add to newsletter. Awaited: Vercel may freeze the
+  // function as soon as the response is sent, dropping unawaited writes.
   const { SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY } = process.env;
-  if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY && userEmail && userEmail.includes('@')) {
+  if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-    supabase.from('newsletter_subscribers').insert({
-      email: userEmail,
-      name: String(name || '').trim(),
-      source: 'form'
-    }).then(({ error }) => {
-      if (error && error.code !== '23505') console.error('notify-form: newsletter insert failed', error);
-    });
+    const writes = [
+      supabase.from('form_submissions').insert({
+        type: String(type || 'contact').toLowerCase(),
+        name: String(name || '').trim(),
+        email: rawEmail,
+        phone: String(phone || '').trim(),
+        message: String(message || '').trim(),
+        metadata: { experience: experience || '' }
+      }).then(({ error }) => {
+        if (error) console.error('notify-form: form_submissions insert failed', error);
+      })
+    ];
+    if (userEmail && userEmail.includes('@')) {
+      writes.push(supabase.from('newsletter_subscribers').insert({
+        email: userEmail,
+        name: String(name || '').trim(),
+        source: 'form'
+      }).then(({ error }) => {
+        if (error && error.code !== '23505') console.error('notify-form: newsletter insert failed', error);
+      }));
+    }
+    await Promise.all(writes);
   }
 
   return res.status(200).json({ ok: true });
